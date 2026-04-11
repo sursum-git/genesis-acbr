@@ -1,0 +1,11 @@
+services:
+  App\Service\AcbrCep\AcbrCepMtService: ~
+
+  App\State\AcbrCep\AcbrCepConfiguracaoProvider: ~
+  App\State\AcbrCep\AcbrCepConfiguracaoProcessor: ~
+  App\State\AcbrCep\AcbrCepConsultaCepProcessor: ~
+  App\State\AcbrCep\AcbrCepConsultaLogradouroProcessor: ~
+
+  App\EventSubscriber\AcbrCepExceptionSubscriber:
+    tags:
+      - { name: kernel.event_subscriber }

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ACBr Hub</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Projeto-ACBr-Oficial/Docker/main/PHP/img/favico-acbr.png" type="image/x-icon">
+    <style>
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background-image: url('https://raw.githubusercontent.com/Projeto-ACBr-Oficial/Docker/main/PHP/img/background-php.jpg');
+            background-size: cover;
+            background-position: center;
+        }
+        .panel {
+            width: min(92vw, 720px);
+            padding: 32px;
+            border-radius: 18px;
+            background: rgba(18, 26, 39, 0.88);
+            box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+            color: white;
+            text-align: center;
+        }
+        .logo {
+            width: 120px;
+            height: 120px;
+            margin-bottom: 18px;
+        }
+        h1 {
+            margin: 0 0 10px;
+            font-size: 32px;
+        }
+        p {
+            margin: 0 0 28px;
+            color: #d6deeb;
+        }
+        .actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px;
+        }
+        .actions a {
+            display: block;
+            padding: 18px 20px;
+            border-radius: 12px;
+            text-decoration: none;
+            color: white;
+            background: #333c4e;
+            transition: background-color 0.25s;
+            font-size: 18px;
+        }
+        .actions a:hover {
+            background: #f4ad24;
+        }
+    </style>
+</head>
+<body>
+    <div class="panel">
+        <a href="https://projetoacbr.com.br/">
+            <img class="logo" src="https://raw.githubusercontent.com/Projeto-ACBr-Oficial/Docker/main/PHP/img/favico-acbr.png" alt="ACBr Logo">
+        </a>
+        <h1>ACBr Hub</h1>
+        <p>Escolha entre a documentação das APIs convertidas e os demos legados.</p>
+        <div class="actions">
+            <a href="{{ apisUrl }}">Explorar APIs</a>
+            <a href="{{ demosUrl }}">Abrir Demos</a>
+        </div>
+    </div>
+</body>
+</html>

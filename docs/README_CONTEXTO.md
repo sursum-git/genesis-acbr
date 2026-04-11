@@ -33,3 +33,11 @@ Esse catalogo deve seguir estas regras:
 - programas encerrados nao devem ser apagados fisicamente da tabela principal; devem receber `ended_at` e status de encerrado
 - encerramentos tambem devem ser registrados no historico
 - a referencia operacional desse catalogo fica documentada em `docs/CATALOGO_PROGRAMAS_SQLITE.md`
+
+## Topologia Local
+
+Esta pasta `/dados_containers/www` e um bind mount usado por um container Docker.
+
+O servidor web da aplicacao roda dentro do container e a exposicao HTTP acontece pela porta `8089`.
+
+Ao validar paginas e fluxos web localmente, a verificacao deve considerar o acesso pela porta `8089`, e nao assumir um servidor ativo diretamente no host em `127.0.0.1:80`.

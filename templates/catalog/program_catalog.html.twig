@@ -341,11 +341,11 @@
                     <p>Filtre por nome, código, caminho ou texto da explicação.</p>
                 </div>
 
-                <form class="search-form" method="get" action="/catalogo-programas">
+                <form class="search-form" method="get" action="/catalogo-programas/">
                     <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nfe, cep, schemas, legado...">
                     <button type="submit">Buscar</button>
                     {% if search != '' %}
-                        <a href="/catalogo-programas">Limpar</a>
+                        <a href="/catalogo-programas/">Limpar</a>
                     {% endif %}
                 </form>
 
@@ -356,7 +356,7 @@
                         {% for program in programs %}
                             <a
                                 class="program-item{% if selectedProgram and selectedProgram.code == program.code %} is-active{% endif %}"
-                                href="/catalogo-programas?programa={{ program.code }}{% if search != '' %}&q={{ search|url_encode }}{% endif %}"
+                                href="/catalogo-programas/?programa={{ program.code }}{% if search != '' %}&q={{ search|url_encode }}{% endif %}"
                             >
                                 <strong>{{ program.name }}</strong>
                                 <p>{{ program.description }}</p>

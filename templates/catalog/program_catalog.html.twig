@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catálogo de Programas</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Projeto-ACBr-Oficial/Docker/main/PHP/img/favico-acbr.png" type="image/x-icon">
+    <style>
+        :root {
+            --bg: #f2ede2;
+            --panel: #fffaf1;
+            --ink: #1e1f1c;
+            --muted: #5f6156;
+            --line: #d8cfbf;
+            --accent: #a63d2f;
+            --accent-2: #d9a441;
+            --chip: #ece2ce;
+            --shadow: 0 22px 60px rgba(57, 43, 16, 0.15);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            color: var(--ink);
+            background:
+                radial-gradient(circle at top left, rgba(217, 164, 65, 0.25), transparent 24%),
+                radial-gradient(circle at bottom right, rgba(166, 61, 47, 0.14), transparent 22%),
+                linear-gradient(135deg, #efe6d6 0%, #f8f3ea 48%, #ece0ce 100%);
+        }
+
+        .shell {
+            width: min(1240px, calc(100vw - 32px));
+            margin: 24px auto;
+            padding: 24px;
+            border-radius: 24px;
+            background: rgba(255, 250, 241, 0.92);
+            box-shadow: var(--shadow);
+            backdrop-filter: blur(4px);
+        }
+
+        .hero {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;
+            gap: 20px;
+            align-items: end;
+            margin-bottom: 24px;
+        }
+
+        .hero h1 {
+            margin: 0 0 8px;
+            font-size: clamp(34px, 5vw, 58px);
+            line-height: 0.96;
+            letter-spacing: -0.04em;
+        }
+
+        .hero p {
+            margin: 0;
+            font-size: 17px;
+            line-height: 1.6;
+            color: var(--muted);
+            max-width: 62ch;
+        }
+
+        .hero-card {
+            padding: 18px;
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            background: linear-gradient(180deg, #fffdf8 0%, #f4ebdc 100%);
+        }
+
+        .hero-card strong {
+            display: block;
+            margin-bottom: 8px;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--accent);
+        }
+
+        .hero-card div {
+            font-size: 32px;
+            line-height: 1;
+        }
+
+        .layout {
+            display: grid;
+            grid-template-columns: minmax(320px, 420px) minmax(0, 1fr);
+            gap: 20px;
+        }
+
+        .panel {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: var(--panel);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--line);
+            background: linear-gradient(180deg, rgba(236, 226, 206, 0.72) 0%, rgba(255, 250, 241, 0.95) 100%);
+        }
+
+        .panel-header h2 {
+            margin: 0 0 6px;
+            font-size: 22px;
+        }
+
+        .panel-header p {
+            margin: 0;
+            color: var(--muted);
+            line-height: 1.5;
+        }
+
+        .search-form {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 10px;
+            padding: 18px 20px;
+            border-bottom: 1px solid var(--line);
+        }
+
+        .search-form input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid #c8bda9;
+            border-radius: 12px;
+            background: #fffdf8;
+            font: inherit;
+        }
+
+        .search-form button,
+        .search-form a,
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px 16px;
+            border-radius: 12px;
+            border: 0;
+            text-decoration: none;
+            font: inherit;
+            cursor: pointer;
+        }
+
+        .search-form button {
+            color: white;
+            background: var(--accent);
+        }
+
+        .search-form a,
+        .back-link {
+            color: var(--ink);
+            background: var(--chip);
+        }
+
+        .program-list {
+            padding: 10px;
+            max-height: 72vh;
+            overflow: auto;
+        }
+
+        .program-item {
+            display: block;
+            padding: 14px;
+            border-radius: 14px;
+            text-decoration: none;
+            color: inherit;
+            transition: transform 0.18s ease, background-color 0.18s ease;
+        }
+
+        .program-item + .program-item {
+            margin-top: 8px;
+        }
+
+        .program-item:hover,
+        .program-item.is-active {
+            background: #f4ebdc;
+            transform: translateY(-1px);
+        }
+
+        .program-item strong {
+            display: block;
+            margin-bottom: 6px;
+            font-size: 18px;
+        }
+
+        .program-item p {
+            margin: 0 0 10px;
+            color: var(--muted);
+            line-height: 1.45;
+        }
+
+        .chips {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .chip {
+            padding: 6px 10px;
+            border-radius: 999px;
+            background: var(--chip);
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .details {
+            padding: 22px;
+        }
+
+        .details h3 {
+            margin: 0 0 12px;
+            font-size: 34px;
+            line-height: 1;
+        }
+
+        .details .meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 18px;
+        }
+
+        .details .meta span {
+            padding: 7px 11px;
+            border-radius: 999px;
+            background: var(--chip);
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .details .block + .block {
+            margin-top: 20px;
+        }
+
+        .details h4 {
+            margin: 0 0 8px;
+            font-size: 15px;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            color: var(--accent);
+        }
+
+        .details p {
+            margin: 0;
+            line-height: 1.7;
+            color: #34362f;
+        }
+
+        .history {
+            margin-top: 26px;
+            border-top: 1px solid var(--line);
+            padding-top: 22px;
+        }
+
+        .history-item {
+            padding: 14px 0;
+            border-bottom: 1px solid #ebe1d0;
+        }
+
+        .history-item:last-child {
+            border-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .history-item header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .history-item strong {
+            font-size: 16px;
+        }
+
+        .history-item time {
+            color: var(--muted);
+            font-size: 14px;
+        }
+
+        .history-item p {
+            margin: 0 0 8px;
+        }
+
+        .empty {
+            padding: 22px;
+            color: var(--muted);
+        }
+
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-top: 20px;
+        }
+
+        @media (max-width: 960px) {
+            .hero,
+            .layout {
+                grid-template-columns: 1fr;
+            }
+
+            .program-list {
+                max-height: none;
+            }
+
+            .footer {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="shell">
+        <section class="hero">
+            <div>
+                <h1>Catálogo de Programas</h1>
+                <p>Consulta local do inventário técnico do projeto, com descrição detalhada e histórico de atualização dos módulos cadastrados no banco SQLite.</p>
+            </div>
+            <div class="hero-card">
+                <strong>Total Cadastrado</strong>
+                <div>{{ programs|length }}</div>
+            </div>
+        </section>
+
+        <section class="layout">
+            <aside class="panel">
+                <div class="panel-header">
+                    <h2>Programas</h2>
+                    <p>Filtre por nome, código, caminho ou texto da explicação.</p>
+                </div>
+
+                <form class="search-form" method="get" action="/catalogo-programas">
+                    <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nfe, cep, schemas, legado...">
+                    <button type="submit">Buscar</button>
+                    {% if search != '' %}
+                        <a href="/catalogo-programas">Limpar</a>
+                    {% endif %}
+                </form>
+
+                {% if programs is empty %}
+                    <div class="empty">Nenhum programa encontrado para a busca atual.</div>
+                {% else %}
+                    <div class="program-list">
+                        {% for program in programs %}
+                            <a
+                                class="program-item{% if selectedProgram and selectedProgram.code == program.code %} is-active{% endif %}"
+                                href="/catalogo-programas?programa={{ program.code }}{% if search != '' %}&q={{ search|url_encode }}{% endif %}"
+                            >
+                                <strong>{{ program.name }}</strong>
+                                <p>{{ program.description }}</p>
+                                <div class="chips">
+                                    <span class="chip">{{ program.code }}</span>
+                                    <span class="chip">{{ program.category }}</span>
+                                    <span class="chip">{{ program.status }}</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </aside>
+
+            <main class="panel">
+                {% if selectedProgram %}
+                    <div class="panel-header">
+                        <h2>Detalhes</h2>
+                        <p>Estado atual do programa selecionado e seu histórico registrado.</p>
+                    </div>
+
+                    <div class="details">
+                        <h3>{{ selectedProgram.name }}</h3>
+
+                        <div class="meta">
+                            <span>{{ selectedProgram.code }}</span>
+                            <span>{{ selectedProgram.category }}</span>
+                            <span>{{ selectedProgram.status }}</span>
+                            <span>{{ selectedProgram.path }}</span>
+                        </div>
+
+                        <div class="block">
+                            <h4>Descrição</h4>
+                            <p>{{ selectedProgram.description }}</p>
+                        </div>
+
+                        <div class="block">
+                            <h4>Explicação Detalhada</h4>
+                            <p>{{ selectedProgram.detailed_explanation }}</p>
+                        </div>
+
+                        <div class="block">
+                            <h4>Vigência</h4>
+                            <p>Início: {{ selectedProgram.started_at }}{% if selectedProgram.ended_at %} | Término: {{ selectedProgram.ended_at }}{% else %} | Sem término registrado{% endif %}</p>
+                        </div>
+
+                        <div class="block">
+                            <h4>Auditoria</h4>
+                            <p>Criado em {{ selectedProgram.created_at|default(selectedProgram.started_at) }} | Atualizado em {{ selectedProgram.updated_at }}</p>
+                        </div>
+
+                        <section class="history">
+                            <h4>Histórico</h4>
+
+                            {% if history is empty %}
+                                <p>Nenhum evento de histórico disponível.</p>
+                            {% else %}
+                                {% for event in history %}
+                                    <article class="history-item">
+                                        <header>
+                                            <strong>{{ event.event_type }}</strong>
+                                            <time>{{ event.event_at }}</time>
+                                        </header>
+                                        <p>{{ event.event_summary }}</p>
+                                        <p><strong>Descrição na época:</strong> {{ event.description_snapshot }}</p>
+                                        <p><strong>Explicação na época:</strong> {{ event.detailed_explanation_snapshot }}</p>
+                                    </article>
+                                {% endfor %}
+                            {% endif %}
+                        </section>
+                    </div>
+                {% else %}
+                    <div class="empty">Selecione um programa para visualizar os detalhes.</div>
+                {% endif %}
+            </main>
+        </section>
+
+        <div class="footer">
+            <a class="back-link" href="/">Voltar ao Hub</a>
+            <a class="back-link" href="/apis">Abrir APIs</a>
+        </div>
+    </div>
+</body>
+</html>

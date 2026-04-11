@@ -14,6 +14,7 @@ final class HomeController extends AbstractController
         return $this->render('home/hub.html.twig', [
             'apisUrl' => '/apis/',
             'demosUrl' => '/demos/',
+            'catalogUrl' => '/catalogo-programas',
         ]);
     }
 

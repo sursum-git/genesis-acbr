@@ -1,4 +1,5 @@
 .codex
+.env
 .env.local
 .env.*.local
 
@@ -11,6 +12,7 @@
 
 /NFe/arqs/
 /NFSe/arqs/
+/cert/*.pfx
 
 *.log
 *.bak

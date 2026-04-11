@@ -42,3 +42,5 @@ Esta pasta `/dados_containers/www` e um bind mount usado por um container Docker
 O servidor web da aplicacao roda dentro do container e a exposicao HTTP acontece pela porta `8089`.
 
 Ao validar paginas e fluxos web localmente, a verificacao deve considerar o acesso pela porta `8089`, e nao assumir um servidor ativo diretamente no host em `127.0.0.1:80`.
+
+Para testes E2E web deste projeto, considerar como endpoint padrao o servidor `http://157.173.110.195:8089`.

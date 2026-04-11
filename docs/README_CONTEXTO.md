@@ -11,3 +11,7 @@ Leitura recomendada:
 1. `ARQUITETURA_ATUAL.md`
 2. `MAPA_MODULOS_API.md`
 3. `FLUXO_INTEGRACAO_LEGADO.md`
+
+## Regra Operacional do Projeto
+
+Sempre que novos arquivos forem criados no projeto, eles devem ser adicionados ao Git e commitados no mesmo fluxo de trabalho, sem deixar arquivos novos apenas localmente.

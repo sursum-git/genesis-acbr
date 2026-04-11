@@ -26,52 +26,49 @@
                         </value>
                     </values>
                 </normalizationContext>
+                <parameters>
+                    <parameter key="AcUF"
+                               in="query"
+                               description="UF para consulta cadastral."
+                               required="true">
+                        <schema>
+                            <values>
+                                <value name="type">string</value>
+                                <value name="minLength">2</value>
+                                <value name="maxLength">2</value>
+                                <value name="pattern">^[A-Z]{2}$</value>
+                            </values>
+                        </schema>
+                    </parameter>
+                    <parameter key="AnDocumento"
+                               in="query"
+                               description="Documento informado para a consulta. Pode ser CPF/CNPJ ou inscricao estadual, conforme o tipo informado."
+                               required="true">
+                        <schema>
+                            <values>
+                                <value name="type">string</value>
+                                <value name="maxLength">20</value>
+                            </values>
+                        </schema>
+                    </parameter>
+                    <parameter key="TipoDocumento"
+                               in="query"
+                               description="Define se AnDocumento representa CPF/CNPJ ou inscricao estadual."
+                               required="true">
+                        <schema>
+                            <values>
+                                <value name="type">string</value>
+                                <value name="enum">
+                                    <values>
+                                        <value>cpf_cnpj</value>
+                                        <value>inscricao_estadual</value>
+                                    </values>
+                                </value>
+                            </values>
+                        </schema>
+                    </parameter>
+                </parameters>
                 <openapi>
-                    <parameters>
-                        <parameter name="AcUF"
-                                   in="query"
-                                   description="UF para consulta cadastral."
-                                   required="true"
-                                   example="MT">
-                            <schema>
-                                <values>
-                                    <value name="type">string</value>
-                                    <value name="minLength">2</value>
-                                    <value name="maxLength">2</value>
-                                    <value name="pattern">^[A-Z]{2}$</value>
-                                </values>
-                            </schema>
-                        </parameter>
-                        <parameter name="AnDocumento"
-                                   in="query"
-                                   description="Documento informado para a consulta. Pode ser CPF/CNPJ ou inscricao estadual, conforme o tipo informado."
-                                   required="true"
-                                   example="12345678000123">
-                            <schema>
-                                <values>
-                                    <value name="type">string</value>
-                                    <value name="maxLength">20</value>
-                                </values>
-                            </schema>
-                        </parameter>
-                        <parameter name="TipoDocumento"
-                                   in="query"
-                                   description="Define se AnDocumento representa CPF/CNPJ ou inscricao estadual."
-                                   required="true"
-                                   example="cpf_cnpj">
-                            <schema>
-                                <values>
-                                    <value name="type">string</value>
-                                    <value name="enum">
-                                        <values>
-                                            <value>cpf_cnpj</value>
-                                            <value>inscricao_estadual</value>
-                                        </values>
-                                    </value>
-                                </values>
-                            </schema>
-                        </parameter>
-                    </parameters>
                     <extensionProperties>
                         <values>
                             <value name="x-apiplatform-tag">

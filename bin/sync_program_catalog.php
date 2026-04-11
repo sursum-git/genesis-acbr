@@ -89,10 +89,10 @@ $programs = [
         'code' => 'src_dto_nfe',
         'name' => 'DTOs NFe',
         'path' => 'src/Dto/Nfe',
-        'physical_path' => 'src/Dto/Nfe/NfeOperationInput.php',
+        'physical_path' => 'src/Dto/Nfe/NfeConsultaCadastroInput.php',
         'category' => 'src_module',
         'description' => 'DTOs usados pela camada moderna das operacoes NFe.',
-        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados ao modulo NFe.',
+        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados ao modulo NFe. A operacao consulta-cadastro agora ja possui DTO especifico com atributos de validacao e metadados de API.',
     ],
     [
         'code' => 'src_dto_nfse',
@@ -174,6 +174,15 @@ $programs = [
         'category' => 'src_module',
         'description' => 'Providers e processors da adaptacao legada.',
         'detailed_explanation' => 'Implementa a execucao generica das operacoes legadas de NFe e NFSe no API Platform. Lê metadados do recurso, monta payloads, aciona o executor legado e devolve o resultado padronizado.',
+    ],
+    [
+        'code' => 'src_state_nfe',
+        'name' => 'State NFe',
+        'path' => 'src/State/Nfe',
+        'physical_path' => 'src/State/Nfe/NfeConsultaCadastroProvider.php',
+        'category' => 'src_module',
+        'description' => 'Providers e regras especificas das operacoes modernas de NFe.',
+        'detailed_explanation' => 'Abriga providers especificos para operacoes NFe que precisam de contrato tipado e validacao dedicada. A consulta-cadastro passou a usar um provider proprio que mapeia query params para DTO, valida e so entao chama o legado.',
     ],
     [
         'code' => 'boleto',

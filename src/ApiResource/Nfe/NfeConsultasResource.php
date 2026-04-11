@@ -10,8 +10,10 @@ use ApiPlatform\OpenApi\Model\MediaType;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
+use App\Dto\Nfe\NfeConsultaCadastroInput;
 use App\Dto\Nfe\NfeOperationInput;
 use App\Dto\Nfe\NfeOperationOutput;
+use App\State\Nfe\NfeConsultaCadastroProvider;
 use App\State\Legacy\AcbrLegacyOperationProvider;
 use App\State\Legacy\AcbrLegacyOperationProcessor;
 
@@ -97,19 +99,19 @@ use App\State\Legacy\AcbrLegacyOperationProcessor;
         ),
         new Get(
             uriTemplate: '/nfe/consultas/consulta-cadastro',
-            provider: AcbrLegacyOperationProvider::class,
+            provider: NfeConsultaCadastroProvider::class,
+            input: NfeConsultaCadastroInput::class,
             openapi: new OpenApiOperation(
                 parameters: [
-                    new Parameter('AcUF', 'query', 'UF para consulta cadastral.', true, schema: ['type' => 'string']),
-                    new Parameter('AnDocumento', 'query', 'CPF ou CNPJ do contribuinte.', true, schema: ['type' => 'string']),
-                    new Parameter('AnIE', 'query', 'Inscrição estadual do contribuinte.', true, schema: ['type' => 'string']),
+                    new Parameter('AcUF', 'query', 'UF para consulta cadastral.', true, schema: ['type' => 'string', 'minLength' => 2, 'maxLength' => 2, 'pattern' => '^[A-Z]{2}$'], example: 'MT'),
+                    new Parameter('AnDocumento', 'query', 'CPF ou CNPJ do contribuinte.', true, schema: ['type' => 'string', 'pattern' => '^\\d{11}(\\d{3})?$|^\\d{14}$'], example: '12345678000123'),
+                    new Parameter('AnIE', 'query', 'Inscrição estadual do contribuinte.', true, schema: ['type' => 'string', 'maxLength' => 20], example: '123456789'),
                 ],
                 extensionProperties: [OpenApiFactory::API_PLATFORM_TAG => ['nfe']]
             ),
             extraProperties: [
                 'acbr_script' => 'NFe/MT/ACBrNFeServicosMT.php',
                 'acbr_method' => 'ConsultaCadastro',
-                'acbr_query_params' => ['AcUF', 'AnDocumento', 'AnIE'],
             ],
             normalizationContext: ['groups' => ['acbr_legacy_operation:read']]
         ),

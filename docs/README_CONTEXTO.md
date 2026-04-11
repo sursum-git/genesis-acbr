@@ -42,6 +42,10 @@ Os modulos `NFe` e `NFSe` devem usar DTOs proprios de entrada e saida na camada 
 
 A integracao com o legado continua existindo, mas o contrato publico da API nao deve mais depender diretamente do recurso generico legado como modelo de entrada/saida.
 
+Quando uma operacao exigir validacao de negocio ou de contrato mais forte, o padrao preferencial e criar DTO especifico por operacao com atributos de validacao e provider/processor dedicado.
+
+No estado atual, `NFe consulta-cadastro` ja segue esse padrao.
+
 ## Topologia Local
 
 Esta pasta `/dados_containers/www` e um bind mount usado por um container Docker.

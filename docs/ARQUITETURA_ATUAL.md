@@ -93,6 +93,8 @@ Cada operacao declara em `extraProperties`:
 
 Ou seja, o recurso API define metadados e a execucao e roteada dinamicamente para o script legado correspondente, mas a superficie publica da API agora passa por DTOs dedicados de `NFe` e `NFSe`.
 
+No modulo `NFe`, a operacao `consulta-cadastro` ja foi promovida para um desenho mais completo, com DTO especifico, atributos de validacao e provider proprio.
+
 ## Caracteristicas Arquiteturais Relevantes
 
 ### Camada moderna sem reescrita completa do dominio

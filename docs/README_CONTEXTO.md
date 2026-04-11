@@ -42,9 +42,11 @@ Os modulos `NFe` e `NFSe` devem usar DTOs proprios de entrada e saida na camada 
 
 A integracao com o legado continua existindo, mas o contrato publico da API nao deve mais depender diretamente do recurso generico legado como modelo de entrada/saida.
 
-Quando uma operacao exigir validacao de negocio ou de contrato mais forte, o padrao preferencial e criar DTO especifico por operacao com atributos de validacao e provider/processor dedicado.
+Quando uma operacao exigir validacao de negocio ou de contrato mais forte, o padrao preferencial e criar DTO especifico por operacao com metadados externos de configuracao e provider/processor dedicado.
 
 No estado atual, `NFe consulta-cadastro` ja segue esse padrao e usa o contrato publico baseado em `AcUF`, `AnDocumento` e `TipoDocumento`, convertendo internamente para os parametros do legado.
+
+Para `consulta-cadastro`, os metadados da operacao no API Platform devem ficar em XML em `config/api_platform/resources/`, e as regras de validacao do DTO devem ficar em XML em `config/validator/`, evitando atributos PHP nessa operacao.
 
 ## Topologia Local
 

@@ -8,12 +8,9 @@ use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Factory\OpenApiFactory;
 use ApiPlatform\OpenApi\Model\MediaType;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
-use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
-use App\Dto\Nfe\NfeConsultaCadastroInput;
 use App\Dto\Nfe\NfeOperationInput;
 use App\Dto\Nfe\NfeOperationOutput;
-use App\State\Nfe\NfeConsultaCadastroProvider;
 use App\State\Legacy\AcbrLegacyOperationProvider;
 use App\State\Legacy\AcbrLegacyOperationProcessor;
 
@@ -96,24 +93,6 @@ use App\State\Legacy\AcbrLegacyOperationProcessor;
             extraProperties: ['acbr_script' => 'NFe/MT/ACBrNFeServicosMT.php', 'acbr_method' => 'ConsultarRecibo'],
             normalizationContext: ['groups' => ['acbr_legacy_operation:read']],
             denormalizationContext: ['groups' => ['acbr_legacy_operation:write']]
-        ),
-        new Get(
-            uriTemplate: '/nfe/consultas/consulta-cadastro',
-            provider: NfeConsultaCadastroProvider::class,
-            input: NfeConsultaCadastroInput::class,
-            openapi: new OpenApiOperation(
-                parameters: [
-                    new Parameter('AcUF', 'query', 'UF para consulta cadastral.', true, schema: ['type' => 'string', 'minLength' => 2, 'maxLength' => 2, 'pattern' => '^[A-Z]{2}$'], example: 'MT'),
-                    new Parameter('AnDocumento', 'query', 'Documento informado para a consulta. Pode ser CPF/CNPJ ou inscricao estadual, conforme o tipo informado.', true, schema: ['type' => 'string', 'maxLength' => 20], example: '12345678000123'),
-                    new Parameter('TipoDocumento', 'query', 'Define se AnDocumento representa CPF/CNPJ ou inscricao estadual.', true, schema: ['type' => 'string', 'enum' => ['cpf_cnpj', 'inscricao_estadual']], example: 'cpf_cnpj'),
-                ],
-                extensionProperties: [OpenApiFactory::API_PLATFORM_TAG => ['nfe']]
-            ),
-            extraProperties: [
-                'acbr_script' => 'NFe/MT/ACBrNFeServicosMT.php',
-                'acbr_method' => 'ConsultaCadastro',
-            ],
-            normalizationContext: ['groups' => ['acbr_legacy_operation:read']]
         ),
     ]
 )]

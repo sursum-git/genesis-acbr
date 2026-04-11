@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
+    <resource class="App\ApiResource\Nfe\NfeConsultaCadastroResource"
+              shortName="NFeConsultas"
+              output="App\Dto\Nfe\NfeOperationOutput">
+        <operations>
+            <operation class="ApiPlatform\Metadata\Get"
+                       name="get_nfe_consulta_cadastro"
+                       uriTemplate="/nfe/consultas/consulta-cadastro"
+                       provider="App\State\Nfe\NfeConsultaCadastroProvider"
+                       input="App\Dto\Nfe\NfeConsultaCadastroInput">
+                <extraProperties>
+                    <values>
+                        <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
+                        <value name="acbr_method">ConsultaCadastro</value>
+                    </values>
+                </extraProperties>
+                <normalizationContext>
+                    <values>
+                        <value name="groups">
+                            <values>
+                                <value>acbr_legacy_operation:read</value>
+                            </values>
+                        </value>
+                    </values>
+                </normalizationContext>
+                <openapi>
+                    <parameters>
+                        <parameter name="AcUF"
+                                   in="query"
+                                   description="UF para consulta cadastral."
+                                   required="true"
+                                   example="MT">
+                            <schema>
+                                <values>
+                                    <value name="type">string</value>
+                                    <value name="minLength">2</value>
+                                    <value name="maxLength">2</value>
+                                    <value name="pattern">^[A-Z]{2}$</value>
+                                </values>
+                            </schema>
+                        </parameter>
+                        <parameter name="AnDocumento"
+                                   in="query"
+                                   description="Documento informado para a consulta. Pode ser CPF/CNPJ ou inscricao estadual, conforme o tipo informado."
+                                   required="true"
+                                   example="12345678000123">
+                            <schema>
+                                <values>
+                                    <value name="type">string</value>
+                                    <value name="maxLength">20</value>
+                                </values>
+                            </schema>
+                        </parameter>
+                        <parameter name="TipoDocumento"
+                                   in="query"
+                                   description="Define se AnDocumento representa CPF/CNPJ ou inscricao estadual."
+                                   required="true"
+                                   example="cpf_cnpj">
+                            <schema>
+                                <values>
+                                    <value name="type">string</value>
+                                    <value name="enum">
+                                        <values>
+                                            <value>cpf_cnpj</value>
+                                            <value>inscricao_estadual</value>
+                                        </values>
+                                    </value>
+                                </values>
+                            </schema>
+                        </parameter>
+                    </parameters>
+                    <extensionProperties>
+                        <values>
+                            <value name="x-apiplatform-tag">
+                                <values>
+                                    <value>nfe</value>
+                                </values>
+                            </value>
+                        </values>
+                    </extensionProperties>
+                </openapi>
+            </operation>
+        </operations>
+    </resource>
+</resources>

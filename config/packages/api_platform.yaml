@@ -1,6 +1,9 @@
 api_platform:
   title: 'ACBr API'
   version: '1.0.0'
+  mapping:
+    paths:
+      - '%kernel.project_dir%/config/api_platform/resources'
   defaults:
     stateless: true
   swagger:

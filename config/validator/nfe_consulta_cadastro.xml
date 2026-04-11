@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<constraint-mapping xmlns="http://symfony.com/schema/dic/constraint-mapping"
+                    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+                    xsi:schemaLocation="http://symfony.com/schema/dic/constraint-mapping https://symfony.com/schema/dic/constraint-mapping/constraint-mapping-1.0.xsd">
+    <class name="App\Dto\Nfe\NfeConsultaCadastroInput">
+        <constraint name="Callback">
+            <option name="callback">validate</option>
+        </constraint>
+
+        <property name="AcUF">
+            <constraint name="NotBlank">
+                <option name="message">AcUF e obrigatorio.</option>
+            </constraint>
+            <constraint name="Length">
+                <option name="min">2</option>
+                <option name="max">2</option>
+                <option name="exactMessage">AcUF deve ter exatamente {{ limit }} caracteres.</option>
+            </constraint>
+            <constraint name="Regex">
+                <option name="pattern">/^[A-Z]{2}$/</option>
+                <option name="message">AcUF deve conter exatamente duas letras maiusculas.</option>
+            </constraint>
+        </property>
+
+        <property name="AnDocumento">
+            <constraint name="NotBlank">
+                <option name="message">AnDocumento e obrigatorio.</option>
+            </constraint>
+        </property>
+
+        <property name="TipoDocumento">
+            <constraint name="NotBlank">
+                <option name="message">TipoDocumento e obrigatorio.</option>
+            </constraint>
+            <constraint name="Choice">
+                <option name="choices">
+                    <value>cpf_cnpj</value>
+                    <value>inscricao_estadual</value>
+                </option>
+                <option name="message">TipoDocumento deve ser cpf_cnpj ou inscricao_estadual.</option>
+            </constraint>
+        </property>
+    </class>
+</constraint-mapping>

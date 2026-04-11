@@ -79,6 +79,10 @@ Exemplos de operacoes:
 - `POST /nfe/inutilizacao/inutilizar`
 - `GET /nfe/ferramentas/obter-certificados`
 
+Observacao atual:
+
+- `consulta-cadastro` foi isolada em recurso proprio com metadados XML do API Platform e validacao XML do Symfony Validator
+
 ## Modulo NFSe
 
 Recursos em `src/ApiResource/Nfse/`.

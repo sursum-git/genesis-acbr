@@ -17,6 +17,10 @@ Leitura recomendada:
 
 Sempre que novos arquivos forem criados no projeto, eles devem ser adicionados ao Git e commitados no mesmo fluxo de trabalho, sem deixar arquivos novos apenas localmente.
 
+Sempre que houver mudanças no backend, devem ser executados testes compatíveis com a alteração.
+
+Sempre que houver mudanças no frontend, devem ser executados testes end-to-end cobrindo o fluxo impactado.
+
 ## Regra Operacional do Catalogo de Programas
 
 O projeto deve manter o banco SQLite `var/db/program_catalog.sqlite` como catalogo local dos programas/modulos do repositorio.

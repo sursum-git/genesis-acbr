@@ -22,14 +22,14 @@ final class ProgramCatalogController extends AbstractController
 
         if ($search === '') {
             $programsStatement = $pdo->query(
-                'SELECT code, name, path, category, status, description, detailed_explanation, started_at, ended_at, updated_at
+                'SELECT code, name, path, physical_path, category, status, description, detailed_explanation, started_at, ended_at, updated_at
                  FROM programs
                  ORDER BY name'
             );
             $programs = $programsStatement->fetchAll(PDO::FETCH_ASSOC);
         } else {
             $programsStatement = $pdo->prepare(
-                'SELECT code, name, path, category, status, description, detailed_explanation, started_at, ended_at, updated_at
+                'SELECT code, name, path, physical_path, category, status, description, detailed_explanation, started_at, ended_at, updated_at
                  FROM programs
                  WHERE name LIKE :term
                     OR code LIKE :term
@@ -45,7 +45,7 @@ final class ProgramCatalogController extends AbstractController
         $selectedProgram = null;
         if ($selectedCode !== '') {
             $programStatement = $pdo->prepare(
-                'SELECT id, code, name, path, category, status, description, detailed_explanation, started_at, ended_at, created_at, updated_at
+                'SELECT id, code, name, path, physical_path, category, status, description, detailed_explanation, started_at, ended_at, created_at, updated_at
                  FROM programs
                  WHERE code = :code'
             );
@@ -56,7 +56,7 @@ final class ProgramCatalogController extends AbstractController
         if ($selectedProgram === null && $programs !== []) {
             $selectedProgram = $programs[0];
             $programStatement = $pdo->prepare(
-                'SELECT id, code, name, path, category, status, description, detailed_explanation, started_at, ended_at, created_at, updated_at
+                'SELECT id, code, name, path, physical_path, category, status, description, detailed_explanation, started_at, ended_at, created_at, updated_at
                  FROM programs
                  WHERE code = :code'
             );
@@ -67,7 +67,7 @@ final class ProgramCatalogController extends AbstractController
         $history = [];
         if ($selectedProgram !== null && isset($selectedProgram['id'])) {
             $historyStatement = $pdo->prepare(
-                'SELECT event_type, event_summary, description_snapshot, detailed_explanation_snapshot, status_snapshot, started_at_snapshot, ended_at_snapshot, event_at
+                'SELECT event_type, event_summary, physical_path_snapshot, description_snapshot, detailed_explanation_snapshot, status_snapshot, started_at_snapshot, ended_at_snapshot, event_at
                  FROM program_history
                  WHERE program_id = :program_id
                  ORDER BY event_at DESC, id DESC'

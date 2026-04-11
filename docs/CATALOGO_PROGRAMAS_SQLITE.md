@@ -23,6 +23,7 @@ Campos principais:
 - `code`: identificador tecnico estavel do programa
 - `name`: nome de exibicao
 - `path`: caminho principal no repositorio
+- `physical_path`: caminho fisico principal do arquivo de referencia do programa
 - `category`: classificacao do programa
 - `status`: `active`, `inactive`, `deprecated` ou `ended`
 - `description`: descricao resumida
@@ -73,6 +74,7 @@ Eles devem ser registrados no catalogo SQLite com:
 
 - nome
 - caminho principal
+- caminho fisico principal do arquivo de referencia
 - descricao resumida
 - explicacao detalhada
 - evento inicial no historico

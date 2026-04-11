@@ -28,6 +28,7 @@ O projeto deve manter o banco SQLite `var/db/program_catalog.sqlite` como catalo
 Esse catalogo deve seguir estas regras:
 
 - todo programa precisa ter descricao resumida e explicacao detalhada atualizadas
+- todo programa precisa ter tambem o caminho fisico principal do arquivo de referencia
 - sempre que um programa for alterado no codigo, sua explicacao no catalogo deve ser revisada e atualizada
 - toda alteracao relevante de programa deve gerar historico na tabela `program_history`
 - programas encerrados nao devem ser apagados fisicamente da tabela principal; devem receber `ended_at` e status de encerrado

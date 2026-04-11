@@ -394,6 +394,11 @@
                         </div>
 
                         <div class="block">
+                            <h4>Caminho Físico Principal</h4>
+                            <p><code>{{ selectedProgram.physical_path }}</code></p>
+                        </div>
+
+                        <div class="block">
                             <h4>Explicação Detalhada</h4>
                             <p>{{ selectedProgram.detailed_explanation }}</p>
                         </div>
@@ -421,6 +426,7 @@
                                             <time>{{ event.event_at }}</time>
                                         </header>
                                         <p>{{ event.event_summary }}</p>
+                                        <p><strong>Caminho físico na época:</strong> <code>{{ event.physical_path_snapshot }}</code></p>
                                         <p><strong>Descrição na época:</strong> {{ event.description_snapshot }}</p>
                                         <p><strong>Explicação na época:</strong> {{ event.detailed_explanation_snapshot }}</p>
                                     </article>

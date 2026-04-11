@@ -104,8 +104,8 @@ use App\State\Legacy\AcbrLegacyOperationProcessor;
             openapi: new OpenApiOperation(
                 parameters: [
                     new Parameter('AcUF', 'query', 'UF para consulta cadastral.', true, schema: ['type' => 'string', 'minLength' => 2, 'maxLength' => 2, 'pattern' => '^[A-Z]{2}$'], example: 'MT'),
-                    new Parameter('AnDocumento', 'query', 'CPF ou CNPJ do contribuinte.', true, schema: ['type' => 'string', 'pattern' => '^\\d{11}(\\d{3})?$|^\\d{14}$'], example: '12345678000123'),
-                    new Parameter('AnIE', 'query', 'Inscrição estadual do contribuinte.', true, schema: ['type' => 'string', 'maxLength' => 20], example: '123456789'),
+                    new Parameter('AnDocumento', 'query', 'Documento informado para a consulta. Pode ser CPF/CNPJ ou inscricao estadual, conforme o tipo informado.', true, schema: ['type' => 'string', 'maxLength' => 20], example: '12345678000123'),
+                    new Parameter('TipoDocumento', 'query', 'Define se AnDocumento representa CPF/CNPJ ou inscricao estadual.', true, schema: ['type' => 'string', 'enum' => ['cpf_cnpj', 'inscricao_estadual']], example: 'cpf_cnpj'),
                 ],
                 extensionProperties: [OpenApiFactory::API_PLATFORM_TAG => ['nfe']]
             ),

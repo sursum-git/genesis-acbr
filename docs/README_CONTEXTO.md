@@ -44,7 +44,7 @@ A integracao com o legado continua existindo, mas o contrato publico da API nao 
 
 Quando uma operacao exigir validacao de negocio ou de contrato mais forte, o padrao preferencial e criar DTO especifico por operacao com atributos de validacao e provider/processor dedicado.
 
-No estado atual, `NFe consulta-cadastro` ja segue esse padrao.
+No estado atual, `NFe consulta-cadastro` ja segue esse padrao e usa o contrato publico baseado em `AcUF`, `AnDocumento` e `TipoDocumento`, convertendo internamente para os parametros do legado.
 
 ## Topologia Local
 

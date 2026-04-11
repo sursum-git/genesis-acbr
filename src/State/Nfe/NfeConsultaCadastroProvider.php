@@ -29,8 +29,11 @@ final class NfeConsultaCadastroProvider implements ProviderInterface
 
         $input = new NfeConsultaCadastroInput(
             AcUF: $this->normalizeNullableString($request->query->get('AcUF')),
-            AnDocumento: $this->normalizeDigits($request->query->get('AnDocumento')),
-            AnIE: $this->normalizeNullableString($request->query->get('AnIE')),
+            AnDocumento: $this->normalizeDocument(
+                $request->query->get('AnDocumento'),
+                $this->normalizeNullableString($request->query->get('TipoDocumento'))
+            ),
+            TipoDocumento: $this->normalizeNullableString($request->query->get('TipoDocumento')),
         );
 
         $violations = $this->validator->validate($input);
@@ -78,13 +81,17 @@ final class NfeConsultaCadastroProvider implements ProviderInterface
         return $normalized === '' ? null : $normalized;
     }
 
-    private function normalizeDigits(mixed $value): ?string
+    private function normalizeDocument(mixed $value, ?string $tipoDocumento): ?string
     {
         $normalized = $this->normalizeNullableString($value);
         if ($normalized === null) {
             return null;
         }
 
-        return preg_replace('/\D+/', '', $normalized);
+        if ($tipoDocumento === 'cpf_cnpj') {
+            return preg_replace('/\D+/', '', $normalized);
+        }
+
+        return $normalized;
     }
 }

@@ -4,6 +4,7 @@ namespace App\Dto\Nfe;
 
 use ApiPlatform\Metadata\ApiProperty;
 use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 final class NfeConsultaCadastroInput
 {
@@ -24,26 +25,42 @@ final class NfeConsultaCadastroInput
         )]
         public ?string $AcUF = null,
         #[ApiProperty(
-            description: 'CPF ou CNPJ do contribuinte.',
+            description: 'Documento informado para a consulta. Pode ser CPF/CNPJ ou inscricao estadual, conforme o tipo informado.',
             example: '12345678000123'
         )]
         #[Assert\NotBlank(message: 'AnDocumento e obrigatorio.')]
-        #[Assert\Regex(
-            pattern: '/^\d{11}(\d{3})?$|^\d{14}$/',
-            message: 'AnDocumento deve conter 11 ou 14 digitos numericos.'
-        )]
         public ?string $AnDocumento = null,
         #[ApiProperty(
-            description: 'Inscricao estadual do contribuinte.',
-            example: '123456789'
+            description: 'Tipo do documento informado em AnDocumento.',
+            example: 'cpf_cnpj'
         )]
-        #[Assert\NotBlank(message: 'AnIE e obrigatorio.')]
-        #[Assert\Length(
-            max: 20,
-            maxMessage: 'AnIE deve ter no maximo {{ limit }} caracteres.'
+        #[Assert\NotBlank(message: 'TipoDocumento e obrigatorio.')]
+        #[Assert\Choice(
+            choices: ['cpf_cnpj', 'inscricao_estadual'],
+            message: 'TipoDocumento deve ser cpf_cnpj ou inscricao_estadual.'
         )]
-        public ?string $AnIE = null,
+        public ?string $TipoDocumento = null,
     ) {
+    }
+
+    #[Assert\Callback]
+    public function validate(ExecutionContextInterface $context): void
+    {
+        if ($this->AnDocumento === null || $this->AnDocumento === '' || $this->TipoDocumento === null) {
+            return;
+        }
+
+        if ($this->TipoDocumento === 'cpf_cnpj' && !preg_match('/^\d{11}$|^\d{14}$/', $this->AnDocumento)) {
+            $context->buildViolation('AnDocumento deve conter 11 ou 14 digitos numericos quando TipoDocumento for cpf_cnpj.')
+                ->atPath('AnDocumento')
+                ->addViolation();
+        }
+
+        if ($this->TipoDocumento === 'inscricao_estadual' && mb_strlen($this->AnDocumento) > 20) {
+            $context->buildViolation('AnDocumento deve ter no maximo 20 caracteres quando TipoDocumento for inscricao_estadual.')
+                ->atPath('AnDocumento')
+                ->addViolation();
+        }
     }
 
     /**
@@ -54,7 +71,7 @@ final class NfeConsultaCadastroInput
         return [
             'AcUF' => (string) $this->AcUF,
             'AnDocumento' => (string) $this->AnDocumento,
-            'AnIE' => (string) $this->AnIE,
+            'AnIE' => $this->TipoDocumento === 'inscricao_estadual' ? '1' : '',
         ];
     }
 }

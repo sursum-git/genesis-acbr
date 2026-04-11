@@ -4,7 +4,9 @@ namespace App\State\Legacy;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
-use App\ApiResource\Legacy\AbstractAcbrLegacyOperationResource;
+use App\Dto\Legacy\AbstractLegacyOperationOutput;
+use App\Dto\Nfe\NfeOperationOutput;
+use App\Dto\Nfse\NfseOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -18,7 +20,7 @@ final class AcbrLegacyOperationProvider implements ProviderInterface
     {
     }
 
-    public function provide(Operation $operation, array $uriVariables = [], array $context = []): AbstractAcbrLegacyOperationResource
+    public function provide(Operation $operation, array $uriVariables = [], array $context = []): AbstractLegacyOperationOutput
     {
         $extraProperties = $operation->getExtraProperties();
         $script = (string) ($extraProperties['acbr_script'] ?? '');
@@ -29,15 +31,6 @@ final class AcbrLegacyOperationProvider implements ProviderInterface
         if ($script === '' || $method === '') {
             throw new AcbrLegacyApiException('Operação API Platform sem metadados do legado ACBr.');
         }
-
-        $class = $operation->getClass();
-        if (!is_string($class) || !is_subclass_of($class, AbstractAcbrLegacyOperationResource::class)) {
-            throw new AcbrLegacyApiException('Classe de recurso inválida para operação legado ACBr.');
-        }
-
-        /** @var AbstractAcbrLegacyOperationResource $data */
-        $data = new $class();
-        $data->payload = null;
         $request = $this->requestStack->getCurrentRequest();
         $queryPayload = [];
 
@@ -63,9 +56,34 @@ final class AcbrLegacyOperationProvider implements ProviderInterface
             )
         );
 
-        $data->resultado = $resultado;
-        $data->mensagem = isset($resultado['mensagem']) ? (string) $resultado['mensagem'] : null;
+        $outputClass = $this->resolveOutputClass($extraProperties, $script);
 
-        return $data;
+        return new $outputClass(
+            $resultado,
+            isset($resultado['mensagem']) ? (string) $resultado['mensagem'] : null
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $extraProperties
+     * @return class-string<AbstractLegacyOperationOutput>
+     */
+    private function resolveOutputClass(array $extraProperties, string $script): string
+    {
+        $outputClass = $extraProperties['acbr_output_class'] ?? null;
+
+        if (is_string($outputClass) && is_subclass_of($outputClass, AbstractLegacyOperationOutput::class)) {
+            return $outputClass;
+        }
+
+        if (str_starts_with($script, 'NFe/')) {
+            return NfeOperationOutput::class;
+        }
+
+        if (str_starts_with($script, 'NFSe/')) {
+            return NfseOperationOutput::class;
+        }
+
+        throw new AcbrLegacyApiException('Nao foi possivel determinar o DTO de saida da operacao legado ACBr.');
     }
 }

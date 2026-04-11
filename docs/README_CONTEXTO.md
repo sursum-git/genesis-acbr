@@ -34,6 +34,13 @@ Esse catalogo deve seguir estas regras:
 - programas encerrados nao devem ser apagados fisicamente da tabela principal; devem receber `ended_at` e status de encerrado
 - encerramentos tambem devem ser registrados no historico
 - a referencia operacional desse catalogo fica documentada em `docs/CATALOGO_PROGRAMAS_SQLITE.md`
+- o acesso da aplicacao ao catalogo deve usar Doctrine DBAL e repositorios, evitando `PDO` direto em controllers
+
+## Diretriz Arquitetural Atual
+
+Os modulos `NFe` e `NFSe` devem usar DTOs proprios de entrada e saida na camada Symfony/API Platform.
+
+A integracao com o legado continua existindo, mas o contrato publico da API nao deve mais depender diretamente do recurso generico legado como modelo de entrada/saida.
 
 ## Topologia Local
 

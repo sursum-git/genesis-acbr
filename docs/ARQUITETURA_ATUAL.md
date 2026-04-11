@@ -78,11 +78,11 @@ Esse caminho usa DTOs dedicados e mapeamento mais estruturado entre request, res
 
 #### NFe e NFSe
 
-Os modulos NFe e NFSe usam um adaptador generico de legado.
+Os modulos NFe e NFSe usam um adaptador de legado com DTOs explicitos de entrada e saida.
 
 Fluxo:
 
-`ApiResource -> State Processor/Provider -> App\Service\Legacy\AcbrLegacyScriptExecutor -> script PHP legado`
+`ApiResource -> DTO de entrada/saida -> State Processor/Provider -> App\Service\Legacy\AcbrLegacyScriptExecutor -> script PHP legado`
 
 Cada operacao declara em `extraProperties`:
 
@@ -91,7 +91,7 @@ Cada operacao declara em `extraProperties`:
 - `acbr_payload` opcional
 - `acbr_query_params` opcional
 
-Ou seja, o recurso API define metadados e a execucao e roteada dinamicamente para o script legado correspondente.
+Ou seja, o recurso API define metadados e a execucao e roteada dinamicamente para o script legado correspondente, mas a superficie publica da API agora passa por DTOs dedicados de `NFe` e `NFSe`.
 
 ## Caracteristicas Arquiteturais Relevantes
 
@@ -119,6 +119,12 @@ O mesmo deploy serve:
 
 O CEP possui excecao e subscriber proprios.
 As operacoes legadas genericas usam `AcbrLegacyApiException` com resposta JSON padronizada.
+
+### Persistencia auxiliar com Doctrine DBAL
+
+O catalogo local de programas em SQLite deixou de ser consultado com `PDO` direto em controller.
+
+Agora a aplicacao usa `Doctrine DBAL` com uma camada de repositorio dedicada para acesso ao banco auxiliar do projeto.
 
 ## Dependencias Estruturais Importantes
 

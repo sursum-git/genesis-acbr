@@ -6,11 +6,14 @@ use ApiPlatform\Metadata\ApiResource;
 use ApiPlatform\Metadata\Post;
 use ApiPlatform\OpenApi\Factory\OpenApiFactory;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
-use App\ApiResource\Legacy\AbstractAcbrLegacyOperationResource;
+use App\Dto\Nfse\NfseOperationInput;
+use App\Dto\Nfse\NfseOperationOutput;
 use App\State\Legacy\AcbrLegacyOperationProcessor;
 
 #[ApiResource(
     shortName: 'NFSeDemaisProvedoresConsultas',
+    input: NfseOperationInput::class,
+    output: NfseOperationOutput::class,
     operations: [
         new Post(uriTemplate: '/nfse/demais-provedores/consultas/consultar-situacao', processor: AcbrLegacyOperationProcessor::class, openapi: new OpenApiOperation(extensionProperties: [OpenApiFactory::API_PLATFORM_TAG => ['nfse']]), extraProperties: ['acbr_script' => 'NFSe/MT/ACBrNFSeServicosMT.php', 'acbr_method' => 'ConsultarSituacao'], normalizationContext: ['groups' => ['acbr_legacy_operation:read']], denormalizationContext: ['groups' => ['acbr_legacy_operation:write']]),
         new Post(uriTemplate: '/nfse/demais-provedores/consultas/consultar-nfse-por-periodo', processor: AcbrLegacyOperationProcessor::class, openapi: new OpenApiOperation(extensionProperties: [OpenApiFactory::API_PLATFORM_TAG => ['nfse']]), extraProperties: ['acbr_script' => 'NFSe/MT/ACBrNFSeServicosMT.php', 'acbr_method' => 'ConsultarNFSePorPeriodo'], normalizationContext: ['groups' => ['acbr_legacy_operation:read']], denormalizationContext: ['groups' => ['acbr_legacy_operation:write']]),
@@ -22,6 +25,6 @@ use App\State\Legacy\AcbrLegacyOperationProcessor;
         new Post(uriTemplate: '/nfse/demais-provedores/consultas/consultar-link-nfse', processor: AcbrLegacyOperationProcessor::class, openapi: new OpenApiOperation(extensionProperties: [OpenApiFactory::API_PLATFORM_TAG => ['nfse']]), extraProperties: ['acbr_script' => 'NFSe/MT/ACBrNFSeServicosMT.php', 'acbr_method' => 'ConsultarLinkNFSe'], normalizationContext: ['groups' => ['acbr_legacy_operation:read']], denormalizationContext: ['groups' => ['acbr_legacy_operation:write']]),
     ]
 )]
-final class NfseDemaisProvedoresConsultasResource extends AbstractAcbrLegacyOperationResource
+final class NfseDemaisProvedoresConsultasResource
 {
 }

@@ -10,12 +10,15 @@ use ApiPlatform\OpenApi\Model\MediaType;
 use ApiPlatform\OpenApi\Model\Operation as OpenApiOperation;
 use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
-use App\ApiResource\Legacy\AbstractAcbrLegacyOperationResource;
+use App\Dto\Nfe\NfeOperationInput;
+use App\Dto\Nfe\NfeOperationOutput;
 use App\State\Legacy\AcbrLegacyOperationProvider;
 use App\State\Legacy\AcbrLegacyOperationProcessor;
 
 #[ApiResource(
     shortName: 'NFeConsultas',
+    input: NfeOperationInput::class,
+    output: NfeOperationOutput::class,
     operations: [
         new Get(uriTemplate: '/nfe/consultas/status-servico', provider: AcbrLegacyOperationProvider::class, openapi: new OpenApiOperation(extensionProperties: [OpenApiFactory::API_PLATFORM_TAG => ['nfe']]), extraProperties: ['acbr_script' => 'NFe/MT/ACBrNFeServicosMT.php', 'acbr_method' => 'statusServico'], normalizationContext: ['groups' => ['acbr_legacy_operation:read']]),
         new Post(
@@ -112,6 +115,6 @@ use App\State\Legacy\AcbrLegacyOperationProcessor;
         ),
     ]
 )]
-final class NfeConsultasResource extends AbstractAcbrLegacyOperationResource
+final class NfeConsultasResource
 {
 }

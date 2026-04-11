@@ -12,6 +12,11 @@ Script de manutencao:
 
 - `bin/sync_program_catalog.php`
 
+Acesso da aplicacao ao catalogo:
+
+- `Doctrine DBAL`
+- repositorio dedicado em `src/Repository/ProgramCatalogRepository.php`
+
 ## Estrutura
 
 ### Tabela `programs`

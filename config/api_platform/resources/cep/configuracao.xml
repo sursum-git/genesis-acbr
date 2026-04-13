@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
+  <resource class="App\ApiResource\AcbrCep\AcbrCepConfiguracaoResource" shortName="AcbrCepConfiguracao">
+    <operations>
+      <operation class="ApiPlatform\Metadata\Get" name="get_acbr_cep_configuracoes" uriTemplate="/acbr-cep/configuracoes" provider="App\State\AcbrCep\AcbrCepConfiguracaoProvider"><normalizationContext><values><value name="groups"><values><value>acbr_cep_config:read</value></values></value></values></normalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>cep</value></values></value></values></extensionProperties></openapi></operation>
+      <operation class="ApiPlatform\Metadata\Post" name="post_acbr_cep_configuracoes" uriTemplate="/acbr-cep/configuracoes" processor="App\State\AcbrCep\AcbrCepConfiguracaoProcessor"><normalizationContext><values><value name="groups"><values><value>acbr_cep_config:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_cep_config:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>cep</value></values></value></values></extensionProperties></openapi></operation>
+    </operations>
+  </resource>
+</resources>

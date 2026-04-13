@@ -1,5 +1,6 @@
 imports:
   - { resource: services/consulta_cep.yaml }
+  - { resource: services/doctrine_connection.xml }
 
 services:
   _defaults:

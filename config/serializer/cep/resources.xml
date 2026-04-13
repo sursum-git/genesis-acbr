@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<serializer xmlns="http://symfony.com/schema/dic/serializer-mapping"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://symfony.com/schema/dic/serializer-mapping https://symfony.com/schema/dic/serializer-mapping/serializer-mapping-1.0.xsd">
+    <class name="App\ApiResource\AcbrCep\AcbrCepConfiguracaoResource">
+        <attribute name="usuario"><group>acbr_cep_config:read</group><group>acbr_cep_config:write</group></attribute>
+        <attribute name="senha"><group>acbr_cep_config:read</group><group>acbr_cep_config:write</group></attribute>
+        <attribute name="chaveAcesso"><group>acbr_cep_config:read</group><group>acbr_cep_config:write</group></attribute>
+        <attribute name="webservice"><group>acbr_cep_config:read</group><group>acbr_cep_config:write</group></attribute>
+        <attribute name="mensagem"><group>acbr_cep_config:read</group></attribute>
+    </class>
+    <class name="App\ApiResource\AcbrCep\AcbrCepConsultaCepResource">
+        <attribute name="cep"><group>acbr_cep_consulta_cep:write</group><group>acbr_cep_consulta_cep:read</group></attribute>
+        <attribute name="webservice"><group>acbr_cep_consulta_cep:write</group><group>acbr_cep_consulta_cep:read</group></attribute>
+        <attribute name="retorno"><group>acbr_cep_consulta_cep:read</group></attribute>
+        <attribute name="mensagem"><group>acbr_cep_consulta_cep:read</group></attribute>
+        <attribute name="dados"><group>acbr_cep_consulta_cep:read</group></attribute>
+    </class>
+    <class name="App\ApiResource\AcbrCep\AcbrCepConsultaLogradouroResource">
+        <attribute name="cidade"><group>acbr_cep_consulta_logradouro:write</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="tipo"><group>acbr_cep_consulta_logradouro:write</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="logradouro"><group>acbr_cep_consulta_logradouro:write</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="uf"><group>acbr_cep_consulta_logradouro:write</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="bairro"><group>acbr_cep_consulta_logradouro:write</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="webservice"><group>acbr_cep_consulta_logradouro:write</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="retorno"><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="mensagem"><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="dados"><group>acbr_cep_consulta_logradouro:read</group></attribute>
+    </class>
+    <class name="App\ApiResource\AcbrCep\AcbrCepEnderecoResource">
+        <attribute name="bairro"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="cep"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="complemento"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="ibgeMunicipio"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="ibgeUf"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="logradouro"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="municipio"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="tipoLogradouro"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="uf"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
+    </class>
+</serializer>

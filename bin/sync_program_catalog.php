@@ -3,6 +3,10 @@
 
 declare(strict_types=1);
 
+require_once dirname(__DIR__) . '/vendor/autoload.php';
+
+use Doctrine\DBAL\DriverManager;
+
 $projectRoot = dirname(__DIR__);
 $dbDir = $projectRoot . '/var/db';
 $dbPath = $dbDir . '/program_catalog.sqlite';
@@ -29,7 +33,7 @@ $programs = [
         'physical_path' => 'src/ApiResource/AcbrCep/AcbrCepConsultaCepResource.php',
         'category' => 'src_module',
         'description' => 'Recursos de API do modulo CEP.',
-        'detailed_explanation' => 'Define os contratos expostos pelo API Platform para configuracoes e consultas de CEP. Esses recursos trabalham com serializacao tipada e se conectam a processors e providers dedicados do modulo AcbrCep.',
+        'detailed_explanation' => 'Define os contratos expostos pelo API Platform para configuracoes e consultas de CEP. Os recursos permanecem como classes de contrato do modulo, mas a publicacao da metadata do API Platform e dos grupos de serializacao foi movida para XML, mantendo processors e providers dedicados.',
     ],
     [
         'code' => 'src_api_resource_legacy',
@@ -47,7 +51,7 @@ $programs = [
         'physical_path' => 'src/ApiResource/Nfe/NfeEnvioResource.php',
         'category' => 'src_module',
         'description' => 'Recursos de API do modulo NFe.',
-        'detailed_explanation' => 'Agrupa as operacoes modernas de NFe publicadas pelo API Platform, organizadas em envio, consultas, eventos, distribuicao de DFe, inutilizacao e ferramentas. As operacoes usam metadados para delegar ao legado ACBr.',
+        'detailed_explanation' => 'Agrupa as operacoes modernas de NFe publicadas pelo API Platform, organizadas em envio, consultas, eventos, distribuicao de DFe, inutilizacao e ferramentas. A metadata das operacoes foi migrada para XML por modulo, e cada grupo agora aponta para DTOs explicitos em vez de depender apenas do contrato generico do modulo.',
     ],
     [
         'code' => 'src_api_resource_nfse',
@@ -56,7 +60,7 @@ $programs = [
         'physical_path' => 'src/ApiResource/Nfse/NfsePadraoNacionalResource.php',
         'category' => 'src_module',
         'description' => 'Recursos de API do modulo NFSe.',
-        'detailed_explanation' => 'Reune os endpoints modernos de NFSe para padrao nacional, demais provedores, consultas, envio, cancelamento, servicos tomados/prestados e ferramentas. A camada modela a API e repassa a execucao para os servicos legados do ACBr.',
+        'detailed_explanation' => 'Reune os endpoints modernos de NFSe para padrao nacional, demais provedores, consultas, envio, cancelamento, servicos tomados/prestados e ferramentas. A camada modela a API em metadata XML, usa DTOs explicitos por grupo de operacao e continua repassando a execucao para os servicos legados do ACBr.',
     ],
     [
         'code' => 'src_controller',
@@ -92,7 +96,7 @@ $programs = [
         'physical_path' => 'src/Dto/Nfe/NfeConsultaCadastroInput.php',
         'category' => 'src_module',
         'description' => 'DTOs usados pela camada moderna das operacoes NFe.',
-        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados ao modulo NFe. A operacao consulta-cadastro agora possui DTO especifico com atributos de validacao, metadados de API e o contrato publico baseado em AnDocumento + TipoDocumento.',
+        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados ao modulo NFe. A operacao consulta-cadastro usa DTO especifico com validacao em XML, metadados do API Platform em XML e o contrato publico baseado em AnDocumento + TipoDocumento.',
     ],
     [
         'code' => 'src_dto_nfse',
@@ -101,7 +105,7 @@ $programs = [
         'physical_path' => 'src/Dto/Nfse/NfseOperationInput.php',
         'category' => 'src_module',
         'description' => 'DTOs usados pela camada moderna das operacoes NFSe.',
-        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFSe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados ao modulo NFSe.',
+        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFSe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados aos grupos de operacao do modulo NFSe, com os recursos publicados por metadados XML.',
     ],
     [
         'code' => 'src_event_subscriber',
@@ -137,7 +141,7 @@ $programs = [
         'physical_path' => 'src/Repository/ProgramCatalogRepository.php',
         'category' => 'src_module',
         'description' => 'Repositórios de acesso a dados da aplicação.',
-        'detailed_explanation' => 'Contem a camada de repositório usada para acessar o catálogo de programas via Doctrine DBAL. Essa estrutura remove o acesso direto ao banco do controller e aproxima a aplicação do padrão esperado no ecossistema Symfony.',
+        'detailed_explanation' => 'Contem a camada de repositório usada para acessar o catálogo de programas via Doctrine DBAL. Essa estrutura remove o acesso direto ao banco do controller e agora tambem convive com a manutencao do catalogo feita sem PDO, mantendo o acesso SQLite centralizado em DBAL.',
     ],
     [
         'code' => 'src_service_cep',
@@ -312,11 +316,15 @@ $programs = [
     ],
 ];
 
-$pdo = new PDO('sqlite:' . $dbPath);
-$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-$pdo->exec('PRAGMA foreign_keys = ON');
+$connection = DriverManager::getConnection([
+    'driver' => 'pdo_sqlite',
+    'path' => $dbPath,
+]);
 
-$pdo->exec(<<<'SQL'
+$connection->executeStatement('PRAGMA foreign_keys = ON');
+
+$schemaStatements = [
+    <<<'SQL'
 CREATE TABLE IF NOT EXISTS programs (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     code TEXT NOT NULL UNIQUE,
@@ -331,8 +339,9 @@ CREATE TABLE IF NOT EXISTS programs (
     ended_at TEXT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
+)
+SQL,
+    <<<'SQL'
 CREATE TABLE IF NOT EXISTS program_history (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     program_id INTEGER NOT NULL,
@@ -346,8 +355,9 @@ CREATE TABLE IF NOT EXISTS program_history (
     ended_at_snapshot TEXT NULL,
     event_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (program_id) REFERENCES programs(id) ON DELETE CASCADE
-);
-
+)
+SQL,
+    <<<'SQL'
 CREATE TRIGGER IF NOT EXISTS trg_programs_updated_at
 AFTER UPDATE OF name, path, physical_path, category, status, description, detailed_explanation, started_at, ended_at ON programs
 FOR EACH ROW
@@ -355,8 +365,9 @@ BEGIN
     UPDATE programs
        SET updated_at = CURRENT_TIMESTAMP
      WHERE id = NEW.id;
-END;
-
+END
+SQL,
+    <<<'SQL'
 CREATE TRIGGER IF NOT EXISTS trg_programs_history_update
 AFTER UPDATE OF name, path, physical_path, category, status, description, detailed_explanation, started_at ON programs
 FOR EACH ROW
@@ -393,8 +404,9 @@ BEGIN
         NEW.started_at,
         NEW.ended_at
     );
-END;
-
+END
+SQL,
+    <<<'SQL'
 CREATE TRIGGER IF NOT EXISTS trg_programs_history_ended
 AFTER UPDATE OF ended_at ON programs
 FOR EACH ROW
@@ -422,29 +434,33 @@ BEGIN
         NEW.started_at,
         NEW.ended_at
     );
-END;
-
+END
+SQL,
+    <<<'SQL'
 CREATE TRIGGER IF NOT EXISTS trg_programs_prevent_delete
 BEFORE DELETE ON programs
 FOR EACH ROW
 BEGIN
     SELECT RAISE(ABORT, 'Nao delete programas fisicamente. Atualize ended_at e status para encerrar o programa.');
-END;
-SQL);
+END
+SQL,
+];
 
-$programColumns = $pdo->query('PRAGMA table_info(programs)')->fetchAll(PDO::FETCH_ASSOC);
-$programColumnNames = array_column($programColumns, 'name');
+foreach ($schemaStatements as $statement) {
+    $connection->executeStatement($statement);
+}
+
+$programColumnNames = array_column($connection->fetchAllAssociative('PRAGMA table_info(programs)'), 'name');
 if (!in_array('physical_path', $programColumnNames, true)) {
-    $pdo->exec("ALTER TABLE programs ADD COLUMN physical_path TEXT NOT NULL DEFAULT ''");
+    $connection->executeStatement("ALTER TABLE programs ADD COLUMN physical_path TEXT NOT NULL DEFAULT ''");
 }
 
-$historyColumns = $pdo->query('PRAGMA table_info(program_history)')->fetchAll(PDO::FETCH_ASSOC);
-$historyColumnNames = array_column($historyColumns, 'name');
+$historyColumnNames = array_column($connection->fetchAllAssociative('PRAGMA table_info(program_history)'), 'name');
 if (!in_array('physical_path_snapshot', $historyColumnNames, true)) {
-    $pdo->exec("ALTER TABLE program_history ADD COLUMN physical_path_snapshot TEXT NOT NULL DEFAULT ''");
+    $connection->executeStatement("ALTER TABLE program_history ADD COLUMN physical_path_snapshot TEXT NOT NULL DEFAULT ''");
 }
 
-$pdo->exec(
+$connection->executeStatement(
     "UPDATE program_history
         SET physical_path_snapshot = (
             SELECT programs.physical_path
@@ -453,92 +469,63 @@ $pdo->exec(
         )
       WHERE physical_path_snapshot = ''"
 );
-$selectProgram = $pdo->prepare('SELECT id, description, detailed_explanation, physical_path, status, started_at, ended_at FROM programs WHERE code = :code');
-$insertProgram = $pdo->prepare(
-    'INSERT INTO programs (code, name, path, physical_path, category, status, description, detailed_explanation)
-     VALUES (:code, :name, :path, :physical_path, :category, :status, :description, :detailed_explanation)'
-);
-$updateProgram = $pdo->prepare(
-    'UPDATE programs
-        SET name = :name,
-            path = :path,
-            physical_path = :physical_path,
-            category = :category,
-            status = :status,
-            description = :description,
-            detailed_explanation = :detailed_explanation
-      WHERE code = :code'
-);
-$insertHistory = $pdo->prepare(
-    'INSERT INTO program_history (
-        program_id,
-        event_type,
-        event_summary,
-        physical_path_snapshot,
-        description_snapshot,
-        detailed_explanation_snapshot,
-        status_snapshot,
-        started_at_snapshot,
-        ended_at_snapshot
-    ) VALUES (
-        :program_id,
-        :event_type,
-        :event_summary,
-        :physical_path_snapshot,
-        :description_snapshot,
-        :detailed_explanation_snapshot,
-        :status_snapshot,
-        :started_at_snapshot,
-        :ended_at_snapshot
-    )'
-);
 
-$pdo->beginTransaction();
+$connection->beginTransaction();
 
-foreach ($programs as $program) {
-    $selectProgram->execute(['code' => $program['code']]);
-    $existing = $selectProgram->fetch(PDO::FETCH_ASSOC);
+try {
+    foreach ($programs as $program) {
+        $existing = $connection->fetchAssociative(
+            'SELECT id, description, detailed_explanation, physical_path, status, started_at, ended_at FROM programs WHERE code = :code',
+            ['code' => $program['code']]
+        );
 
-    if ($existing === false) {
-        $insertProgram->execute([
-            'code' => $program['code'],
+        if ($existing === false) {
+            $connection->insert('programs', [
+                'code' => $program['code'],
+                'name' => $program['name'],
+                'path' => $program['path'],
+                'physical_path' => $program['physical_path'],
+                'category' => $program['category'],
+                'status' => 'active',
+                'description' => $program['description'],
+                'detailed_explanation' => $program['detailed_explanation'],
+            ]);
+
+            $programId = (int) $connection->lastInsertId();
+
+            $connection->insert('program_history', [
+                'program_id' => $programId,
+                'event_type' => 'created',
+                'event_summary' => 'Cadastro inicial do programa no catalogo local do projeto.',
+                'physical_path_snapshot' => $program['physical_path'],
+                'description_snapshot' => $program['description'],
+                'detailed_explanation_snapshot' => $program['detailed_explanation'],
+                'status_snapshot' => 'active',
+                'started_at_snapshot' => date('Y-m-d H:i:s'),
+                'ended_at_snapshot' => null,
+            ]);
+
+            continue;
+        }
+
+        $connection->update('programs', [
             'name' => $program['name'],
             'path' => $program['path'],
             'physical_path' => $program['physical_path'],
             'category' => $program['category'],
-            'status' => 'active',
+            'status' => $existing['ended_at'] === null ? 'active' : $existing['status'],
             'description' => $program['description'],
             'detailed_explanation' => $program['detailed_explanation'],
+        ], [
+            'code' => $program['code'],
         ]);
-
-        $programId = (int) $pdo->lastInsertId();
-        $insertHistory->execute([
-            'program_id' => $programId,
-            'event_type' => 'created',
-            'event_summary' => 'Cadastro inicial do programa no catalogo local do projeto.',
-            'physical_path_snapshot' => $program['physical_path'],
-            'description_snapshot' => $program['description'],
-            'detailed_explanation_snapshot' => $program['detailed_explanation'],
-            'status_snapshot' => 'active',
-            'started_at_snapshot' => date('Y-m-d H:i:s'),
-            'ended_at_snapshot' => null,
-        ]);
-
-        continue;
     }
 
-    $updateProgram->execute([
-        'code' => $program['code'],
-        'name' => $program['name'],
-        'path' => $program['path'],
-        'physical_path' => $program['physical_path'],
-        'category' => $program['category'],
-        'status' => $existing['ended_at'] === null ? 'active' : $existing['status'],
-        'description' => $program['description'],
-        'detailed_explanation' => $program['detailed_explanation'],
-    ]);
-}
+    $connection->commit();
+} catch (\Throwable $exception) {
+    $connection->rollBack();
 
-$pdo->commit();
+    throw $exception;
+}
 
 echo "Banco criado/atualizado em {$dbPath}\n";

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<container xmlns="http://symfony.com/schema/dic/services"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xmlns:apip="http://example.org/schema/dic/api_platform"
+           xsi:schemaLocation="http://symfony.com/schema/dic/services https://symfony.com/schema/dic/services/services-1.0.xsd">
+    <apip:config>
+        <apip:title>ACBr API</apip:title>
+        <apip:version>1.0.0</apip:version>
+        <apip:mapping>
+            <apip:path>%kernel.project_dir%/config/api_platform/resources</apip:path>
+        </apip:mapping>
+        <apip:defaults stateless="true"/>
+        <apip:swagger>
+            <apip:version>3</apip:version>
+        </apip:swagger>
+    </apip:config>
+</container>

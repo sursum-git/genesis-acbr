@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<serializer xmlns="http://symfony.com/schema/dic/serializer-mapping"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://symfony.com/schema/dic/serializer-mapping https://symfony.com/schema/dic/serializer-mapping/serializer-mapping-1.0.xsd">
+    <class name="App\Dto\Legacy\AbstractLegacyOperationInput">
+        <attribute name="payload">
+            <group>acbr_legacy_operation:write</group>
+        </attribute>
+    </class>
+    <class name="App\Dto\Legacy\AbstractLegacyOperationOutput">
+        <attribute name="resultado">
+            <group>acbr_legacy_operation:read</group>
+        </attribute>
+        <attribute name="mensagem">
+            <group>acbr_legacy_operation:read</group>
+        </attribute>
+    </class>
+</serializer>

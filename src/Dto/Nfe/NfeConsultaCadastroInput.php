@@ -13,7 +13,6 @@ final class NfeConsultaCadastroInput
     ) {
     }
 
-    #[Assert\Callback]
     public function validate(ExecutionContextInterface $context): void
     {
         if ($this->AnDocumento === null || $this->AnDocumento === '' || $this->TipoDocumento === null) {

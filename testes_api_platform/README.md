@@ -23,6 +23,26 @@ Arquivos desta pasta:
 - [nfe.http](/dados_containers/www/testes_api_platform/nfe.http)
 - [cep.http](/dados_containers/www/testes_api_platform/cep.http)
 - [nfse.http](/dados_containers/www/testes_api_platform/nfse.http)
+- [nfe.sh](/dados_containers/www/testes_api_platform/nfe.sh)
+- [cep.sh](/dados_containers/www/testes_api_platform/cep.sh)
+- [nfse.sh](/dados_containers/www/testes_api_platform/nfse.sh)
+- [_common.sh](/dados_containers/www/testes_api_platform/_common.sh)
+
+Scripts shell:
+
+- `bash testes_api_platform/nfe.sh`
+- `bash testes_api_platform/cep.sh`
+- `bash testes_api_platform/nfse.sh`
+
+Voce pode sobrescrever variaveis sem editar os arquivos:
+
+```bash
+BASE_URL='http://127.0.0.1/index.php' bash testes_api_platform/nfe.sh
+```
+
+```bash
+CNPJ='06013812000158' UF='ES' CHAVE_NFE='32260406013812000158550030001955901308939122' bash testes_api_platform/nfe.sh
+```
 
 Exemplos rapidos:
 

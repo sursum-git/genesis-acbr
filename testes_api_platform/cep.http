@@ -1,0 +1,25 @@
+@baseUrl = http://157.173.110.195:8089/index.php
+
+### CEP - Consulta por CEP
+POST {{baseUrl}}/acbr-cep/consulta-cep
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "cep": "29103091",
+  "webservice": "0"
+}
+
+### CEP - Consulta por logradouro
+POST {{baseUrl}}/acbr-cep/consulta-logradouro
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "cidade": "Vila Velha",
+  "tipo": "ROD",
+  "logradouro": "Darly Santos",
+  "uf": "ES",
+  "bairro": "Aracas",
+  "webservice": "0"
+}

@@ -1,0 +1,61 @@
+@baseUrl = http://157.173.110.195:8089/index.php
+@cnpj = 06013812000158
+
+### NFSe - Ferramentas - OpenSSL info
+GET {{baseUrl}}/nfse/ferramentas/openssl-info
+Accept: application/ld+json
+
+### NFSe - Ferramentas - Obter certificados
+GET {{baseUrl}}/nfse/ferramentas/obter-certificados
+Accept: application/ld+json
+
+### NFSe - Padrao nacional - consultar DPS por chave
+### Substituir a chave por uma chave valida de DPS.
+POST {{baseUrl}}/nfse/padrao-nacional/consultar-dps-por-chave
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "AChaveDFe": "SUBSTITUIR_CHAVE_DPS"
+  }
+}
+
+### NFSe - Padrao nacional - consultar NFSe por chave
+### Substituir a chave por uma chave valida de NFSe.
+POST {{baseUrl}}/nfse/padrao-nacional/consultar-nfse-por-chave
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "AChaveDFe": "SUBSTITUIR_CHAVE_NFSE"
+  }
+}
+
+### NFSe - Demais provedores - consultar situacao
+### Substituir os campos conforme o provedor usado.
+POST {{baseUrl}}/nfse/demais-provedores/consultas/consultar-situacao
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "APrestadorCNPJ": "{{cnpj}}",
+    "AProtocolo": "SUBSTITUIR_PROTOCOLO"
+  }
+}
+
+### NFSe - Demais provedores - consultar NFSe por periodo
+### Substituir as datas conforme o teste.
+POST {{baseUrl}}/nfse/demais-provedores/consultas/consultar-nfse-por-periodo
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "APrestadorCNPJ": "{{cnpj}}",
+    "ADataInicial": "2026-04-01",
+    "ADataFinal": "2026-04-30"
+  }
+}

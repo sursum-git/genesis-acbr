@@ -1,0 +1,87 @@
+@baseUrl = http://157.173.110.195:8089/index.php
+@cnpj = 06013812000158
+@uf = ES
+@ie = 06013812000158
+@chaveNfe = 32260406013812000158550030001955901308939122
+
+### NFe - Status do servico
+GET {{baseUrl}}/nfe/consultas/status-servico
+Accept: application/ld+json
+
+### NFe - Consulta cadastro por CNPJ
+GET {{baseUrl}}/nfe/consultas/consulta-cadastro?AcUF={{uf}}&AnDocumento={{cnpj}}&TipoDocumento=cpf_cnpj
+Accept: application/ld+json
+
+### NFe - Consulta cadastro por inscricao estadual
+GET {{baseUrl}}/nfe/consultas/consulta-cadastro?AcUF={{uf}}&AnDocumento={{ie}}&TipoDocumento=inscricao_estadual
+Accept: application/ld+json
+
+### NFe - Consultar com chave
+POST {{baseUrl}}/nfe/consultas/consultar-com-chave
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "eChaveOuNFe": "{{chaveNfe}}"
+  }
+}
+
+### NFe - Distribuicao DFe por chave
+POST {{baseUrl}}/nfe/distribuicao-dfe/por-chave
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "AcUFAutor": "{{uf}}",
+    "AeCNPJCPF": "{{cnpj}}",
+    "AechNFe": "{{chaveNfe}}"
+  }
+}
+
+### NFe - Distribuicao DFe por ultimo NSU
+POST {{baseUrl}}/nfe/distribuicao-dfe/por-ult-nsu
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "AcUFAutor": "{{uf}}",
+    "AeCNPJCPF": "{{cnpj}}",
+    "AeultNSU": "000000000000000"
+  }
+}
+
+### NFe - Distribuicao DFe por NSU
+POST {{baseUrl}}/nfe/distribuicao-dfe/por-nsu
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "AcUFAutor": "{{uf}}",
+    "AeCNPJCPF": "{{cnpj}}",
+    "AeNSU": "000000000000001"
+  }
+}
+
+### NFe - Consultar recibo
+### Substituir ARecibo por um numero de recibo valido.
+POST {{baseUrl}}/nfe/consultas/consultar-recibo
+Content-Type: application/ld+json
+Accept: application/ld+json
+
+{
+  "payload": {
+    "ARecibo": "SUBSTITUIR_RECIBO"
+  }
+}
+
+### NFe - OpenSSL info
+GET {{baseUrl}}/nfe/ferramentas/openssl-info
+Accept: application/ld+json
+
+### NFe - Obter certificados
+GET {{baseUrl}}/nfe/ferramentas/obter-certificados
+Accept: application/ld+json

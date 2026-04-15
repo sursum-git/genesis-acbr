@@ -33,6 +33,8 @@
 */
 header('Content-Type: application/json; charset=UTF-8');
 
+const ACBR_SHARED_LIB_BASE_PATH = '/opt/acbr_libs';
+
 function ValidaFFI()
 {
     if (!extension_loaded('ffi')) {
@@ -45,7 +47,6 @@ function ValidaFFI()
 
 function CarregaDll($dir, $nomeLib)
 {
-
     if (strpos(PHP_OS, 'WIN') === false) {
         $prefixo = strtolower("lib" . $nomeLib);
         $extensao = ".so";
@@ -62,19 +63,33 @@ function CarregaDll($dir, $nomeLib)
 
     $biblioteca = $prefixo . $arquitetura . $extensao;
 
+    $dllPaths = [];
     $dllPath = $dir . DIRECTORY_SEPARATOR;
 
-    if (!file_exists($dllPath . $biblioteca))
-    {
-        $dllPath = $dir . DIRECTORY_SEPARATOR . "ACBrLib" . DIRECTORY_SEPARATOR . "x" . $arquitetura . DIRECTORY_SEPARATOR;
+    if (strpos(PHP_OS, 'WIN') === false) {
+        $dllPaths[] = rtrim(ACBR_SHARED_LIB_BASE_PATH, DIRECTORY_SEPARATOR)
+            . DIRECTORY_SEPARATOR
+            . "x"
+            . $arquitetura
+            . DIRECTORY_SEPARATOR;
+    }
 
-        if (!file_exists($dllPath . $biblioteca)) {
-            if (strpos(PHP_OS, 'WIN') === false)
-                $dllPath = "";
-            else{
-                echo json_encode(["mensagem" => "Biblioteca (.dll/.so) não encontrada no caminho especificado: " . $dllPath . $biblioteca]);
-                return -10;
-            }
+    $dllPaths[] = $dllPath;
+    $dllPaths[] = $dir . DIRECTORY_SEPARATOR . "ACBrLib" . DIRECTORY_SEPARATOR . "x" . $arquitetura . DIRECTORY_SEPARATOR;
+
+    foreach ($dllPaths as $candidatePath) {
+        if (file_exists($candidatePath . $biblioteca)) {
+            $dllPath = $candidatePath;
+            break;
+        }
+    }
+
+    if (!file_exists($dllPath . $biblioteca)) {
+        if (strpos(PHP_OS, 'WIN') === false)
+            $dllPath = "";
+        else{
+            echo json_encode(["mensagem" => "Biblioteca (.dll/.so) não encontrada no caminho especificado: " . $dllPath . $biblioteca]);
+            return -10;
         }
     }
 

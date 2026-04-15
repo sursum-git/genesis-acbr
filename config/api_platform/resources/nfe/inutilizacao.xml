@@ -1,10 +1,246 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
-  <resource class="App\ApiResource\Nfe\NfeInutilizacaoResource" shortName="NFeInutilizacao" input="App\Dto\Nfe\NfeInutilizacaoInput" output="App\Dto\Nfe\NfeInutilizacaoOutput">
+<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
+  <resource class="App\ApiResource\Nfe\NfeInutilizacaoResource"
+            shortName="NFeInutilizacao"
+            input="App\Dto\Nfe\NfeInutilizacaoInput"
+            output="App\Dto\Nfe\NfeInutilizacaoOutput">
     <operations>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_inutilizar" uriTemplate="/nfe/inutilizacao/inutilizar" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">Inutilizar</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_imprimir_inutilizacao_pdf" uriTemplate="/nfe/inutilizacao/imprimir-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">ImprimirInutilizacaoPDF</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_salvar_inutilizacao_pdf" uriTemplate="/nfe/inutilizacao/salvar-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">SalvarInutilizacaoPDF</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
+      <operation class="ApiPlatform\Metadata\Post"
+                 name="post_nfe_inutilizar"
+                 uriTemplate="/nfe/inutilizacao/inutilizar"
+                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">Inutilizar</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>ACNPJ</value>
+                                    <value>AJustificativa</value>
+                                    <value>AAno</value>
+                                    <value>AModelo</value>
+                                    <value>ASerie</value>
+                                    <value>ANumeroInicial</value>
+                                    <value>ANumeroFinal</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="ACNPJ">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">06013812000158</value>
+                                      </values>
+                                    </value>
+                                    <value name="AJustificativa">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">Inutilizacao de numeracao nao utilizada</value>
+                                      </values>
+                                    </value>
+                                    <value name="AAno">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">26</value>
+                                      </values>
+                                    </value>
+                                    <value name="AModelo">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">55</value>
+                                      </values>
+                                    </value>
+                                    <value name="ASerie">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">3</value>
+                                      </values>
+                                    </value>
+                                    <value name="ANumeroInicial">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">195591</value>
+                                      </values>
+                                    </value>
+                                    <value name="ANumeroFinal">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">195600</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="ACNPJ">06013812000158</value>
+                                <value name="AJustificativa">Inutilizacao de numeracao nao utilizada</value>
+                                <value name="AAno">26</value>
+                                <value name="AModelo">55</value>
+                                <value name="ASerie">3</value>
+                                <value name="ANumeroInicial">195591</value>
+                                <value name="ANumeroFinal">195600</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_imprimir_inutilizacao_pdf" uriTemplate="/nfe/inutilizacao/imprimir-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">ImprimirInutilizacaoPDF</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AeArquivoXml</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AeArquivoXml">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/inutilizacao.xml</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="AeArquivoXml">/dados/xml/inutilizacao.xml</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_salvar_inutilizacao_pdf" uriTemplate="/nfe/inutilizacao/salvar-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">SalvarInutilizacaoPDF</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AeArquivoXml</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AeArquivoXml">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/inutilizacao.xml</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="AeArquivoXml">/dados/xml/inutilizacao.xml</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
     </operations>
   </resource>
 </resources>

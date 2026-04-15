@@ -1,12 +1,428 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
-  <resource class="App\ApiResource\Nfe\NfeEventosResource" shortName="NFeEventos" input="App\Dto\Nfe\NfeEventosInput" output="App\Dto\Nfe\NfeEventosOutput">
+<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
+  <resource class="App\ApiResource\Nfe\NfeEventosResource"
+            shortName="NFeEventos"
+            input="App\Dto\Nfe\NfeEventosInput"
+            output="App\Dto\Nfe\NfeEventosOutput">
     <operations>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_cancelar" uriTemplate="/nfe/eventos/cancelar" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">Cancelar</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_enviar_evento" uriTemplate="/nfe/eventos/enviar-evento" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">EnviarEvento</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_imprimir_evento_pdf" uriTemplate="/nfe/eventos/imprimir-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">ImprimirEventoPDF</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_salvar_evento_pdf" uriTemplate="/nfe/eventos/salvar-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">SalvarEventoPDF</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_enviar_email_evento" uriTemplate="/nfe/eventos/enviar-email" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">EnviarEmailEvento</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
+      <operation class="ApiPlatform\Metadata\Post"
+                 name="post_nfe_cancelar"
+                 uriTemplate="/nfe/eventos/cancelar"
+                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">Cancelar</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AeChave</value>
+                                    <value>AeJustificativa</value>
+                                    <value>AeCNPJCPF</value>
+                                    <value>ALote</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AeChave">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">32260406013812000158550030001955901308939122</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeJustificativa">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">Cancelamento solicitado pelo emitente</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeCNPJCPF">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">06013812000158</value>
+                                      </values>
+                                    </value>
+                                    <value name="ALote">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">1</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="AeChave">32260406013812000158550030001955901308939122</value>
+                                <value name="AeJustificativa">Cancelamento solicitado pelo emitente</value>
+                                <value name="AeCNPJCPF">06013812000158</value>
+                                <value name="ALote">1</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_enviar_evento" uriTemplate="/nfe/eventos/enviar-evento" processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">EnviarEvento</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AeArquivoXmlNFe</value>
+                                    <value>AeArquivoXmlEvento</value>
+                                    <value>AidLote</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AeArquivoXmlNFe">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/nfe.xml</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeArquivoXmlEvento">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/evento.xml</value>
+                                      </values>
+                                    </value>
+                                    <value name="AidLote">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">1</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="AeArquivoXmlNFe">/dados/xml/nfe.xml</value>
+                                <value name="AeArquivoXmlEvento">/dados/xml/evento.xml</value>
+                                <value name="AidLote">1</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_imprimir_evento_pdf" uriTemplate="/nfe/eventos/imprimir-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">ImprimirEventoPDF</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AeArquivoXmlNFe</value>
+                                    <value>AeArquivoXmlEvento</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AeArquivoXmlNFe">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/nfe.xml</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeArquivoXmlEvento">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/evento.xml</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="AeArquivoXmlNFe">/dados/xml/nfe.xml</value>
+                                <value name="AeArquivoXmlEvento">/dados/xml/evento.xml</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_salvar_evento_pdf" uriTemplate="/nfe/eventos/salvar-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">SalvarEventoPDF</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AeArquivoXmlNFe</value>
+                                    <value>AeArquivoXmlEvento</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AeArquivoXmlNFe">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/nfe.xml</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeArquivoXmlEvento">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">/dados/xml/evento.xml</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="AeArquivoXmlNFe">/dados/xml/nfe.xml</value>
+                                <value name="AeArquivoXmlEvento">/dados/xml/evento.xml</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_enviar_email_evento" uriTemplate="/nfe/eventos/enviar-email" processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">EnviarEmailEvento</value></values></extraProperties>
+        <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
+        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AePara</value>
+                                    <value>AeChaveEvento</value>
+                                    <value>AeChaveNFe</value>
+                                    <value>AEnviaPDF</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AePara">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">destinatario@empresa.com</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeChaveEvento">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">CHAVE_EVENTO</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeChaveNFe">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">32260406013812000158550030001955901308939122</value>
+                                      </values>
+                                    </value>
+                                    <value name="AEnviaPDF">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">1</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeAssunto">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">Envio de evento da NF-e</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeCC">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example"></value>
+                                      </values>
+                                    </value>
+                                    <value name="AeAnexos">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example"></value>
+                                      </values>
+                                    </value>
+                                    <value name="AeMensagem">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">Segue o evento em anexo.</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                        <value name="example">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="AePara">destinatario@empresa.com</value>
+                                <value name="AeChaveEvento">CHAVE_EVENTO</value>
+                                <value name="AeChaveNFe">32260406013812000158550030001955901308939122</value>
+                                <value name="AEnviaPDF">1</value>
+                                <value name="AeAssunto">Envio de evento da NF-e</value>
+                                <value name="AeCC"></value>
+                                <value name="AeAnexos"></value>
+                                <value name="AeMensagem">Segue o evento em anexo.</value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
+      </operation>
     </operations>
   </resource>
 </resources>

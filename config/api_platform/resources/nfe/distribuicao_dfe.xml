@@ -1,10 +1,339 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
-  <resource class="App\ApiResource\Nfe\NfeDistribuicaoDfeResource" shortName="NFeDistribuicaoDFe" input="App\Dto\Nfe\NfeDistribuicaoDfeInput" output="App\Dto\Nfe\NfeDistribuicaoDfeOutput">
+<resources xmlns="https://api-platform.com/schema/metadata/resources-3.0"
+           xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
+  <resource class="App\ApiResource\Nfe\NfeDistribuicaoDfeResource"
+            shortName="NFeDistribuicaoDFe"
+            input="App\Dto\Nfe\NfeDistribuicaoDfeInput"
+            output="App\Dto\Nfe\NfeDistribuicaoDfeOutput">
     <operations>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_distribuicao_por_chave" uriTemplate="/nfe/distribuicao-dfe/por-chave" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">DistribuicaoDFePorChave</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_distribuicao_por_nsu" uriTemplate="/nfe/distribuicao-dfe/por-nsu" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">DistribuicaoDFePorNSU</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_distribuicao_por_ult_nsu" uriTemplate="/nfe/distribuicao-dfe/por-ult-nsu" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">DistribuicaoDFePorUltNSU</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi></operation>
+      <operation class="ApiPlatform\Metadata\Post"
+                 name="post_nfe_distribuicao_por_chave"
+                 uriTemplate="/nfe/distribuicao-dfe/por-chave"
+                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties>
+          <values>
+            <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
+            <value name="acbr_method">DistribuicaoDFePorChave</value>
+          </values>
+        </extraProperties>
+        <normalizationContext>
+          <values>
+            <value name="groups">
+              <values>
+                <value>acbr_legacy_operation:read</value>
+              </values>
+            </value>
+          </values>
+        </normalizationContext>
+        <denormalizationContext>
+          <values>
+            <value name="groups">
+              <values>
+                <value>acbr_legacy_operation:write</value>
+              </values>
+            </value>
+          </values>
+        </denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AcUFAutor</value>
+                                    <value>AeCNPJCPF</value>
+                                    <value>AechNFe</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AcUFAutor">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">ES</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeCNPJCPF">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">06013812000158</value>
+                                      </values>
+                                    </value>
+                                    <value name="AechNFe">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">32260406013812000158550030001955901308939122</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                    <value name="example">
+                      <values>
+                        <value name="payload">
+                          <values>
+                            <value name="AcUFAutor">ES</value>
+                            <value name="AeCNPJCPF">06013812000158</value>
+                            <value name="AechNFe">32260406013812000158550030001955901308939122</value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties>
+            <values>
+              <value name="x-apiplatform-tag">
+                <values>
+                  <value>nfe</value>
+                </values>
+              </value>
+            </values>
+          </extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post"
+                 name="post_nfe_distribuicao_por_nsu"
+                 uriTemplate="/nfe/distribuicao-dfe/por-nsu"
+                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties>
+          <values>
+            <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
+            <value name="acbr_method">DistribuicaoDFePorNSU</value>
+          </values>
+        </extraProperties>
+        <normalizationContext>
+          <values>
+            <value name="groups">
+              <values>
+                <value>acbr_legacy_operation:read</value>
+              </values>
+            </value>
+          </values>
+        </normalizationContext>
+        <denormalizationContext>
+          <values>
+            <value name="groups">
+              <values>
+                <value>acbr_legacy_operation:write</value>
+              </values>
+            </value>
+          </values>
+        </denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AcUFAutor</value>
+                                    <value>AeCNPJCPF</value>
+                                    <value>AeNSU</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AcUFAutor">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">ES</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeCNPJCPF">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">06013812000158</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeNSU">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">000000000000001</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                    <value name="example">
+                      <values>
+                        <value name="payload">
+                          <values>
+                            <value name="AcUFAutor">ES</value>
+                            <value name="AeCNPJCPF">06013812000158</value>
+                            <value name="AeNSU">000000000000001</value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties>
+            <values>
+              <value name="x-apiplatform-tag">
+                <values>
+                  <value>nfe</value>
+                </values>
+              </value>
+            </values>
+          </extensionProperties>
+        </openapi>
+      </operation>
+      <operation class="ApiPlatform\Metadata\Post"
+                 name="post_nfe_distribuicao_por_ult_nsu"
+                 uriTemplate="/nfe/distribuicao-dfe/por-ult-nsu"
+                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+        <extraProperties>
+          <values>
+            <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
+            <value name="acbr_method">DistribuicaoDFePorUltNSU</value>
+          </values>
+        </extraProperties>
+        <normalizationContext>
+          <values>
+            <value name="groups">
+              <values>
+                <value>acbr_legacy_operation:read</value>
+              </values>
+            </value>
+          </values>
+        </normalizationContext>
+        <denormalizationContext>
+          <values>
+            <value name="groups">
+              <values>
+                <value>acbr_legacy_operation:write</value>
+              </values>
+            </value>
+          </values>
+        </denormalizationContext>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/ld+json">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">object</value>
+                        <value name="required">
+                          <values>
+                            <value>payload</value>
+                          </values>
+                        </value>
+                        <value name="properties">
+                          <values>
+                            <value name="payload">
+                              <values>
+                                <value name="type">object</value>
+                                <value name="required">
+                                  <values>
+                                    <value>AcUFAutor</value>
+                                    <value>AeCNPJCPF</value>
+                                    <value>AeultNSU</value>
+                                  </values>
+                                </value>
+                                <value name="properties">
+                                  <values>
+                                    <value name="AcUFAutor">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">ES</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeCNPJCPF">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">06013812000158</value>
+                                      </values>
+                                    </value>
+                                    <value name="AeultNSU">
+                                      <values>
+                                        <value name="type">string</value>
+                                        <value name="example">000000000000000</value>
+                                      </values>
+                                    </value>
+                                  </values>
+                                </value>
+                              </values>
+                            </value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                    <value name="example">
+                      <values>
+                        <value name="payload">
+                          <values>
+                            <value name="AcUFAutor">ES</value>
+                            <value name="AeCNPJCPF">06013812000158</value>
+                            <value name="AeultNSU">000000000000000</value>
+                          </values>
+                        </value>
+                      </values>
+                    </value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties>
+            <values>
+              <value name="x-apiplatform-tag">
+                <values>
+                  <value>nfe</value>
+                </values>
+              </value>
+            </values>
+          </extensionProperties>
+        </openapi>
+      </operation>
     </operations>
   </resource>
 </resources>

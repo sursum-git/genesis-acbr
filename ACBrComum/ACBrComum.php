@@ -45,6 +45,7 @@ function ValidaFFI()
 
 function CarregaDll($dir, $nomeLib)
 {
+
     if (strpos(PHP_OS, 'WIN') === false) {
         $prefixo = strtolower("lib" . $nomeLib);
         $extensao = ".so";
@@ -78,19 +79,10 @@ function CarregaDll($dir, $nomeLib)
     }
 
     if (!empty($dir)) {
-        $pathAtual = getenv('PATH') ?: '';
-        if ($pathAtual === '' || strpos($pathAtual, $dllPath) === false) {
-            $novoPath = $dllPath . ($pathAtual !== '' ? PATH_SEPARATOR . $pathAtual : '');
-            putenv("PATH=$novoPath");
-        }
-
-        if (strpos(PHP_OS, 'WIN') === false) {
-            $ldLibraryPath = getenv('LD_LIBRARY_PATH') ?: '';
-            if ($ldLibraryPath === '' || strpos($ldLibraryPath, $dllPath) === false) {
-                $novoLdLibraryPath = $dllPath . ($ldLibraryPath !== '' ? ':' . $ldLibraryPath : '');
-                putenv("LD_LIBRARY_PATH=$novoLdLibraryPath");
-            }
-        }
+        $pathAtual = getenv('PATH');
+        if (strpos($pathAtual, $dllPath) === false) {
+            putenv("PATH=$dllPath;" . $pathAtual);
+        }    
     }
     
     return $dllPath . $biblioteca;

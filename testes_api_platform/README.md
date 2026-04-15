@@ -27,6 +27,7 @@ Arquivos desta pasta:
 - [cep.sh](/dados_containers/www/testes_api_platform/cep.sh)
 - [nfse.sh](/dados_containers/www/testes_api_platform/nfse.sh)
 - [_common.sh](/dados_containers/www/testes_api_platform/_common.sh)
+- [payloads.md](/dados_containers/www/testes_api_platform/payloads.md)
 
 Scripts shell:
 

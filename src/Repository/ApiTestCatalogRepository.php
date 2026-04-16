@@ -27,7 +27,7 @@ final class ApiTestCatalogRepository
                 g.sort_order,
                 COUNT(t.id) AS total_tests,
                 SUM(CASE WHEN t.is_active = 1 THEN 1 ELSE 0 END) AS active_tests,
-                SUM(CASE WHEN t.is_automated = 1 AND t.is_active = 1 THEN 1 ELSE 0 END) AS automated_tests
+                SUM(CASE WHEN t.request_body IS NOT NULL AND t.request_body != '' THEN 1 ELSE 0 END) AS payload_tests
             FROM test_groups g
             LEFT JOIN api_tests t ON t.group_id = g.id
             GROUP BY g.id, g.code, g.name, g.module, g.description, g.sort_order
@@ -49,23 +49,28 @@ final class ApiTestCatalogRepository
                 't.description',
                 't.method',
                 't.path',
+                't.query_string',
                 't.request_body',
-                't.is_automated',
+                't.request_count',
+                't.last_status_code',
+                't.last_duration_ms',
+                't.first_recorded_at',
+                't.last_recorded_at',
                 't.is_active',
-                't.sort_order',
                 'g.code AS group_code',
                 'g.name AS group_name',
                 'g.module AS group_module'
             )
             ->from('api_tests', 't')
             ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
+            ->where('t.is_active = 1')
             ->orderBy('g.sort_order', 'ASC')
-            ->addOrderBy('t.sort_order', 'ASC')
+            ->addOrderBy('t.last_recorded_at', 'DESC')
             ->addOrderBy('t.name', 'ASC');
 
         if ($search !== '') {
             $queryBuilder
-                ->andWhere('t.name LIKE :term OR t.code LIKE :term OR t.path LIKE :term OR t.description LIKE :term OR g.name LIKE :term')
+                ->andWhere('t.name LIKE :term OR t.code LIKE :term OR t.path LIKE :term OR t.query_string LIKE :term OR t.request_body LIKE :term OR g.name LIKE :term')
                 ->setParameter('term', '%' . $search . '%');
         }
 
@@ -98,11 +103,18 @@ final class ApiTestCatalogRepository
                 't.description',
                 't.method',
                 't.path',
+                't.query_string',
                 't.request_body',
                 't.headers_json',
-                't.is_automated',
+                't.request_signature',
+                't.request_count',
+                't.last_status_code',
+                't.last_response_body',
+                't.last_response_headers',
+                't.last_duration_ms',
+                't.first_recorded_at',
+                't.last_recorded_at',
                 't.is_active',
-                't.sort_order',
                 'g.code AS group_code',
                 'g.name AS group_name',
                 'g.module AS group_module',
@@ -139,7 +151,7 @@ final class ApiTestCatalogRepository
                 'g.sort_order',
                 'COUNT(t.id) AS total_tests',
                 'SUM(CASE WHEN t.is_active = 1 THEN 1 ELSE 0 END) AS active_tests',
-                'SUM(CASE WHEN t.is_automated = 1 AND t.is_active = 1 THEN 1 ELSE 0 END) AS automated_tests'
+                'SUM(CASE WHEN t.request_body IS NOT NULL AND t.request_body != \'\' THEN 1 ELSE 0 END) AS payload_tests'
             )
             ->from('test_groups', 'g')
             ->leftJoin('g', 'api_tests', 't', 't.group_id = g.id')
@@ -149,41 +161,6 @@ final class ApiTestCatalogRepository
             ->fetchAssociative();
 
         return $group === false ? null : $group;
-    }
-
-    /**
-     * @return array<string, mixed>|null
-     */
-    public function findTestByRequestSignature(string $method, string $requestTarget): ?array
-    {
-        $normalizedMethod = strtoupper(trim($method));
-        $normalizedTarget = $this->normalizeRequestTarget($requestTarget);
-
-        if ($normalizedMethod === '' || $normalizedTarget === '') {
-            return null;
-        }
-
-        $test = $this->connection->createQueryBuilder()
-            ->select(
-                't.id',
-                't.code',
-                't.name',
-                't.description',
-                't.method',
-                't.path',
-                'g.code AS group_code',
-                'g.name AS group_name'
-            )
-            ->from('api_tests', 't')
-            ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
-            ->where('t.is_active = 1')
-            ->andWhere('UPPER(t.method) = :method')
-            ->andWhere('t.path = :path')
-            ->setParameter('method', $normalizedMethod)
-            ->setParameter('path', $normalizedTarget)
-            ->fetchAssociative();
-
-        return $test === false ? null : $test;
     }
 
     /**
@@ -199,6 +176,7 @@ final class ApiTestCatalogRepository
                 't.description',
                 't.method',
                 't.path',
+                't.query_string',
                 't.request_body',
                 't.headers_json',
                 'g.code AS group_code',
@@ -208,9 +186,8 @@ final class ApiTestCatalogRepository
             ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
             ->where('g.code = :group_code')
             ->andWhere('t.is_active = 1')
-            ->andWhere('t.is_automated = 1')
             ->setParameter('group_code', $groupCode)
-            ->orderBy('t.sort_order', 'ASC')
+            ->orderBy('t.last_recorded_at', 'DESC')
             ->addOrderBy('t.name', 'ASC')
             ->fetchAllAssociative();
     }
@@ -228,6 +205,7 @@ final class ApiTestCatalogRepository
                 't.description',
                 't.method',
                 't.path',
+                't.query_string',
                 't.request_body',
                 't.headers_json',
                 'g.code AS group_code',
@@ -236,11 +214,74 @@ final class ApiTestCatalogRepository
             ->from('api_tests', 't')
             ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
             ->where('t.is_active = 1')
-            ->andWhere('t.is_automated = 1')
             ->orderBy('g.sort_order', 'ASC')
-            ->addOrderBy('t.sort_order', 'ASC')
+            ->addOrderBy('t.last_recorded_at', 'DESC')
             ->addOrderBy('t.name', 'ASC')
             ->fetchAllAssociative();
+    }
+
+    /**
+     * @param array<string, mixed> $group
+     * @param array<string, mixed> $test
+     * @return array{id:int,code:string,name:string,group_code:string}
+     */
+    public function saveObservedTestCase(array $group, array $test): array
+    {
+        $groupId = $this->upsertGroup($group);
+        $signature = (string) $test['request_signature'];
+
+        $existing = $this->connection->createQueryBuilder()
+            ->select('id', 'request_count', 'code')
+            ->from('api_tests')
+            ->where('request_signature = :request_signature')
+            ->setParameter('request_signature', $signature)
+            ->fetchAssociative();
+
+        $now = date('c');
+
+        $payload = [
+            'group_id' => $groupId,
+            'name' => $test['name'],
+            'description' => $test['description'],
+            'method' => strtoupper((string) $test['method']),
+            'path' => $test['path'],
+            'query_string' => $test['query_string'],
+            'request_body' => $test['request_body'],
+            'headers_json' => $test['headers_json'],
+            'request_signature' => $signature,
+            'request_count' => (int) ($existing['request_count'] ?? 0) + 1,
+            'last_status_code' => $test['last_status_code'],
+            'last_response_body' => $test['last_response_body'],
+            'last_response_headers' => $test['last_response_headers'],
+            'last_duration_ms' => $test['last_duration_ms'],
+            'first_recorded_at' => $existing === false ? $now : null,
+            'last_recorded_at' => $now,
+            'is_active' => 1,
+            'updated_at' => $now,
+        ];
+
+        if ($existing === false) {
+            $payload['code'] = $test['code'];
+            $payload['created_at'] = $now;
+            $this->connection->insert('api_tests', $payload);
+
+            return [
+                'id' => (int) $this->connection->lastInsertId(),
+                'code' => (string) $payload['code'],
+                'name' => (string) $payload['name'],
+                'group_code' => (string) $group['code'],
+            ];
+        }
+
+        unset($payload['first_recorded_at']);
+        $this->connection->update('api_tests', $payload, ['id' => $existing['id']]);
+
+        return [
+            'id' => (int) $existing['id'],
+            'code' => (string) $existing['code'],
+            'name' => (string) $payload['name'],
+            'group_code' => (string) $group['code'],
+        ];
     }
 
     public function createBatch(string $batchUuid, string $runMode, string $label, string $baseUrl, int $totalTests): int
@@ -373,14 +414,14 @@ final class ApiTestCatalogRepository
     public function getSummary(): array
     {
         $tests = $this->connection->fetchAssociative(
-            'SELECT COUNT(*) AS total_tests, SUM(CASE WHEN is_automated = 1 AND is_active = 1 THEN 1 ELSE 0 END) AS automated_tests FROM api_tests'
+            'SELECT COUNT(*) AS total_tests, SUM(CASE WHEN request_body IS NOT NULL AND request_body != \'\' THEN 1 ELSE 0 END) AS payload_tests FROM api_tests WHERE is_active = 1'
         );
         $groups = $this->connection->fetchOne('SELECT COUNT(*) FROM test_groups');
         $runs = $this->connection->fetchOne('SELECT COUNT(*) FROM test_run_history');
 
         return [
             'total_tests' => (int) ($tests['total_tests'] ?? 0),
-            'automated_tests' => (int) ($tests['automated_tests'] ?? 0),
+            'payload_tests' => (int) ($tests['payload_tests'] ?? 0),
             'total_groups' => (int) $groups,
             'total_runs' => (int) $runs,
         ];
@@ -404,6 +445,39 @@ final class ApiTestCatalogRepository
     }
 
     /**
+     * @param array<string, mixed> $group
+     */
+    private function upsertGroup(array $group): int
+    {
+        $existing = $this->connection->createQueryBuilder()
+            ->select('id')
+            ->from('test_groups')
+            ->where('code = :code')
+            ->setParameter('code', $group['code'])
+            ->fetchAssociative();
+
+        $payload = [
+            'code' => $group['code'],
+            'name' => $group['name'],
+            'module' => $group['module'],
+            'description' => $group['description'],
+            'sort_order' => $group['sort_order'],
+            'updated_at' => date('c'),
+        ];
+
+        if ($existing === false) {
+            $payload['created_at'] = date('c');
+            $this->connection->insert('test_groups', $payload);
+
+            return (int) $this->connection->lastInsertId();
+        }
+
+        $this->connection->update('test_groups', $payload, ['id' => $existing['id']]);
+
+        return (int) $existing['id'];
+    }
+
+    /**
      * @return list<string>
      */
     private function decodeHeaders(?string $headersJson): array
@@ -418,22 +492,5 @@ final class ApiTestCatalogRepository
         }
 
         return array_values(array_filter($headers, static fn (mixed $value): bool => is_string($value) && $value !== ''));
-    }
-
-    private function normalizeRequestTarget(string $requestTarget): string
-    {
-        $normalizedTarget = trim($requestTarget);
-        if ($normalizedTarget === '') {
-            return '';
-        }
-
-        $normalizedTarget = preg_replace('#^https?://[^/]+#i', '', $normalizedTarget) ?? $normalizedTarget;
-        $normalizedTarget = preg_replace('#^/index\.php#', '', $normalizedTarget) ?? $normalizedTarget;
-
-        if ($normalizedTarget === '') {
-            return '/';
-        }
-
-        return str_starts_with($normalizedTarget, '/') ? $normalizedTarget : '/' . $normalizedTarget;
     }
 }

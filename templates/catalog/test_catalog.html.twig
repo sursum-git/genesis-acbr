@@ -6,16 +6,16 @@
     <section class="hero">
         <div class="hero-copy">
             <h1>Catálogo de Testes</h1>
-            <p>Base central dos testes manuais automatizados do API Platform, com execução individual, por grupo e em lote geral, além do histórico persistido em SQLite.</p>
+            <p>Catálogo dos cenários realmente executados no API Platform, com payload, query string, resposta, histórico e rerun individual, por grupo ou geral a partir do que já foi gravado no SQLite.</p>
         </div>
         <div class="hero-stats">
             <article class="stat-card">
-                <strong>Testes</strong>
+                <strong>Cenários</strong>
                 <span>{{ summary.total_tests }}</span>
             </article>
             <article class="stat-card">
-                <strong>Automatizados</strong>
-                <span>{{ summary.automated_tests }}</span>
+                <strong>Com payload</strong>
+                <span>{{ summary.payload_tests }}</span>
             </article>
             <article class="stat-card">
                 <strong>Execuções</strong>
@@ -26,8 +26,8 @@
 
     <section class="panel">
         <div class="panel-header">
-            <h2>Execução geral</h2>
-            <p>Roda todos os testes automatizados cadastrados sequencialmente usando a base {{ baseUrl }}.</p>
+            <h2>Rerun geral</h2>
+            <p>Executa novamente todos os cenários já gravados, usando a base {{ baseUrl }}.</p>
         </div>
         <div class="action-bar">
             <form method="post" action="{{ app.request.basePath ~ '/index.php/catalogo-testes/executar/geral' }}">
@@ -48,8 +48,8 @@
                 </div>
                 <div class="chips">
                     <span class="chip">{{ group.module }}</span>
-                    <span class="chip">{{ group.automated_tests }} automatizados</span>
-                    <span class="chip">{{ group.total_tests }} total</span>
+                    <span class="chip">{{ group.payload_tests }} com payload</span>
+                    <span class="chip">{{ group.total_tests }} cenários</span>
                 </div>
                 <div class="group-actions">
                     <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?grupo=' ~ group.code ~ (search != '' ? '&q=' ~ search|url_encode : '') }}">Ver grupo</a>
@@ -67,8 +67,8 @@
     <section class="layout">
         <aside class="panel">
             <div class="panel-header">
-                <h2>Testes</h2>
-                <p>Selecione um teste para inspecionar o payload e disparar a execução individual.</p>
+                <h2>Cenários gravados</h2>
+                <p>Selecione um cenário já capturado no API Platform para inspecionar o payload e refazer a chamada.</p>
             </div>
 
             <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">
@@ -86,7 +86,7 @@
             </form>
 
             {% if tests is empty %}
-                <div class="empty">Nenhum teste encontrado para os filtros atuais.</div>
+                <div class="empty">Nenhum cenário gravado encontrado para os filtros atuais.</div>
             {% else %}
                 <div class="entity-list">
                     {% for test in tests %}
@@ -104,9 +104,7 @@
                             <div class="chips">
                                 <span class="chip">{{ test.group_name }}</span>
                                 <span class="chip">{{ test.method }}</span>
-                                {% if test.is_automated %}
-                                    <span class="chip chip-success">automatizado</span>
-                                {% endif %}
+                                <span class="chip">{{ test.request_count }} uso(s)</span>
                                 {% if lastRun %}
                                     <span class="chip{% if lastRun.success %} chip-success{% else %} chip-danger{% endif %}">
                                         {{ lastRun.success ? 'último ok' : 'último erro' }}
@@ -131,7 +129,7 @@
                         <span>{{ selectedTest.code }}</span>
                         <span>{{ selectedTest.group_name }}</span>
                         <span>{{ selectedTest.method }}</span>
-                        <span>{{ selectedTest.is_automated ? 'Automatizado' : 'Manual' }}</span>
+                        <span>{{ selectedTest.request_count }} uso(s)</span>
                     </div>
 
                     <div class="action-row">
@@ -139,21 +137,21 @@
                             <input type="hidden" name="q" value="{{ search }}">
                             <input type="hidden" name="grupo" value="{{ selectedGroupCode != '' ? selectedGroupCode : selectedTest.group_code }}">
                             <input type="hidden" name="teste" value="{{ selectedTest.code }}">
-                            <button class="button button-primary" type="submit">Executar teste</button>
+                            <button class="button button-primary" type="submit">Rerun do cenário</button>
                         </form>
 
                         <form method="post" action="{{ app.request.basePath ~ '/index.php/catalogo-testes/executar/grupo/' ~ selectedTest.group_code }}">
                             <input type="hidden" name="q" value="{{ search }}">
                             <input type="hidden" name="grupo" value="{{ selectedTest.group_code }}">
                             <input type="hidden" name="teste" value="{{ selectedTest.code }}">
-                            <button class="button button-secondary" type="submit">Executar grupo {{ selectedTest.group_name }}</button>
+                            <button class="button button-secondary" type="submit">Rerun do grupo {{ selectedTest.group_name }}</button>
                         </form>
                     </div>
 
                     <div class="info-grid">
                         <div class="block">
                             <h4>Endpoint</h4>
-                            <pre class="code-block"><code>{{ selectedTest.method }} {{ selectedTest.path }}</code></pre>
+                            <pre class="code-block"><code>{{ selectedTest.method }} {{ selectedTest.path }}{% if selectedTest.query_string %}?{{ selectedTest.query_string }}{% endif %}</code></pre>
                         </div>
 
                         <div class="block">
@@ -174,6 +172,13 @@
                         <pre class="code-block"><code>{{ selectedTest.request_body ?? 'Sem body. O teste usa apenas query string.' }}</code></pre>
                     </div>
 
+                    {% if selectedTest.query_string %}
+                        <div class="block">
+                            <h4>Query string</h4>
+                            <pre class="code-block"><code>{{ selectedTest.query_string }}</code></pre>
+                        </div>
+                    {% endif %}
+
                     {% if selectedTest.last_run %}
                         <div class="block">
                             <h4>Última execução</h4>
@@ -188,9 +193,14 @@
                             <p class="muted-text">Executado em {{ selectedTest.last_run.executed_at }}.</p>
                         </div>
                     {% endif %}
+
+                    <div class="block">
+                        <h4>Captura</h4>
+                        <p>Primeira vez em {{ selectedTest.first_recorded_at ?? 'n/a' }} | Última captura em {{ selectedTest.last_recorded_at ?? 'n/a' }}</p>
+                    </div>
                 </div>
             {% else %}
-                <div class="empty">Selecione um teste para ver o payload e iniciar a execução.</div>
+                <div class="empty">Faça um teste pelo API Platform e ele aparecerá aqui como cenário gravado.</div>
             {% endif %}
         </main>
     </section>

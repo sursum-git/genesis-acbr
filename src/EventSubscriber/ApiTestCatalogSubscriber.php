@@ -34,7 +34,7 @@ final class ApiTestCatalogSubscriber implements EventSubscriberInterface
         }
 
         try {
-            $this->recorder->recordIfCataloged($request, $event->getResponse());
+            $this->recorder->recordFromApiPlatform($request, $event->getResponse());
         } catch (Throwable) {
             // Nao interrompe a resposta da API por falha de catalogacao.
         }

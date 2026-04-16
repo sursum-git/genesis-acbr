@@ -52,6 +52,9 @@ final class ApiTestRunner
     {
         $headers = $this->decodeHeaders($test['headers_json'] ?? null);
         $requestUrl = $baseUrl . $test['path'];
+        if (isset($test['query_string']) && is_string($test['query_string']) && $test['query_string'] !== '') {
+            $requestUrl .= '?' . $test['query_string'];
+        }
         $requestBody = isset($test['request_body']) && is_string($test['request_body']) ? $test['request_body'] : null;
         $method = strtoupper((string) $test['method']);
 

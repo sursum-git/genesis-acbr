@@ -97,7 +97,7 @@ final class TestCatalogController extends AbstractController
 
         $tests = $this->repository->findAutomatedTestsByGroupCode($code);
         if ($tests === []) {
-            $this->addFlash('error', sprintf('O grupo "%s" nao possui testes automatizados ativos.', $group['name']));
+            $this->addFlash('error', sprintf('O grupo "%s" ainda nao possui cenarios gravados para rerun.', $group['name']));
 
             return $this->redirectToRoute('app_test_catalog', $this->buildRedirectParams($request, [
                 'grupo' => $code,
@@ -105,7 +105,7 @@ final class TestCatalogController extends AbstractController
         }
 
         $batchId = $this->runner->runTests($tests, 'grupo', (string) $group['name'], $this->resolveBaseUrl($request));
-        $this->addFlash('success', sprintf('Grupo "%s" executado com %d teste(s).', $group['name'], count($tests)));
+        $this->addFlash('success', sprintf('Grupo "%s" reexecutado com %d cenario(s).', $group['name'], count($tests)));
 
         return $this->redirectToRoute('app_test_catalog', $this->buildRedirectParams($request, [
             'grupo' => $code,
@@ -119,13 +119,13 @@ final class TestCatalogController extends AbstractController
     {
         $tests = $this->repository->findAllAutomatedTests();
         if ($tests === []) {
-            $this->addFlash('error', 'Nao existem testes automatizados ativos para execucao geral.');
+            $this->addFlash('error', 'Ainda nao existem cenarios gravados para execucao geral.');
 
             return $this->redirectToRoute('app_test_catalog', $this->buildRedirectParams($request));
         }
 
         $batchId = $this->runner->runTests($tests, 'geral', 'Execucao geral', $this->resolveBaseUrl($request));
-        $this->addFlash('success', sprintf('Execucao geral concluida com %d teste(s).', count($tests)));
+        $this->addFlash('success', sprintf('Execucao geral concluida com %d cenario(s).', count($tests)));
 
         return $this->redirectToRoute('app_test_catalog', $this->buildRedirectParams($request, [
             'teste' => (string) $tests[0]['code'],

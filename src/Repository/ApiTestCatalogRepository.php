@@ -152,6 +152,41 @@ final class ApiTestCatalogRepository
     }
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function findTestByRequestSignature(string $method, string $requestTarget): ?array
+    {
+        $normalizedMethod = strtoupper(trim($method));
+        $normalizedTarget = $this->normalizeRequestTarget($requestTarget);
+
+        if ($normalizedMethod === '' || $normalizedTarget === '') {
+            return null;
+        }
+
+        $test = $this->connection->createQueryBuilder()
+            ->select(
+                't.id',
+                't.code',
+                't.name',
+                't.description',
+                't.method',
+                't.path',
+                'g.code AS group_code',
+                'g.name AS group_name'
+            )
+            ->from('api_tests', 't')
+            ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
+            ->where('t.is_active = 1')
+            ->andWhere('UPPER(t.method) = :method')
+            ->andWhere('t.path = :path')
+            ->setParameter('method', $normalizedMethod)
+            ->setParameter('path', $normalizedTarget)
+            ->fetchAssociative();
+
+        return $test === false ? null : $test;
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function findAutomatedTestsByGroupCode(string $groupCode): array
@@ -383,5 +418,22 @@ final class ApiTestCatalogRepository
         }
 
         return array_values(array_filter($headers, static fn (mixed $value): bool => is_string($value) && $value !== ''));
+    }
+
+    private function normalizeRequestTarget(string $requestTarget): string
+    {
+        $normalizedTarget = trim($requestTarget);
+        if ($normalizedTarget === '') {
+            return '';
+        }
+
+        $normalizedTarget = preg_replace('#^https?://[^/]+#i', '', $normalizedTarget) ?? $normalizedTarget;
+        $normalizedTarget = preg_replace('#^/index\.php#', '', $normalizedTarget) ?? $normalizedTarget;
+
+        if ($normalizedTarget === '') {
+            return '/';
+        }
+
+        return str_starts_with($normalizedTarget, '/') ? $normalizedTarget : '/' . $normalizedTarget;
     }
 }

@@ -1,0 +1,288 @@
+{% extends 'catalog/base.html.twig' %}
+
+{% block title %}Catálogo de Testes{% endblock %}
+
+{% block body %}
+    <section class="hero">
+        <div class="hero-copy">
+            <h1>Catálogo de Testes</h1>
+            <p>Base central dos testes manuais automatizados do API Platform, com execução individual, por grupo e em lote geral, além do histórico persistido em SQLite.</p>
+        </div>
+        <div class="hero-stats">
+            <article class="stat-card">
+                <strong>Testes</strong>
+                <span>{{ summary.total_tests }}</span>
+            </article>
+            <article class="stat-card">
+                <strong>Automatizados</strong>
+                <span>{{ summary.automated_tests }}</span>
+            </article>
+            <article class="stat-card">
+                <strong>Execuções</strong>
+                <span>{{ summary.total_runs }}</span>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Execução geral</h2>
+            <p>Roda todos os testes automatizados cadastrados sequencialmente usando a base {{ baseUrl }}.</p>
+        </div>
+        <div class="action-bar">
+            <form method="post" action="{{ path('app_test_catalog_run_all') }}">
+                <input type="hidden" name="q" value="{{ search }}">
+                <input type="hidden" name="grupo" value="{{ selectedGroupCode }}">
+                <input type="hidden" name="teste" value="{{ selectedTest ? selectedTest.code : '' }}">
+                <button class="button button-primary" type="submit">Executar tudo</button>
+            </form>
+        </div>
+    </section>
+
+    <section class="group-grid">
+        {% for group in groups %}
+            <article class="group-card{% if selectedGroup and selectedGroup.code == group.code %} is-active{% endif %}">
+                <div>
+                    <h3>{{ group.name }}</h3>
+                    <p>{{ group.description }}</p>
+                </div>
+                <div class="chips">
+                    <span class="chip">{{ group.module }}</span>
+                    <span class="chip">{{ group.automated_tests }} automatizados</span>
+                    <span class="chip">{{ group.total_tests }} total</span>
+                </div>
+                <div class="group-actions">
+                    <a class="button button-secondary" href="{{ path('app_test_catalog', { grupo: group.code, q: search != '' ? search : null }) }}">Ver grupo</a>
+                    <form method="post" action="{{ path('app_test_catalog_run_group', { code: group.code }) }}">
+                        <input type="hidden" name="q" value="{{ search }}">
+                        <input type="hidden" name="grupo" value="{{ group.code }}">
+                        <input type="hidden" name="teste" value="{{ selectedTest ? selectedTest.code : '' }}">
+                        <button class="button button-primary" type="submit">Executar grupo</button>
+                    </form>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+
+    <section class="layout">
+        <aside class="panel">
+            <div class="panel-header">
+                <h2>Testes</h2>
+                <p>Selecione um teste para inspecionar o payload e disparar a execução individual.</p>
+            </div>
+
+            <form class="search-form" method="get" action="{{ path('app_test_catalog') }}">
+                <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nfe, cep, nfse, path...">
+                <select name="grupo">
+                    <option value="">Todos os grupos</option>
+                    {% for group in groups %}
+                        <option value="{{ group.code }}"{% if selectedGroupCode == group.code %} selected{% endif %}>{{ group.name }}</option>
+                    {% endfor %}
+                </select>
+                <button class="button button-primary" type="submit">Filtrar</button>
+                {% if search != '' or selectedGroupCode != '' %}
+                    <a class="button button-secondary" href="{{ path('app_test_catalog') }}">Limpar</a>
+                {% endif %}
+            </form>
+
+            {% if tests is empty %}
+                <div class="empty">Nenhum teste encontrado para os filtros atuais.</div>
+            {% else %}
+                <div class="entity-list">
+                    {% for test in tests %}
+                        {% set lastRun = test.last_run %}
+                        <a
+                            class="entity-item{% if selectedTest and selectedTest.code == test.code %} is-active{% endif %}"
+                            href="{{ path('app_test_catalog', {
+                                teste: test.code,
+                                grupo: selectedGroupCode != '' ? selectedGroupCode : null,
+                                q: search != '' ? search : null,
+                                lote: selectedBatch ? selectedBatch.id : null
+                            }) }}"
+                        >
+                            <strong>{{ test.name }}</strong>
+                            <p>{{ test.description }}</p>
+                            <div class="chips">
+                                <span class="chip">{{ test.group_name }}</span>
+                                <span class="chip">{{ test.method }}</span>
+                                {% if test.is_automated %}
+                                    <span class="chip chip-success">automatizado</span>
+                                {% endif %}
+                                {% if lastRun %}
+                                    <span class="chip{% if lastRun.success %} chip-success{% else %} chip-danger{% endif %}">
+                                        {{ lastRun.success ? 'último ok' : 'último erro' }}
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </aside>
+
+        <main class="panel">
+            {% if selectedTest %}
+                <div class="panel-header">
+                    <h2>{{ selectedTest.name }}</h2>
+                    <p>{{ selectedTest.description }}</p>
+                </div>
+
+                <div class="details">
+                    <div class="meta">
+                        <span>{{ selectedTest.code }}</span>
+                        <span>{{ selectedTest.group_name }}</span>
+                        <span>{{ selectedTest.method }}</span>
+                        <span>{{ selectedTest.is_automated ? 'Automatizado' : 'Manual' }}</span>
+                    </div>
+
+                    <div class="action-row">
+                        <form method="post" action="{{ path('app_test_catalog_run_test', { code: selectedTest.code }) }}">
+                            <input type="hidden" name="q" value="{{ search }}">
+                            <input type="hidden" name="grupo" value="{{ selectedGroupCode != '' ? selectedGroupCode : selectedTest.group_code }}">
+                            <input type="hidden" name="teste" value="{{ selectedTest.code }}">
+                            <button class="button button-primary" type="submit">Executar teste</button>
+                        </form>
+
+                        <form method="post" action="{{ path('app_test_catalog_run_group', { code: selectedTest.group_code }) }}">
+                            <input type="hidden" name="q" value="{{ search }}">
+                            <input type="hidden" name="grupo" value="{{ selectedTest.group_code }}">
+                            <input type="hidden" name="teste" value="{{ selectedTest.code }}">
+                            <button class="button button-secondary" type="submit">Executar grupo {{ selectedTest.group_name }}</button>
+                        </form>
+                    </div>
+
+                    <div class="info-grid">
+                        <div class="block">
+                            <h4>Endpoint</h4>
+                            <pre class="code-block"><code>{{ selectedTest.method }} {{ selectedTest.path }}</code></pre>
+                        </div>
+
+                        <div class="block">
+                            <h4>Base resolvida</h4>
+                            <pre class="code-block"><code>{{ baseUrl }}</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="block">
+                        <h4>Headers</h4>
+                        <pre class="code-block"><code>{% for header in selectedTest.headers %}{{ header }}
+{% else %}Sem headers adicionais.
+{% endfor %}</code></pre>
+                    </div>
+
+                    <div class="block">
+                        <h4>Payload</h4>
+                        <pre class="code-block"><code>{{ selectedTest.request_body ?? 'Sem body. O teste usa apenas query string.' }}</code></pre>
+                    </div>
+
+                    {% if selectedTest.last_run %}
+                        <div class="block">
+                            <h4>Última execução</h4>
+                            <div class="chips">
+                                <span class="chip{% if selectedTest.last_run.success %} chip-success{% else %} chip-danger{% endif %}">
+                                    {{ selectedTest.last_run.success ? 'Sucesso' : 'Falha' }}
+                                </span>
+                                <span class="chip">HTTP {{ selectedTest.last_run.response_status_code ?? 'n/a' }}</span>
+                                <span class="chip">{{ selectedTest.last_run.duration_ms ?? 'n/a' }} ms</span>
+                                <span class="chip">Lote {{ selectedTest.last_run.batch_id }}</span>
+                            </div>
+                            <p class="muted-text">Executado em {{ selectedTest.last_run.executed_at }}.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="empty">Selecione um teste para ver o payload e iniciar a execução.</div>
+            {% endif %}
+        </main>
+    </section>
+
+    <section class="layout layout-bottom">
+        <section class="panel">
+            <div class="panel-header">
+                <h2>Lote selecionado</h2>
+                <p>{% if selectedBatch %}Resultado consolidado da execução {{ selectedBatch.label }}.{% else %}Nenhum lote executado ainda.{% endif %}</p>
+            </div>
+
+            {% if selectedBatch %}
+                <div class="details">
+                    <div class="meta">
+                        <span>{{ selectedBatch.run_mode }}</span>
+                        <span>{{ selectedBatch.passed_tests }}/{{ selectedBatch.total_tests }} ok</span>
+                        <span>{{ selectedBatch.failed_tests }} falhas</span>
+                        <span>{{ selectedBatch.started_at }}</span>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table class="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Ordem</th>
+                                    <th>Teste</th>
+                                    <th>Grupo</th>
+                                    <th>Status</th>
+                                    <th>HTTP</th>
+                                    <th>Tempo</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for run in batchRuns %}
+                                    <tr>
+                                        <td>{{ run.execution_order }}</td>
+                                        <td>{{ run.test_name }}</td>
+                                        <td>{{ run.group_name }}</td>
+                                        <td>
+                                            <span class="chip{% if run.success %} chip-success{% else %} chip-danger{% endif %}">
+                                                {{ run.success ? 'ok' : 'erro' }}
+                                            </span>
+                                        </td>
+                                        <td>{{ run.response_status_code ?? 'n/a' }}</td>
+                                        <td>{{ run.duration_ms ?? 'n/a' }} ms</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {% if batchRuns is not empty %}
+                        {% set firstRun = batchRuns[0] %}
+                        <div class="block">
+                            <h4>Primeira resposta do lote</h4>
+                            <pre class="code-block"><code>{{ firstRun.response_body ?? firstRun.error_message ?? 'Sem retorno registrado.' }}</code></pre>
+                        </div>
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="empty">As execuções futuras vão aparecer aqui com histórico, status HTTP e tempo de resposta.</div>
+            {% endif %}
+        </section>
+
+        <aside class="panel">
+            <div class="panel-header">
+                <h2>Lotes recentes</h2>
+                <p>Navegue pelo histórico persistido das últimas execuções.</p>
+            </div>
+
+            {% if recentBatches is empty %}
+                <div class="empty">Nenhum lote registrado até o momento.</div>
+            {% else %}
+                <div class="entity-list compact-list">
+                    {% for batch in recentBatches %}
+                        <a class="entity-item{% if selectedBatch and selectedBatch.id == batch.id %} is-active{% endif %}" href="{{ path('app_test_catalog', {
+                            lote: batch.id,
+                            grupo: selectedGroupCode != '' ? selectedGroupCode : null,
+                            teste: selectedTest ? selectedTest.code : null,
+                            q: search != '' ? search : null
+                        }) }}">
+                            <strong>{{ batch.label }}</strong>
+                            <p>{{ batch.run_mode|upper }} | {{ batch.started_at }}</p>
+                            <div class="chips">
+                                <span class="chip chip-success">{{ batch.passed_tests }} ok</span>
+                                <span class="chip chip-danger">{{ batch.failed_tests }} falhas</span>
+                            </div>
+                        </a>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </aside>
+    </section>
+{% endblock %}

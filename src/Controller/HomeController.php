@@ -15,6 +15,7 @@ final class HomeController extends AbstractController
             'apisUrl' => '/apis/',
             'demosUrl' => '/demos/',
             'catalogUrl' => '/catalogo-programas/',
+            'testCatalogUrl' => '/catalogo-testes',
         ]);
     }
 

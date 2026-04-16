@@ -51,9 +51,12 @@ final class ApiTestRequestRecorder
 
     private function isApiPlatformRequest(Request $request, string $normalizedPath): bool
     {
-        $referer = (string) $request->headers->get('referer', '');
-        if ($referer === '' || stripos($referer, '/docs') === false) {
-            return false;
+        if (
+            $request->attributes->has('_api_resource_class')
+            || $request->attributes->has('_api_operation_name')
+            || $request->attributes->has('_api_operation')
+        ) {
+            return true;
         }
 
         foreach (['/nfe', '/nfse', '/acbr-cep'] as $prefix) {

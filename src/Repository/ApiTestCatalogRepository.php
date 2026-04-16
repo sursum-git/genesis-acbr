@@ -409,6 +409,34 @@ final class ApiTestCatalogRepository
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function findRunsByTestId(int $testId, int $limit = 10): array
+    {
+        return $this->connection->createQueryBuilder()
+            ->select(
+                'r.id',
+                'r.request_method',
+                'r.request_url',
+                'r.request_body',
+                'r.response_status_code',
+                'r.response_body',
+                'r.response_headers',
+                'r.duration_ms',
+                'r.success',
+                'r.error_message',
+                'r.executed_at',
+                'r.batch_id'
+            )
+            ->from('test_run_history', 'r')
+            ->where('r.test_id = :test_id')
+            ->setParameter('test_id', $testId)
+            ->orderBy('r.id', 'DESC')
+            ->setMaxResults($limit)
+            ->fetchAllAssociative();
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function getSummary(): array

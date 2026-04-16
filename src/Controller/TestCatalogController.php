@@ -30,12 +30,17 @@ final class TestCatalogController extends AbstractController
         $tests = $this->repository->findTests($search, $selectedGroupCode);
 
         $selectedTest = null;
+        $selectedTestRuns = [];
         if ($selectedTestCode !== '') {
             $selectedTest = $this->repository->findTestByCode($selectedTestCode);
         }
 
         if ($selectedTest === null && $tests !== []) {
             $selectedTest = $this->repository->findTestByCode((string) $tests[0]['code']);
+        }
+
+        if ($selectedTest !== null) {
+            $selectedTestRuns = $this->repository->findRunsByTestId((int) $selectedTest['id']);
         }
 
         $selectedGroup = null;
@@ -61,6 +66,7 @@ final class TestCatalogController extends AbstractController
             'selectedGroupCode' => $selectedGroupCode,
             'selectedGroup' => $selectedGroup,
             'selectedTest' => $selectedTest,
+            'selectedTestRuns' => $selectedTestRuns,
             'selectedBatch' => $selectedBatch,
             'batchRuns' => $batchRuns,
             'recentBatches' => $this->repository->findRecentBatches(),

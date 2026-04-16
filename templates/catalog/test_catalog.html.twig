@@ -105,6 +105,7 @@
                                 <span class="chip">{{ test.group_name }}</span>
                                 <span class="chip">{{ test.method }}</span>
                                 <span class="chip">{{ test.request_count }} uso(s)</span>
+                                <span class="chip">{{ test.last_recorded_at ? test.last_recorded_at|date('d/m/Y H:i:s') : 'sem data' }}</span>
                                 {% if lastRun %}
                                     <span class="chip{% if lastRun.success %} chip-success{% else %} chip-danger{% endif %}">
                                         {{ lastRun.success ? 'último ok' : 'último erro' }}
@@ -195,8 +196,54 @@
                     {% endif %}
 
                     <div class="block">
+                        <h4>Última resposta salva</h4>
+                        <pre class="code-block"><code>{{ selectedTest.last_response_body ?? 'Nenhuma resposta salva ainda.' }}</code></pre>
+                    </div>
+
+                    <div class="block">
+                        <h4>Últimos headers salvos</h4>
+                        <pre class="code-block"><code>{{ selectedTest.last_response_headers ?? 'Nenhum header salvo ainda.' }}</code></pre>
+                    </div>
+
+                    <div class="block">
                         <h4>Captura</h4>
                         <p>Primeira vez em {{ selectedTest.first_recorded_at ?? 'n/a' }} | Última captura em {{ selectedTest.last_recorded_at ?? 'n/a' }}</p>
+                    </div>
+
+                    <div class="block">
+                        <h4>Histórico recente do cenário</h4>
+                        {% if selectedTestRuns is empty %}
+                            <p>Nenhuma execução registrada ainda.</p>
+                        {% else %}
+                            <div class="table-wrap">
+                                <table class="results-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Quando</th>
+                                            <th>Status</th>
+                                            <th>HTTP</th>
+                                            <th>Tempo</th>
+                                            <th>Lote</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for run in selectedTestRuns %}
+                                            <tr>
+                                                <td>{{ run.executed_at }}</td>
+                                                <td>
+                                                    <span class="chip{% if run.success %} chip-success{% else %} chip-danger{% endif %}">
+                                                        {{ run.success ? 'ok' : 'erro' }}
+                                                    </span>
+                                                </td>
+                                                <td>{{ run.response_status_code ?? 'n/a' }}</td>
+                                                <td>{{ run.duration_ms ?? 'n/a' }} ms</td>
+                                                <td>{{ run.batch_id }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             {% else %}

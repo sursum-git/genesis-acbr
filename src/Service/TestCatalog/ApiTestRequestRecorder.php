@@ -116,7 +116,7 @@ final class ApiTestRequestRecorder
      */
     private function buildTestCase(Request $request, Response $response, array $group, string $normalizedPath): array
     {
-        $queryString = trim((string) $request->server->get('QUERY_STRING', ''));
+        $queryString = trim((string) ($request->getQueryString() ?? $request->server->get('QUERY_STRING', '')));
         $requestBody = trim($request->getContent());
         $signature = sha1(json_encode([
             'method' => strtoupper($request->getMethod()),

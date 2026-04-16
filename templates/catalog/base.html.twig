@@ -10,9 +10,9 @@
 <body class="page-body">
     <div class="shell">
         <nav class="catalog-nav">
-            <a class="nav-link" href="{{ path('app_home') }}">Hub</a>
-            <a class="nav-link{% if app.request.attributes.get('_route') == 'app_program_catalog' %} is-active{% endif %}" href="{{ path('app_program_catalog') }}">Catálogo de Programas</a>
-            <a class="nav-link{% if app.request.attributes.get('_route') == 'app_test_catalog' %} is-active{% endif %}" href="{{ path('app_test_catalog') }}">Catálogo de Testes</a>
+            <a class="nav-link" href="{{ app.request.basePath ~ '/index.php/' }}">Hub</a>
+            <a class="nav-link{% if app.request.attributes.get('_route') == 'app_program_catalog' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}">Catálogo de Programas</a>
+            <a class="nav-link{% if app.request.attributes.get('_route') == 'app_test_catalog' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">Catálogo de Testes</a>
         </nav>
 
         {% for message in app.flashes('success') %}

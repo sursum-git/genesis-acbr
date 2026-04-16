@@ -30,7 +30,7 @@
             <p>Roda todos os testes automatizados cadastrados sequencialmente usando a base {{ baseUrl }}.</p>
         </div>
         <div class="action-bar">
-            <form method="post" action="{{ path('app_test_catalog_run_all') }}">
+            <form method="post" action="{{ app.request.basePath ~ '/index.php/catalogo-testes/executar/geral' }}">
                 <input type="hidden" name="q" value="{{ search }}">
                 <input type="hidden" name="grupo" value="{{ selectedGroupCode }}">
                 <input type="hidden" name="teste" value="{{ selectedTest ? selectedTest.code : '' }}">
@@ -52,8 +52,8 @@
                     <span class="chip">{{ group.total_tests }} total</span>
                 </div>
                 <div class="group-actions">
-                    <a class="button button-secondary" href="{{ path('app_test_catalog', { grupo: group.code, q: search != '' ? search : null }) }}">Ver grupo</a>
-                    <form method="post" action="{{ path('app_test_catalog_run_group', { code: group.code }) }}">
+                    <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?grupo=' ~ group.code ~ (search != '' ? '&q=' ~ search|url_encode : '') }}">Ver grupo</a>
+                    <form method="post" action="{{ app.request.basePath ~ '/index.php/catalogo-testes/executar/grupo/' ~ group.code }}">
                         <input type="hidden" name="q" value="{{ search }}">
                         <input type="hidden" name="grupo" value="{{ group.code }}">
                         <input type="hidden" name="teste" value="{{ selectedTest ? selectedTest.code : '' }}">
@@ -71,7 +71,7 @@
                 <p>Selecione um teste para inspecionar o payload e disparar a execução individual.</p>
             </div>
 
-            <form class="search-form" method="get" action="{{ path('app_test_catalog') }}">
+            <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">
                 <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nfe, cep, nfse, path...">
                 <select name="grupo">
                     <option value="">Todos os grupos</option>
@@ -81,7 +81,7 @@
                 </select>
                 <button class="button button-primary" type="submit">Filtrar</button>
                 {% if search != '' or selectedGroupCode != '' %}
-                    <a class="button button-secondary" href="{{ path('app_test_catalog') }}">Limpar</a>
+                    <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">Limpar</a>
                 {% endif %}
             </form>
 
@@ -93,12 +93,11 @@
                         {% set lastRun = test.last_run %}
                         <a
                             class="entity-item{% if selectedTest and selectedTest.code == test.code %} is-active{% endif %}"
-                            href="{{ path('app_test_catalog', {
-                                teste: test.code,
-                                grupo: selectedGroupCode != '' ? selectedGroupCode : null,
-                                q: search != '' ? search : null,
-                                lote: selectedBatch ? selectedBatch.id : null
-                            }) }}"
+                            href="{{ app.request.basePath ~ '/index.php/catalogo-testes?teste=' ~ test.code
+                                ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                                ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                                ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '')
+                            }}"
                         >
                             <strong>{{ test.name }}</strong>
                             <p>{{ test.description }}</p>
@@ -136,14 +135,14 @@
                     </div>
 
                     <div class="action-row">
-                        <form method="post" action="{{ path('app_test_catalog_run_test', { code: selectedTest.code }) }}">
+                        <form method="post" action="{{ app.request.basePath ~ '/index.php/catalogo-testes/executar/teste/' ~ selectedTest.code }}">
                             <input type="hidden" name="q" value="{{ search }}">
                             <input type="hidden" name="grupo" value="{{ selectedGroupCode != '' ? selectedGroupCode : selectedTest.group_code }}">
                             <input type="hidden" name="teste" value="{{ selectedTest.code }}">
                             <button class="button button-primary" type="submit">Executar teste</button>
                         </form>
 
-                        <form method="post" action="{{ path('app_test_catalog_run_group', { code: selectedTest.group_code }) }}">
+                        <form method="post" action="{{ app.request.basePath ~ '/index.php/catalogo-testes/executar/grupo/' ~ selectedTest.group_code }}">
                             <input type="hidden" name="q" value="{{ search }}">
                             <input type="hidden" name="grupo" value="{{ selectedTest.group_code }}">
                             <input type="hidden" name="teste" value="{{ selectedTest.code }}">
@@ -267,12 +266,11 @@
             {% else %}
                 <div class="entity-list compact-list">
                     {% for batch in recentBatches %}
-                        <a class="entity-item{% if selectedBatch and selectedBatch.id == batch.id %} is-active{% endif %}" href="{{ path('app_test_catalog', {
-                            lote: batch.id,
-                            grupo: selectedGroupCode != '' ? selectedGroupCode : null,
-                            teste: selectedTest ? selectedTest.code : null,
-                            q: search != '' ? search : null
-                        }) }}">
+                        <a class="entity-item{% if selectedBatch and selectedBatch.id == batch.id %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?lote=' ~ batch.id
+                            ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                            ~ (selectedTest ? '&teste=' ~ selectedTest.code : '')
+                            ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                        }}">
                             <strong>{{ batch.label }}</strong>
                             <p>{{ batch.run_mode|upper }} | {{ batch.started_at }}</p>
                             <div class="chips">

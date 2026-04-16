@@ -27,11 +27,11 @@
                 <p>Filtre por nome, código, caminho ou texto da explicação.</p>
             </div>
 
-            <form class="search-form" method="get" action="{{ path('app_program_catalog') }}">
+            <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}">
                 <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nfe, cep, schemas, legado...">
                 <button class="button button-primary" type="submit">Buscar</button>
                 {% if search != '' %}
-                    <a class="button button-secondary" href="{{ path('app_program_catalog') }}">Limpar</a>
+                    <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}">Limpar</a>
                 {% endif %}
             </form>
 
@@ -42,10 +42,7 @@
                     {% for program in programs %}
                         <a
                             class="entity-item{% if selectedProgram and selectedProgram.code == program.code %} is-active{% endif %}"
-                            href="{{ path('app_program_catalog', {
-                                programa: program.code,
-                                q: search != '' ? search : null
-                            }) }}"
+                            href="{{ app.request.basePath ~ '/index.php/catalogo-programas?programa=' ~ program.code ~ (search != '' ? '&q=' ~ search|url_encode : '') }}"
                         >
                             <strong>{{ program.name }}</strong>
                             <p>{{ program.description }}</p>

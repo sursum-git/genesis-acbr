@@ -16,6 +16,8 @@ if (!is_dir($dbDir) && !mkdir($dbDir, 0777, true) && !is_dir($dbDir)) {
     exit(1);
 }
 
+@chmod($dbDir, 0777);
+
 $programs = [
     [
         'code' => 'symfony_api_gateway',
@@ -529,3 +531,5 @@ try {
 }
 
 echo "Banco criado/atualizado em {$dbPath}\n";
+
+@chmod($dbPath, 0666);

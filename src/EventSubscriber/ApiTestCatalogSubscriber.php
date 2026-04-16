@@ -35,8 +35,18 @@ final class ApiTestCatalogSubscriber implements EventSubscriberInterface
 
         try {
             $this->recorder->recordFromApiPlatform($request, $event->getResponse());
-        } catch (Throwable) {
-            // Nao interrompe a resposta da API por falha de catalogacao.
+        } catch (Throwable $throwable) {
+            @file_put_contents(
+                dirname(__DIR__, 2) . '/var/log/test_catalog_capture.log',
+                sprintf(
+                    "[%s] %s %s | %s\n",
+                    date('c'),
+                    $request->getMethod(),
+                    $request->getRequestUri(),
+                    $throwable->getMessage()
+                ),
+                FILE_APPEND
+            );
         }
     }
 

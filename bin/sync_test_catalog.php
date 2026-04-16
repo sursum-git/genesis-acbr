@@ -16,6 +16,8 @@ if (!is_dir($dbDir) && !mkdir($dbDir, 0777, true) && !is_dir($dbDir)) {
     exit(1);
 }
 
+@chmod($dbDir, 0777);
+
 $connection = DriverManager::getConnection([
     'driver' => 'pdo_sqlite',
     'path' => $dbPath,
@@ -120,6 +122,8 @@ $connection->executeStatement('DELETE FROM api_tests WHERE request_signature IS 
 $connection->executeStatement('DELETE FROM test_groups WHERE id NOT IN (SELECT DISTINCT group_id FROM api_tests)');
 
 fwrite(STDOUT, "Catalogo de testes criado/atualizado em {$dbPath}\n");
+
+@chmod($dbPath, 0666);
 
 /**
  * @param \Doctrine\DBAL\Connection $connection

@@ -23,7 +23,7 @@ run_get \
 
 run_post_xml \
   "NFe - Consultar com XML" \
-  "/nfe/consultas/consultar-com-xml" \
+  "/nfe/consultas/consultar-com-chave-xml" \
   "${NFE_XML_FILE}"
 
 run_post_json \

@@ -82,7 +82,7 @@ Observacao:
 
 - Este endpoint recebe automaticamente `AExtrairEventos=1` pela configuracao do resource.
 
-### `POST /nfe/consultas/consultar-com-xml`
+### `POST /nfe/consultas/consultar-com-chave-xml`
 
 - O corpo deve conter o XML completo da NF-e ou do `nfeProc`.
 - O sistema extrai a chave de acesso do `chNFe` ou do `infNFe/@Id`.

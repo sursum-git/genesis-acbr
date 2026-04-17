@@ -21,7 +21,7 @@ GET {{baseUrl}}/nfe/consultas/consultar-com-chave?eChaveOuNFe={{chaveNfe}}
 Accept: application/ld+json
 
 ### NFe - Consultar com XML
-POST {{baseUrl}}/nfe/consultas/consultar-com-xml
+POST {{baseUrl}}/nfe/consultas/consultar-com-chave-xml
 Content-Type: application/xml
 Accept: application/ld+json
 

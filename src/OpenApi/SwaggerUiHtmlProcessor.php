@@ -118,12 +118,19 @@ final class SwaggerUiHtmlProcessor implements ProcessorInterface
   function isTargetBlock(block) {
     const pathNode = block.querySelector('.opblock-summary-path');
     const methodNode = block.querySelector('.opblock-summary-method');
+    const summary = block.querySelector('.opblock-summary');
+    const blockText = (block.textContent || '').replace(/\s+/g, ' ');
+    const methodText = (methodNode ? methodNode.textContent : '').trim().toLowerCase();
+    const pathText = decodeEntities((pathNode ? pathNode.textContent : '').trim());
+    const summaryAria = decodeEntities(summary ? (summary.getAttribute('aria-label') || '') : '');
 
-    if (!pathNode || !methodNode) {
+    if (methodText !== 'post') {
       return false;
     }
 
-    return pathNode.textContent.trim() === targetPath && methodNode.textContent.trim().toLowerCase() === 'post';
+    return pathText.includes(targetPath)
+      || summaryAria.includes(targetPath)
+      || blockText.includes('consultar-com-chave-xml');
   }
 
   function applyToBlock(block) {

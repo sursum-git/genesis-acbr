@@ -104,20 +104,16 @@ Exemplo:
 </nfeProc>
 ```
 
-### `POST /nfe/consultas/consultar-recibo`
+### `GET /nfe/consultas/consultar-recibo`
 
-Campos em `payload`:
+Parametros de query:
 
 - `ARecibo`: numero do recibo
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "ARecibo": "SUBSTITUIR_RECIBO"
-  }
-}
+```text
+ARecibo=SUBSTITUIR_RECIBO
 ```
 
 ### `POST /nfe/distribuicao-dfe/por-chave`

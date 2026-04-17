@@ -66,6 +66,11 @@ curl -sS -X POST \
 ```
 
 ```bash
+curl -sS -X GET \
+  'http://157.173.110.195:8089/index.php/nfe/consultas/consultar-recibo?ARecibo=SUBSTITUIR_RECIBO'
+```
+
+```bash
 curl -sS -X POST \
   'http://157.173.110.195:8089/index.php/nfe/distribuicao-dfe/por-chave' \
   -H 'Content-Type: application/ld+json' \

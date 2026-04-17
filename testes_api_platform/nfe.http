@@ -82,15 +82,8 @@ Accept: application/ld+json
 
 ### NFe - Consultar recibo
 ### Substituir ARecibo por um numero de recibo valido.
-POST {{baseUrl}}/nfe/consultas/consultar-recibo
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfe/consultas/consultar-recibo?ARecibo=SUBSTITUIR_RECIBO
 Accept: application/ld+json
-
-{
-  "payload": {
-    "ARecibo": "SUBSTITUIR_RECIBO"
-  }
-}
 
 ### NFe - OpenSSL info
 GET {{baseUrl}}/nfe/ferramentas/openssl-info

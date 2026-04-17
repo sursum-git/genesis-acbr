@@ -41,10 +41,9 @@ run_post_json \
   "/nfe/distribuicao-dfe/por-nsu" \
   "{\"payload\":{\"AcUFAutor\":\"${UF}\",\"AeCNPJCPF\":\"${CNPJ}\",\"AeNSU\":\"000000000000001\"}}"
 
-run_post_json \
+run_get \
   "NFe - Consultar recibo (placeholder)" \
-  "/nfe/consultas/consultar-recibo" \
-  '{"payload":{"ARecibo":"SUBSTITUIR_RECIBO"}}'
+  "/nfe/consultas/consultar-recibo?ARecibo=SUBSTITUIR_RECIBO"
 
 run_get \
   "NFe - OpenSSL info" \

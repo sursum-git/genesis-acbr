@@ -18,8 +18,3 @@ services:
     decorates: 'api_platform.openapi.factory'
     arguments:
       $decorated: '@App\OpenApi\LegacyOptionalRequestBodyOpenApiFactory.inner'
-
-  App\OpenApi\SwaggerUiHtmlProcessor:
-    decorates: 'api_platform.swagger_ui.processor'
-    arguments:
-      $decorated: '@App\OpenApi\SwaggerUiHtmlProcessor.inner'

@@ -127,8 +127,8 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
         $updatedContent = new \ArrayObject(iterator_to_array($content));
         $updatedContent['application/xml'] = new MediaType(
             new \ArrayObject([
-                'type' => 'object',
-                'xml' => ['name' => $rootName],
+                'type' => 'string',
+                'format' => 'xml',
                 'example' => $xmlExample,
             ]),
             $xmlExample

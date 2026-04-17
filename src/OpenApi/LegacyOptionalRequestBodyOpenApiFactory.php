@@ -126,12 +126,14 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
 
         $updatedContent = new \ArrayObject(iterator_to_array($content));
         $updatedContent['application/xml'] = new MediaType(
+            null,
+            $xmlExample,
             new \ArrayObject([
-                'type' => 'string',
-                'format' => 'xml',
-                'example' => $xmlExample,
-            ]),
-            $xmlExample
+                'default' => new \ArrayObject([
+                    'summary' => 'XML completo da NF-e',
+                    'value' => $xmlExample,
+                ]),
+            ])
         );
 
         return $requestBody->withContent($updatedContent);

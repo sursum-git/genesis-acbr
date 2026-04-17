@@ -54,7 +54,11 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
             $requestBody = $this->addXmlMediaType($requestBody, $openApi);
         }
 
-        if ($path === '/nfe/consultas/consultar-com-chave-xml') {
+        if (in_array($path, [
+            '/nfe/consultas/consultar-com-chave-xml',
+            '/nfe/envio/enviar-sincrono-xml',
+            '/nfe/envio/enviar-assincrono-xml',
+        ], true)) {
             $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_consulta_exemplo.xml', 'nfeProc');
         }
 

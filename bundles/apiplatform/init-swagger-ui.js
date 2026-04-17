@@ -155,11 +155,11 @@ window.onload = function() {
     }
 
     function fixNfeXmlPayloadExample() {
-        const targetPath = '/nfe/consultas/consultar-com-chave-xml';
-        const xmlExample = data?.spec?.paths?.[targetPath]?.post?.requestBody?.content?.['application/xml']?.example;
-        if (!xmlExample || typeof xmlExample !== 'string') {
-            return;
-        }
+        const xmlPaths = [
+            '/nfe/consultas/consultar-com-chave-xml',
+            '/nfe/envio/enviar-sincrono-xml',
+            '/nfe/envio/enviar-assincrono-xml',
+        ];
 
         const patchBlock = function (opBlock) {
             const method = opBlock.querySelector('.opblock-summary-method');
@@ -172,7 +172,16 @@ window.onload = function() {
                 return;
             }
 
-            if (path.textContent.indexOf(targetPath) === -1) {
+            const targetPath = xmlPaths.find(function (candidatePath) {
+                return path.textContent.indexOf(candidatePath) !== -1;
+            });
+
+            if (!targetPath) {
+                return;
+            }
+
+            const xmlExample = data?.spec?.paths?.[targetPath]?.post?.requestBody?.content?.['application/xml']?.example;
+            if (!xmlExample || typeof xmlExample !== 'string') {
                 return;
             }
 

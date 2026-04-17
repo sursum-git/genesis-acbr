@@ -147,10 +147,7 @@ final class SwaggerUiHtmlProcessor implements ProcessorInterface
 
     const preview = block.querySelector('.body-param__example');
     if (preview) {
-      const previewText = decodeEntities(preview.textContent || '');
-      if (!previewText.trim() || previewText.includes(placeholderSnippet) || previewText.includes('&lt;')) {
-        preview.textContent = normalizedXmlExample;
-      }
+      preview.textContent = normalizedXmlExample;
     }
 
     const textarea = block.querySelector('textarea.body-param__text');
@@ -158,12 +155,9 @@ final class SwaggerUiHtmlProcessor implements ProcessorInterface
       return;
     }
 
-    const currentValue = decodeEntities(textarea.value || '');
-    if (!currentValue.trim() || currentValue.includes(placeholderSnippet) || currentValue.includes('&lt;')) {
-      textarea.value = normalizedXmlExample;
-      textarea.dispatchEvent(new Event('input', { bubbles: true }));
-      textarea.dispatchEvent(new Event('change', { bubbles: true }));
-    }
+    textarea.value = normalizedXmlExample;
+    textarea.dispatchEvent(new Event('input', { bubbles: true }));
+    textarea.dispatchEvent(new Event('change', { bubbles: true }));
   }
 
   function scan() {

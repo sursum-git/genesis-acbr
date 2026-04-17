@@ -31,3 +31,15 @@ run_post_json() {
     -d "$payload"
   printf '\n'
 }
+
+run_post_xml() {
+  local label="$1"
+  local path="$2"
+  local xml_file="$3"
+  print_title "$label"
+  curl -sS -X POST "${BASE_URL}${path}" \
+    -H 'Content-Type: application/xml' \
+    -H 'Accept: application/ld+json' \
+    --data-binary "@${xml_file}"
+  printf '\n'
+}

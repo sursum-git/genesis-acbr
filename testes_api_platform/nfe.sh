@@ -3,6 +3,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 . "${SCRIPT_DIR}/_common.sh"
+NFE_XML_FILE="${NFE_XML_FILE:-${SCRIPT_DIR}/fixtures/nfe_consulta_exemplo.xml}"
 
 run_get \
   "NFe - Status do servico" \
@@ -16,10 +17,14 @@ run_get \
   "NFe - Consulta cadastro por inscricao estadual" \
   "/nfe/consultas/consulta-cadastro?AcUF=${UF}&AnDocumento=${IE}&TipoDocumento=inscricao_estadual"
 
-run_post_json \
+run_get \
   "NFe - Consultar com chave" \
-  "/nfe/consultas/consultar-com-chave" \
-  "{\"payload\":{\"eChaveOuNFe\":\"${CHAVE_NFE}\"}}"
+  "/nfe/consultas/consultar-com-chave?eChaveOuNFe=${CHAVE_NFE}"
+
+run_post_xml \
+  "NFe - Consultar com XML" \
+  "/nfe/consultas/consultar-com-xml" \
+  "${NFE_XML_FILE}"
 
 run_post_json \
   "NFe - Distribuicao DFe por chave" \

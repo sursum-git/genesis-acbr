@@ -66,25 +66,43 @@ AcUF=ES&AnDocumento=06013812000158&TipoDocumento=cpf_cnpj
 AcUF=ES&AnDocumento=06013812000158&TipoDocumento=inscricao_estadual
 ```
 
-### `POST /nfe/consultas/consultar-com-chave`
+### `GET /nfe/consultas/consultar-com-chave`
 
-Campos em `payload`:
+Parametros de query:
 
-- `eChaveOuNFe`: chave da NFe
+- `eChaveOuNFe`: chave da NFe com 44 digitos
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "eChaveOuNFe": "32260406013812000158550030001955901308939122"
-  }
-}
+```text
+eChaveOuNFe=32260406013812000158550030001955901308939122
 ```
 
 Observacao:
 
 - Este endpoint recebe automaticamente `AExtrairEventos=1` pela configuracao do resource.
+
+### `POST /nfe/consultas/consultar-com-xml`
+
+- O corpo deve conter o XML completo da NF-e ou do `nfeProc`.
+- O sistema extrai a chave de acesso do `chNFe` ou do `infNFe/@Id`.
+- Header recomendado: `Content-Type: application/xml`
+
+Exemplo:
+
+```xml
+<?xml version="1.0"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe32260406013812000158550030001955901308939122" versao="4.00" />
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <chNFe>32260406013812000158550030001955901308939122</chNFe>
+    </infProt>
+  </protNFe>
+</nfeProc>
+```
 
 ### `POST /nfe/consultas/consultar-recibo`
 

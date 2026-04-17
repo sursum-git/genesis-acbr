@@ -15,6 +15,7 @@ Padroes de chamada:
 
 - Endpoints `GET`: parametros em query string.
 - Endpoints legados `POST` de NFe/NFSe: payload no formato `{"payload": {...}}`.
+- Excecao em NFe consultas: `POST /nfe/consultas/consultar-com-xml` recebe XML bruto no corpo.
 - Endpoints `POST` de CEP: campos diretos no JSON, sem wrapper `payload`.
 - Header recomendado para `POST`: `Content-Type: application/ld+json`
 
@@ -54,9 +55,14 @@ curl -sS -X GET \
 
 ```bash
 curl -sS -X POST \
-  'http://157.173.110.195:8089/index.php/nfe/consultas/consultar-com-chave' \
-  -H 'Content-Type: application/ld+json' \
-  -d '{"payload":{"eChaveOuNFe":"32260406013812000158550030001955901308939122"}}'
+  'http://157.173.110.195:8089/index.php/nfe/consultas/consultar-com-chave?eChaveOuNFe=32260406013812000158550030001955901308939122'
+```
+
+```bash
+curl -sS -X POST \
+  'http://157.173.110.195:8089/index.php/nfe/consultas/consultar-com-xml' \
+  -H 'Content-Type: application/xml' \
+  --data-binary @testes_api_platform/fixtures/nfe_consulta_exemplo.xml
 ```
 
 ```bash

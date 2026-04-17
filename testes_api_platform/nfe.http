@@ -17,15 +17,29 @@ GET {{baseUrl}}/nfe/consultas/consulta-cadastro?AcUF={{uf}}&AnDocumento={{ie}}&T
 Accept: application/ld+json
 
 ### NFe - Consultar com chave
-POST {{baseUrl}}/nfe/consultas/consultar-com-chave
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfe/consultas/consultar-com-chave?eChaveOuNFe={{chaveNfe}}
 Accept: application/ld+json
 
-{
-  "payload": {
-    "eChaveOuNFe": "{{chaveNfe}}"
-  }
-}
+### NFe - Consultar com XML
+POST {{baseUrl}}/nfe/consultas/consultar-com-xml
+Content-Type: application/xml
+Accept: application/ld+json
+
+<?xml version="1.0"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe>
+    <infNFe Id="NFe{{chaveNfe}}" versao="4.00">
+      <ide>
+        <cUF>32</cUF>
+      </ide>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <chNFe>{{chaveNfe}}</chNFe>
+    </infProt>
+  </protNFe>
+</nfeProc>
 
 ### NFe - Distribuicao DFe por chave
 POST {{baseUrl}}/nfe/distribuicao-dfe/por-chave

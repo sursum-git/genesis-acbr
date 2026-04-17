@@ -54,6 +54,10 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
             $requestBody = $this->addXmlMediaType($requestBody, $openApi);
         }
 
+        if ($path === '/nfe/consultas/consultar-com-chave-xml') {
+            $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_consulta_exemplo.xml', 'nfeProc');
+        }
+
         if ($this->isLegacyPath($path)) {
             $requestBody = $requestBody->withRequired(false);
         }
@@ -99,6 +103,36 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
 
         $updatedContent = new \ArrayObject(iterator_to_array($content));
         $updatedContent['application/xml'] = new MediaType($xmlSchema, $xmlExample);
+
+        return $requestBody->withContent($updatedContent);
+    }
+
+    private function applyRawXmlFixtureExample(RequestBody $requestBody, string $fixtureName, string $rootName): RequestBody
+    {
+        $content = $requestBody->getContent();
+        if ($content === null) {
+            return $requestBody;
+        }
+
+        $fixturePath = dirname(__DIR__, 2).'/testes_api_platform/fixtures/'.$fixtureName;
+        if (!is_file($fixturePath)) {
+            return $requestBody;
+        }
+
+        $xmlExample = trim((string) file_get_contents($fixturePath));
+        if ($xmlExample === '') {
+            return $requestBody;
+        }
+
+        $updatedContent = new \ArrayObject(iterator_to_array($content));
+        $updatedContent['application/xml'] = new MediaType(
+            new \ArrayObject([
+                'type' => 'object',
+                'xml' => ['name' => $rootName],
+                'example' => $xmlExample,
+            ]),
+            $xmlExample
+        );
 
         return $requestBody->withContent($updatedContent);
     }

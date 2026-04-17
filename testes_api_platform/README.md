@@ -16,6 +16,7 @@ Padroes de chamada:
 - Endpoints `GET`: parametros em query string.
 - Endpoints legados `POST` de NFe/NFSe: payload no formato `{"payload": {...}}`.
 - Excecao em NFe consultas: `POST /nfe/consultas/consultar-com-chave-xml` recebe XML bruto no corpo.
+- Esse endpoint deve usar o XML completo da NF-e, nao um XML resumido.
 - Endpoints `POST` de CEP: campos diretos no JSON, sem wrapper `payload`.
 - Header recomendado para `POST`: `Content-Type: application/ld+json`
 

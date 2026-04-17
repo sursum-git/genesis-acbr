@@ -1,18 +1,359 @@
-<?xml version="1.0"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
-  <NFe>
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
     <infNFe Id="NFe32260406013812000158550030001955901308939122" versao="4.00">
       <ide>
         <cUF>32</cUF>
+        <cNF>30893912</cNF>
+        <natOp>VENDA DE MERCADORIA ADQUIRIDA</natOp>
+        <mod>55</mod>
+        <serie>3</serie>
+        <nNF>195590</nNF>
+        <dhEmi>2026-04-02T12:39:51-03:00</dhEmi>
+        <dhSaiEnt>2026-04-06T12:40:02-03:00</dhSaiEnt>
+        <tpNF>1</tpNF>
+        <idDest>2</idDest>
+        <cMunFG>3205200</cMunFG>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <cDV>2</cDV>
+        <tpAmb>1</tpAmb>
+        <finNFe>1</finNFe>
+        <indFinal>0</indFinal>
+        <indPres>9</indPres>
+        <indIntermed>0</indIntermed>
+        <procEmi>0</procEmi>
+        <verProc>5.0</verProc>
       </ide>
       <emit>
         <CNPJ>06013812000158</CNPJ>
+        <xNome>MEDTEXTIL IMPORTACAO E EXPORTACAO LTDA</xNome>
+        <enderEmit>
+          <xLgr>ROD DARLY SANTOS</xLgr>
+          <nro>4900</nro>
+          <xCpl>GP 01 E 02.</xCpl>
+          <xBairro>DARLY SANTOS</xBairro>
+          <cMun>3205200</cMun>
+          <xMun>VILA VELHA</xMun>
+          <UF>ES</UF>
+          <CEP>29103300</CEP>
+          <cPais>1058</cPais>
+          <xPais>BRASIL</xPais>
+          <fone>3132383100</fone>
+        </enderEmit>
+        <IE>082245886</IE>
+        <CRT>3</CRT>
       </emit>
+      <dest>
+        <CNPJ>22874095000105</CNPJ>
+        <xNome>DOUVELIN CONF LTDA</xNome>
+        <enderDest>
+          <xLgr>AV DR SOARES HUNGRIA</xLgr>
+          <nro>133</nro>
+          <xBairro>CENTRO</xBairro>
+          <cMun>3554508</cMun>
+          <xMun>TIETE</xMun>
+          <UF>SP</UF>
+          <CEP>18530025</CEP>
+          <cPais>1058</cPais>
+          <xPais>BRASIL</xPais>
+        </enderDest>
+        <indIEDest>1</indIEDest>
+        <IE>692045980112</IE>
+        <email>douvelin.confeccoes@gmail.com</email>
+      </dest>
+      <autXML>
+        <CNPJ>23159244000117</CNPJ>
+      </autXML>
+      <det nItem="1">
+        <prod>
+          <cProd>130065</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>TECIDO ALGODAO SANTORINI ESTAMPADO 1,45m ALGODAO 100% REF: 030 G/M: 105 RL: A</xProd>
+          <NCM>52085100</NCM>
+          <CEST>2101800</CEST>
+          <indEscala>S</indEscala>
+          <CFOP>6102</CFOP>
+          <uCom>M</uCom>
+          <qCom>100.00</qCom>
+          <vUnCom>15.90</vUnCom>
+          <vProd>1590.00</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>M</uTrib>
+          <qTrib>100.00</qTrib>
+          <vUnTrib>15.90</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+        <imposto>
+          <ICMS>
+            <ICMS00>
+              <orig>1</orig>
+              <CST>00</CST>
+              <modBC>3</modBC>
+              <vBC>1590.00</vBC>
+              <pICMS>4.00</pICMS>
+              <vICMS>63.60</vICMS>
+            </ICMS00>
+          </ICMS>
+          <IPI>
+            <cEnq>999</cEnq>
+            <IPINT>
+              <CST>51</CST>
+            </IPINT>
+          </IPI>
+          <PIS>
+            <PISAliq>
+              <CST>01</CST>
+              <vBC>1526.40</vBC>
+              <pPIS>1.65</pPIS>
+              <vPIS>25.19</vPIS>
+            </PISAliq>
+          </PIS>
+          <COFINS>
+            <COFINSAliq>
+              <CST>01</CST>
+              <vBC>1526.40</vBC>
+              <pCOFINS>7.60</pCOFINS>
+              <vCOFINS>116.01</vCOFINS>
+            </COFINSAliq>
+          </COFINS>
+          <IBSCBS>
+            <CST>000</CST>
+            <cClassTrib>000001</cClassTrib>
+            <gIBSCBS>
+              <vBC>1385.20</vBC>
+              <gIBSUF>
+                <pIBSUF>0.1000</pIBSUF>
+                <vIBSUF>1.39</vIBSUF>
+              </gIBSUF>
+              <gIBSMun>
+                <pIBSMun>0.0000</pIBSMun>
+                <vIBSMun>0.00</vIBSMun>
+              </gIBSMun>
+              <vIBS>1.39</vIBS>
+              <gCBS>
+                <pCBS>0.9000</pCBS>
+                <vCBS>12.47</vCBS>
+              </gCBS>
+            </gIBSCBS>
+          </IBSCBS>
+        </imposto>
+        <vItem>1590.00</vItem>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>530602</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>TEC CHIFFON AMOUR BORDADO III 1,27m POLIESTER 100% REF: A02 G/M: 140 RL: I</xProd>
+          <NCM>58109200</NCM>
+          <CEST>2101800</CEST>
+          <indEscala>S</indEscala>
+          <CFOP>6102</CFOP>
+          <uCom>M</uCom>
+          <qCom>102.80</qCom>
+          <vUnCom>23.90</vUnCom>
+          <vProd>2456.92</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>M</uTrib>
+          <qTrib>102.80</qTrib>
+          <vUnTrib>23.90</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+        <imposto>
+          <ICMS>
+            <ICMS00>
+              <orig>1</orig>
+              <CST>00</CST>
+              <modBC>3</modBC>
+              <vBC>2456.92</vBC>
+              <pICMS>4.00</pICMS>
+              <vICMS>98.28</vICMS>
+            </ICMS00>
+          </ICMS>
+          <IPI>
+            <cEnq>999</cEnq>
+            <IPINT>
+              <CST>51</CST>
+            </IPINT>
+          </IPI>
+          <PIS>
+            <PISAliq>
+              <CST>01</CST>
+              <vBC>2358.64</vBC>
+              <pPIS>1.65</pPIS>
+              <vPIS>38.92</vPIS>
+            </PISAliq>
+          </PIS>
+          <COFINS>
+            <COFINSAliq>
+              <CST>01</CST>
+              <vBC>2358.64</vBC>
+              <pCOFINS>7.60</pCOFINS>
+              <vCOFINS>179.26</vCOFINS>
+            </COFINSAliq>
+          </COFINS>
+          <IBSCBS>
+            <CST>000</CST>
+            <cClassTrib>000001</cClassTrib>
+            <gIBSCBS>
+              <vBC>2140.46</vBC>
+              <gIBSUF>
+                <pIBSUF>0.1000</pIBSUF>
+                <vIBSUF>2.14</vIBSUF>
+              </gIBSUF>
+              <gIBSMun>
+                <pIBSMun>0.0000</pIBSMun>
+                <vIBSMun>0.00</vIBSMun>
+              </gIBSMun>
+              <vIBS>2.14</vIBS>
+              <gCBS>
+                <pCBS>0.9000</pCBS>
+                <vCBS>19.26</vCBS>
+              </gCBS>
+            </gIBSCBS>
+          </IBSCBS>
+        </imposto>
+        <vItem>2456.92</vItem>
+      </det>
+      <total>
+        <ICMSTot>
+          <vBC>4046.92</vBC>
+          <vICMS>161.88</vICMS>
+          <vICMSDeson>0.00</vICMSDeson>
+          <vFCP>0.00</vFCP>
+          <vBCST>0.00</vBCST>
+          <vST>0.00</vST>
+          <vFCPST>0.00</vFCPST>
+          <vFCPSTRet>0.00</vFCPSTRet>
+          <vProd>4046.92</vProd>
+          <vFrete>0.00</vFrete>
+          <vSeg>0.00</vSeg>
+          <vDesc>0.00</vDesc>
+          <vII>0.00</vII>
+          <vIPI>0.00</vIPI>
+          <vIPIDevol>0.00</vIPIDevol>
+          <vPIS>64.11</vPIS>
+          <vCOFINS>295.27</vCOFINS>
+          <vOutro>0.00</vOutro>
+          <vNF>4046.92</vNF>
+        </ICMSTot>
+        <IBSCBSTot>
+          <vBCIBSCBS>3525.66</vBCIBSCBS>
+          <gIBS>
+            <gIBSUF>
+              <vDif>0.00</vDif>
+              <vDevTrib>0.00</vDevTrib>
+              <vIBSUF>3.53</vIBSUF>
+            </gIBSUF>
+            <gIBSMun>
+              <vDif>0.00</vDif>
+              <vDevTrib>0.00</vDevTrib>
+              <vIBSMun>0.00</vIBSMun>
+            </gIBSMun>
+            <vIBS>3.53</vIBS>
+            <vCredPres>0.00</vCredPres>
+            <vCredPresCondSus>0.00</vCredPresCondSus>
+          </gIBS>
+          <gCBS>
+            <vDif>0.00</vDif>
+            <vDevTrib>0.00</vDevTrib>
+            <vCBS>31.73</vCBS>
+            <vCredPres>0.00</vCredPres>
+            <vCredPresCondSus>0.00</vCredPresCondSus>
+          </gCBS>
+        </IBSCBSTot>
+        <vNFTot>4046.92</vNFTot>
+      </total>
+      <transp>
+        <modFrete>0</modFrete>
+        <transporta>
+          <CNPJ>89823918003593</CNPJ>
+          <xNome>TRANSPORTES TRANSLOVATO LTDA</xNome>
+          <IE>083313451</IE>
+          <xEnder>AVENIDA LUCIANO DAS NEVES 209</xEnder>
+          <xMun>VILA VELHA</xMun>
+          <UF>ES</UF>
+        </transporta>
+        <vol>
+          <qVol>9</qVol>
+          <esp>VOLUME</esp>
+          <marca>MEDTEXTIL ES</marca>
+          <pesoL>24.892</pesoL>
+          <pesoB>25.095</pesoB>
+        </vol>
+      </transp>
+      <cobr>
+        <fat>
+          <nFat>0195590</nFat>
+          <vOrig>4046.92</vOrig>
+          <vDesc>0.00</vDesc>
+          <vLiq>4046.92</vLiq>
+        </fat>
+        <dup>
+          <nDup>001</nDup>
+          <dVenc>2026-06-02</dVenc>
+          <vDup>1348.84</vDup>
+        </dup>
+        <dup>
+          <nDup>002</nDup>
+          <dVenc>2026-07-01</dVenc>
+          <vDup>1348.84</vDup>
+        </dup>
+        <dup>
+          <nDup>003</nDup>
+          <dVenc>2026-07-31</dVenc>
+          <vDup>1349.24</vDup>
+        </dup>
+      </cobr>
+      <pag>
+        <detPag>
+          <indPag>1</indPag>
+          <tPag>15</tPag>
+          <vPag>4046.92</vPag>
+        </detPag>
+      </pag>
+      <infAdic>
+        <infCpl>PEDIDO:374683 - REPRES:EDER . OS PROD.ACOB.POR ESTA NF FORAM ENTREGUES E SAO RECEB.PELO DESTINATARIO COM AS ETIQUETAS DE IDENTIFICACAO DOS TECIDOS CONFORME REG.TEC.CONMETRO RESOL.02/01 MERCAD.IMPORT.AO ABRIGO DA LEI 2.508/1970 - FUNDAP - #</infCpl>
+      </infAdic>
+      <compra>
+        <xPed>374683</xPed>
+      </compra>
+      <infRespTec>
+        <CNPJ>53113791001790</CNPJ>
+        <xContato>ANGELA MARIA GHELLER TELLES</xContato>
+        <email>RESP_TECNICO_DFE_DATASUL@TOTVS.COM.BR</email>
+        <fone>40030015</fone>
+      </infRespTec>
     </infNFe>
+    <Signature xmlns="http://www.w3.org/2000/09/xmldsig#">
+      <SignedInfo xmlns="http://www.w3.org/2000/09/xmldsig#">
+        <CanonicalizationMethod Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+        <SignatureMethod Algorithm="http://www.w3.org/2000/09/xmldsig#rsa-sha1"/>
+        <Reference URI="#NFe32260406013812000158550030001955901308939122">
+          <Transforms>
+            <Transform Algorithm="http://www.w3.org/2000/09/xmldsig#enveloped-signature"/>
+            <Transform Algorithm="http://www.w3.org/TR/2001/REC-xml-c14n-20010315"/>
+          </Transforms>
+          <DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha1"/>
+          <DigestValue>IfS/GbpGbU8Q8ZviYRgppX0bkmY=</DigestValue>
+        </Reference>
+      </SignedInfo>
+      <SignatureValue>hYnCSiwDekRSvXvdLkHnuo5Nn+MjtNquVCoff79wzXPR6Xo2lNEDLw9/j8Bx0dfc/lkrNA7wesJTTr+GC2MZa5zKxUBvth01uoSYbNqchxcVHk7EiJfvax2gLp8HcTv8Bp1kNCIpp1NbdT44kkibMu21qDbTgbR2F7if1PYmNpjWF/SiPXx/aaUYnZ8DOPCsbmb2NS/Qi8Qj1Xocnk0y0jf7YtG7nsLxUIZCnchgUaP9UmWjg+H39KjktFo/Bq8brq3KvLof4aty5qR7NVydHBkRu26yyuPZzOc7xG5RuYXhoYpFbqrhUp2wd+drz+QTs3zCbwCDjBCHiSoAOmo6NQ==</SignatureValue>
+      <KeyInfo>
+        <X509Data>
+          <X509Certificate>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</X509Certificate>
+        </X509Data>
+      </KeyInfo>
+    </Signature>
   </NFe>
   <protNFe versao="4.00">
     <infProt>
+      <tpAmb>1</tpAmb>
+      <verAplic>SVRS2604010855DR</verAplic>
       <chNFe>32260406013812000158550030001955901308939122</chNFe>
+      <dhRecbto>2026-04-02T12:40:04-03:00</dhRecbto>
+      <nProt>232260050881938</nProt>
+      <digVal>IfS/GbpGbU8Q8ZviYRgppX0bkmY=</digVal>
       <cStat>100</cStat>
       <xMotivo>Autorizado o uso da NF-e</xMotivo>
     </infProt>

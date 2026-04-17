@@ -87,6 +87,7 @@ Observacao:
 - O corpo deve conter o XML completo da NF-e ou do `nfeProc`.
 - O sistema extrai a chave de acesso do `chNFe` ou do `infNFe/@Id`.
 - Header recomendado: `Content-Type: application/xml`
+- No API Platform, o exemplo desse endpoint deve refletir um `nfeProc` completo.
 
 Exemplo:
 

@@ -70,6 +70,8 @@ window.onload = function() {
         });
     }
 
+    fixNfeXmlPayloadExample();
+
     // Workaround for https://github.com/swagger-api/swagger-ui/issues/3028
     // Adapted from https://github.com/vitalyq/react-trigger-change/blob/master/lib/change.js
     // Copyright (c) 2017 Vitaly Kuznetsov
@@ -149,6 +151,62 @@ window.onload = function() {
                 webby.classList.replace('frighten', 'calm');
                 web.classList.replace('frighten', 'calm');
             }, 10000);
+        });
+    }
+
+    function fixNfeXmlPayloadExample() {
+        const targetPath = '/nfe/consultas/consultar-com-chave-xml';
+        const xmlExample = data?.spec?.paths?.[targetPath]?.post?.requestBody?.content?.['application/xml']?.example;
+        if (!xmlExample || typeof xmlExample !== 'string') {
+            return;
+        }
+
+        const patchBlock = function (opBlock) {
+            const method = opBlock.querySelector('.opblock-summary-method');
+            const path = opBlock.querySelector('.opblock-summary-path');
+            if (!method || !path) {
+                return;
+            }
+
+            if (method.textContent.trim().toLowerCase() !== 'post') {
+                return;
+            }
+
+            if (path.textContent.indexOf(targetPath) === -1) {
+                return;
+            }
+
+            const contentType = opBlock.querySelector('select.body-param-content-type');
+            if (contentType && !/xml/i.test(contentType.value || '')) {
+                return;
+            }
+
+            const preview = opBlock.querySelector('.body-param__example');
+            if (preview && preview.textContent !== xmlExample) {
+                preview.textContent = xmlExample;
+            }
+
+            const textarea = opBlock.querySelector('textarea.body-param__text');
+            if (textarea && textarea.value !== xmlExample) {
+                textarea.value = xmlExample;
+                reactTriggerChange(textarea);
+            }
+        };
+
+        const scan = function () {
+            document.querySelectorAll('.opblock').forEach(patchBlock);
+        };
+
+        scan();
+
+        new MutationObserver(function () {
+            scan();
+        }).observe(document, {childList: true, subtree: true});
+
+        document.addEventListener('change', function (event) {
+            if (event.target instanceof HTMLSelectElement && event.target.classList.contains('body-param-content-type')) {
+                setTimeout(scan, 0);
+            }
         });
     }
 

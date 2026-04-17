@@ -7,14 +7,14 @@ services:
     autowire: true
     autoconfigure: true
 
-  App\OpenApi\LegacyOptionalRequestBodyOpenApiFactory:
-    decorates: 'api_platform.openapi.factory'
-    arguments:
-      $decorated: '@App\OpenApi\LegacyOptionalRequestBodyOpenApiFactory.inner'
-
   App\:
     resource: '../src/'
     exclude:
       - '../src/DependencyInjection/'
       - '../src/Entity/'
       - '../src/Kernel.php'
+
+  App\OpenApi\LegacyOptionalRequestBodyOpenApiFactory:
+    decorates: 'api_platform.openapi.factory'
+    arguments:
+      $decorated: '@App\OpenApi\LegacyOptionalRequestBodyOpenApiFactory.inner'

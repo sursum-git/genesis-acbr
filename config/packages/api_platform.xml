@@ -7,11 +7,13 @@
         <apip:title>ACBr API</apip:title>
         <apip:version>1.0.0</apip:version>
         <apip:mapping>
-            <apip:path>%kernel.project_dir%/config/api_platform/resources</apip:path>
+            <apip:paths>
+                <apip:path>%kernel.project_dir%/config/api_platform/resources</apip:path>
+            </apip:paths>
         </apip:mapping>
         <apip:defaults stateless="true"/>
         <apip:swagger>
-            <apip:version>3</apip:version>
+            <apip:versions>3</apip:versions>
         </apip:swagger>
     </apip:config>
 </container>

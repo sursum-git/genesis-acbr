@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources xmlns="https://api-platform.com/schema/metadata/resources-3.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="https://api-platform.com/schema/metadata/resources-3.0 vendor/api-platform/metadata/Extractor/schema/resources.xsd">
   <resource class="App\ApiResource\Nfse\NfseDemaisProvedoresCancelamentoResource" shortName="NFSeDemaisProvedoresCancelamento" input="App\Dto\Nfse\NfseDemaisProvedoresCancelamentoInput" output="App\Dto\Nfse\NfseDemaisProvedoresCancelamentoOutput">
+    <formats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></formats>
+    <inputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></inputFormats>
+    <outputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></outputFormats>
     <operations><operation class="ApiPlatform\Metadata\Post" name="post_nfse_cancelar" uriTemplate="/nfse/demais-provedores/cancelamento/cancelar" processor="App\State\Legacy\AcbrLegacyOperationProcessor"><extraProperties><values><value name="acbr_script">NFSe/MT/ACBrNFSeServicosMT.php</value><value name="acbr_method">Cancelar</value></values></extraProperties><normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext><denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext><openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfse</value></values></value></values></extensionProperties></openapi></operation></operations>
   </resource>
 </resources>

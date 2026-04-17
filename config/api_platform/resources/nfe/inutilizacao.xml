@@ -6,6 +6,9 @@
             shortName="NFeInutilizacao"
             input="App\Dto\Nfe\NfeInutilizacaoInput"
             output="App\Dto\Nfe\NfeInutilizacaoOutput">
+    <formats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></formats>
+    <inputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></inputFormats>
+    <outputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></outputFormats>
     <operations>
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_inutilizar"

@@ -83,16 +83,18 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
             return $requestBody;
         }
 
-        $currentXmlMediaType = $content['application/xml'] ?? null;
-        if ($currentXmlMediaType !== null && $this->extractExample($currentXmlMediaType) !== null) {
-            return $requestBody;
+        $xmlExample = $this->buildXmlExample($jsonMediaType, $openApi);
+        $xmlSourceExample = $this->extractExample($jsonMediaType);
+        if ($xmlSourceExample === null) {
+            $xmlSourceExample = $this->buildExampleFromSchema($this->extractSchema($jsonMediaType), $openApi);
         }
 
-        $xmlExample = $this->buildXmlExample($jsonMediaType, $openApi);
-        $xmlSchema = $this->extractSchema($jsonMediaType);
+        $xmlSchema = \is_array($xmlSourceExample)
+            ? $this->buildXmlSchema($xmlSourceExample, 'request')
+            : $this->extractSchema($jsonMediaType);
 
-        if (\is_string($xmlExample) && $xmlExample !== '') {
-            $xmlSchema = new \ArrayObject(['type' => 'string', 'example' => $xmlExample]);
+        if (\is_string($xmlExample) && $xmlExample !== '' && $xmlSchema instanceof \ArrayObject) {
+            $xmlSchema['example'] = $xmlExample;
         }
 
         $updatedContent = new \ArrayObject(iterator_to_array($content));
@@ -259,5 +261,62 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
         }
 
         return null;
+    }
+
+    private function buildXmlSchema(array $example, string $rootName): \ArrayObject
+    {
+        $schema = new \ArrayObject([
+            'type' => 'object',
+            'xml' => ['name' => $rootName],
+            'properties' => new \ArrayObject(),
+        ]);
+
+        /** @var \ArrayObject $properties */
+        $properties = $schema['properties'];
+
+        foreach ($example as $name => $value) {
+            $properties[$name] = $this->buildXmlPropertySchema($name, $value);
+        }
+
+        return $schema;
+    }
+
+    private function buildXmlPropertySchema(string $name, mixed $value): \ArrayObject
+    {
+        if (\is_array($value)) {
+            if ($this->isList($value)) {
+                $items = $value === [] ? 'string' : $value[0];
+
+                return new \ArrayObject([
+                    'type' => 'array',
+                    'xml' => ['name' => $name, 'wrapped' => false],
+                    'items' => $this->buildXmlPropertySchema('item', $items),
+                ]);
+            }
+
+            return $this->buildXmlSchema($value, $name);
+        }
+
+        $type = match (true) {
+            \is_int($value) => 'integer',
+            \is_float($value) => 'number',
+            \is_bool($value) => 'boolean',
+            default => 'string',
+        };
+
+        return new \ArrayObject([
+            'type' => $type,
+            'xml' => ['name' => $name],
+            'example' => $value,
+        ]);
+    }
+
+    private function isList(array $value): bool
+    {
+        if ($value === []) {
+            return true;
+        }
+
+        return array_keys($value) === range(0, \count($value) - 1);
     }
 }

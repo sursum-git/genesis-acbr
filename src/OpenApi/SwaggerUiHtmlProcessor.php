@@ -104,6 +104,17 @@ final class SwaggerUiHtmlProcessor implements ProcessorInterface
   const targetPath = %s;
   const placeholderSnippet = 'root element name is undefined';
 
+  function decodeEntities(value) {
+    if (typeof value !== 'string' || value.indexOf('&') === -1) {
+      return value;
+    }
+
+    const textarea = document.createElement('textarea');
+    textarea.innerHTML = value;
+
+    return textarea.value;
+  }
+
   function isTargetBlock(block) {
     const pathNode = block.querySelector('.opblock-summary-path');
     const methodNode = block.querySelector('.opblock-summary-method');
@@ -120,6 +131,8 @@ final class SwaggerUiHtmlProcessor implements ProcessorInterface
       return;
     }
 
+    const normalizedXmlExample = decodeEntities(xmlExample);
+
     const mediaTypeSelect = block.querySelector('select.body-param-content-type');
     if (mediaTypeSelect && mediaTypeSelect.value && !/xml/i.test(mediaTypeSelect.value)) {
       return;
@@ -127,9 +140,9 @@ final class SwaggerUiHtmlProcessor implements ProcessorInterface
 
     const preview = block.querySelector('.body-param__example');
     if (preview) {
-      const previewText = preview.textContent || '';
-      if (!previewText.trim() || previewText.includes(placeholderSnippet)) {
-        preview.textContent = xmlExample;
+      const previewText = decodeEntities(preview.textContent || '');
+      if (!previewText.trim() || previewText.includes(placeholderSnippet) || previewText.includes('&lt;')) {
+        preview.textContent = normalizedXmlExample;
       }
     }
 
@@ -138,9 +151,9 @@ final class SwaggerUiHtmlProcessor implements ProcessorInterface
       return;
     }
 
-    const currentValue = textarea.value || '';
-    if (!currentValue.trim() || currentValue.includes(placeholderSnippet)) {
-      textarea.value = xmlExample;
+    const currentValue = decodeEntities(textarea.value || '');
+    if (!currentValue.trim() || currentValue.includes(placeholderSnippet) || currentValue.includes('&lt;')) {
+      textarea.value = normalizedXmlExample;
       textarea.dispatchEvent(new Event('input', { bubbles: true }));
       textarea.dispatchEvent(new Event('change', { bubbles: true }));
     }

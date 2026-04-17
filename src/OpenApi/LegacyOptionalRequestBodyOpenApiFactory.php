@@ -74,12 +74,17 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
     private function addXmlMediaType(RequestBody $requestBody, OpenApi $openApi): RequestBody
     {
         $content = $requestBody->getContent();
-        if ($content === null || isset($content['application/xml'])) {
+        if ($content === null) {
             return $requestBody;
         }
 
         $jsonMediaType = $content['application/ld+json'] ?? $content['application/json'] ?? null;
         if ($jsonMediaType === null) {
+            return $requestBody;
+        }
+
+        $currentXmlMediaType = $content['application/xml'] ?? null;
+        if ($currentXmlMediaType !== null && $this->extractExample($currentXmlMediaType) !== null) {
             return $requestBody;
         }
 
@@ -132,23 +137,30 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
             }
         }
 
-        if (($data['type'] ?? null) === 'object' && isset($data['properties']) && $data['properties'] instanceof \ArrayObject) {
+        $type = $this->normalizeSchemaType($data['type'] ?? null);
+        $properties = $data['properties'] ?? null;
+
+        if ($type === 'object' && ($properties instanceof \ArrayObject || \is_array($properties))) {
             $example = [];
 
-            foreach ($data['properties'] as $name => $propertySchema) {
-                if ($propertySchema instanceof \ArrayObject) {
-                    $example[$name] = $this->buildExampleFromSchema($propertySchema, $openApi);
+            foreach ($properties as $name => $propertySchema) {
+                if ($propertySchema instanceof \ArrayObject || \is_array($propertySchema)) {
+                    $example[$name] = $this->buildExampleFromSchema(
+                        $propertySchema instanceof \ArrayObject ? $propertySchema : new \ArrayObject($propertySchema),
+                        $openApi
+                    );
                 }
             }
 
             return $example;
         }
 
-        if (($data['type'] ?? null) === 'array' && isset($data['items']) && $data['items'] instanceof \ArrayObject) {
-            return [$this->buildExampleFromSchema($data['items'], $openApi)];
+        $items = $data['items'] ?? null;
+        if ($type === 'array' && ($items instanceof \ArrayObject || \is_array($items))) {
+            return [$this->buildExampleFromSchema($items instanceof \ArrayObject ? $items : new \ArrayObject($items), $openApi)];
         }
 
-        return match ($data['type'] ?? null) {
+        return match ($type) {
             'integer', 'number' => 0,
             'boolean' => false,
             default => 'string',
@@ -227,6 +239,23 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
 
         if (\is_array($mediaType)) {
             return $mediaType['example'] ?? null;
+        }
+
+        return null;
+    }
+
+    private function normalizeSchemaType(mixed $type): ?string
+    {
+        if (\is_string($type)) {
+            return $type;
+        }
+
+        if (\is_array($type)) {
+            foreach ($type as $candidate) {
+                if (\is_string($candidate) && $candidate !== 'null') {
+                    return $candidate;
+                }
+            }
         }
 
         return null;

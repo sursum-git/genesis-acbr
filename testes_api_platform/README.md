@@ -72,8 +72,7 @@ curl -sS -X GET \
 ```
 
 ```bash
-curl -sS -X POST \
-  'http://157.173.110.195:8089/index.php/nfe/distribuicao-dfe/por-chave' \
-  -H 'Content-Type: application/ld+json' \
-  -d '{"payload":{"AcUFAutor":"ES","AeCNPJCPF":"06013812000158","AechNFe":"32260406013812000158550030001955901308939122"}}'
+curl -sS \
+  'http://157.173.110.195:8089/index.php/nfe/distribuicao-dfe/por-chave?AcUFAutor=ES&AeCNPJCPF=06013812000158&AechNFe=32260406013812000158550030001955901308939122' \
+  -H 'Accept: application/ld+json'
 ```

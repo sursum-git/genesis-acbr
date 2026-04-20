@@ -26,10 +26,9 @@ run_post_xml \
   "/nfe/consultas/consultar-com-chave-xml" \
   "${NFE_XML_FILE}"
 
-run_post_json \
+run_get \
   "NFe - Distribuicao DFe por chave" \
-  "/nfe/distribuicao-dfe/por-chave" \
-  "{\"payload\":{\"AcUFAutor\":\"${UF}\",\"AeCNPJCPF\":\"${CNPJ}\",\"AechNFe\":\"${CHAVE_NFE}\"}}"
+  "/nfe/distribuicao-dfe/por-chave?AcUFAutor=${UF}&AeCNPJCPF=${CNPJ}&AechNFe=${CHAVE_NFE}"
 
 run_post_json \
   "NFe - Distribuicao DFe por ult NSU" \

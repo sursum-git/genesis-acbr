@@ -42,17 +42,8 @@ Accept: application/ld+json
 </nfeProc>
 
 ### NFe - Distribuicao DFe por chave
-POST {{baseUrl}}/nfe/distribuicao-dfe/por-chave
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfe/distribuicao-dfe/por-chave?AcUFAutor={{uf}}&AeCNPJCPF={{cnpj}}&AechNFe={{chaveNfe}}
 Accept: application/ld+json
-
-{
-  "payload": {
-    "AcUFAutor": "{{uf}}",
-    "AeCNPJCPF": "{{cnpj}}",
-    "AechNFe": "{{chaveNfe}}"
-  }
-}
 
 ### NFe - Distribuicao DFe por ultimo NSU
 POST {{baseUrl}}/nfe/distribuicao-dfe/por-ult-nsu

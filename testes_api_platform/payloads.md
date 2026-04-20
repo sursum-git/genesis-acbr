@@ -117,24 +117,20 @@ Exemplo:
 ARecibo=SUBSTITUIR_RECIBO
 ```
 
-### `POST /nfe/distribuicao-dfe/por-chave`
+### `GET /nfe/distribuicao-dfe/por-chave`
 
-Campos em `payload`:
+Usa query string, sem `payload`.
+
+Parâmetros:
 
 - `AcUFAutor`: UF do ator autor
 - `AeCNPJCPF`: CNPJ ou CPF do ator
 - `AechNFe`: chave da NFe
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "AcUFAutor": "ES",
-    "AeCNPJCPF": "06013812000158",
-    "AechNFe": "32260406013812000158550030001955901308939122"
-  }
-}
+```text
+/nfe/distribuicao-dfe/por-chave?AcUFAutor=ES&AeCNPJCPF=06013812000158&AechNFe=32260406013812000158550030001955901308939122
 ```
 
 ### `POST /nfe/distribuicao-dfe/por-nsu`

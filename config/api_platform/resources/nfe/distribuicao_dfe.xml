@@ -10,14 +10,21 @@
     <inputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></inputFormats>
     <outputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></outputFormats>
     <operations>
-      <operation class="ApiPlatform\Metadata\Post"
-                 name="post_nfe_distribuicao_por_chave"
+      <operation class="ApiPlatform\Metadata\Get"
+                 name="get_nfe_distribuicao_por_chave"
                  uriTemplate="/nfe/distribuicao-dfe/por-chave"
-                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+                 provider="App\State\Legacy\AcbrLegacyOperationProvider">
         <extraProperties>
           <values>
             <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
             <value name="acbr_method">DistribuicaoDFePorChave</value>
+            <value name="acbr_query_params">
+              <values>
+                <value>AcUFAutor</value>
+                <value>AeCNPJCPF</value>
+                <value>AechNFe</value>
+              </values>
+            </value>
           </values>
         </extraProperties>
         <normalizationContext>
@@ -29,85 +36,34 @@
             </value>
           </values>
         </normalizationContext>
-        <denormalizationContext>
-          <values>
-            <value name="groups">
+        <parameters>
+          <parameter key="AcUFAutor" in="query" description="UF do autor da manifestacao ou da consulta." required="true">
+            <schema>
               <values>
-                <value>acbr_legacy_operation:write</value>
+                <value name="type">string</value>
+                <value name="example">ES</value>
               </values>
-            </value>
-          </values>
-        </denormalizationContext>
+            </schema>
+          </parameter>
+          <parameter key="AeCNPJCPF" in="query" description="CNPJ ou CPF do autor da consulta." required="true">
+            <schema>
+              <values>
+                <value name="type">string</value>
+                <value name="example">06013812000158</value>
+              </values>
+            </schema>
+          </parameter>
+          <parameter key="AechNFe" in="query" description="Chave de acesso da NF-e com 44 digitos." required="true">
+            <schema>
+              <values>
+                <value name="type">string</value>
+                <value name="pattern">^\d{44}$</value>
+                <value name="example">32260406013812000158550030001955901308939122</value>
+              </values>
+            </schema>
+          </parameter>
+        </parameters>
         <openapi>
-          <requestBody required="true">
-            <content>
-              <values>
-                <value name="application/ld+json">
-                  <values>
-                    <value name="schema">
-                      <values>
-                        <value name="type">object</value>
-                        <value name="required">
-                          <values>
-                            <value>payload</value>
-                          </values>
-                        </value>
-                        <value name="properties">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="type">object</value>
-                                <value name="required">
-                                  <values>
-                                    <value>AcUFAutor</value>
-                                    <value>AeCNPJCPF</value>
-                                    <value>AechNFe</value>
-                                  </values>
-                                </value>
-                                <value name="properties">
-                                  <values>
-                                    <value name="AcUFAutor">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">ES</value>
-                                      </values>
-                                    </value>
-                                    <value name="AeCNPJCPF">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">06013812000158</value>
-                                      </values>
-                                    </value>
-                                    <value name="AechNFe">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">32260406013812000158550030001955901308939122</value>
-                                      </values>
-                                    </value>
-                                  </values>
-                                </value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
-                      </values>
-                    </value>
-                    <value name="example">
-                      <values>
-                        <value name="payload">
-                          <values>
-                            <value name="AcUFAutor">ES</value>
-                            <value name="AeCNPJCPF">06013812000158</value>
-                            <value name="AechNFe">32260406013812000158550030001955901308939122</value>
-                          </values>
-                        </value>
-                      </values>
-                    </value>
-                  </values>
-                </value>
-              </values>
-            </content>
-          </requestBody>
           <extensionProperties>
             <values>
               <value name="x-apiplatform-tag">

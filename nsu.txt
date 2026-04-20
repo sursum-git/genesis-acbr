@@ -1,0 +1,79 @@
+NSU: 000000000626265
+tpEvento: 210200
+Evento: Confirmacao da Operacao
+
+NSU: 000000000626260
+tpEvento: 610130
+Evento: Comprovante de Entrega do CT-e
+
+NSU: 000000000626255
+tpEvento: 610130
+Evento: Comprovante de Entrega do CT-e
+
+NSU: 000000000626250
+tpEvento: 610514
+Evento: Registro de Passagem de NFe propagado pelo MDFe/CTe
+
+NSU: 000000000626245
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626240
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626235
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626230
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626225
+tpEvento: 610514
+Evento: Registro de Passagem de NFe propagado pelo MDFe/CTe
+
+NSU: 000000000626220
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626215
+tpEvento: 610514
+Evento: Registro de Passagem de NFe propagado pelo MDFe/CTe
+
+NSU: 000000000626210
+tpEvento: 510630
+Evento: Registro de Passagem Automatico Originado MDFe
+
+NSU: 000000000626205
+tpEvento: 510630
+Evento: Registro de Passagem Automatico Originado MDFe
+
+NSU: 000000000626200
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626195
+tpEvento: 210210
+Evento: Ciencia da Operacao
+
+NSU: 000000000626190
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626185
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626180
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626175
+tpEvento: 610614
+Evento: MDF-e Autorizado com CT-e
+
+NSU: 000000000626170
+tpEvento: N/D
+Evento: N/D

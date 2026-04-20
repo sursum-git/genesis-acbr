@@ -76,3 +76,15 @@ curl -sS \
   'http://157.173.110.195:8089/index.php/nfe/distribuicao-dfe/por-chave?AcUFAutor=ES&AeCNPJCPF=06013812000158&AechNFe=32260406013812000158550030001955901308939122' \
   -H 'Accept: application/ld+json'
 ```
+
+```bash
+curl -sS \
+  'http://157.173.110.195:8089/index.php/nfe/distribuicao-dfe/por-nsu?AcUFAutor=ES&AeCNPJCPF=06013812000158&AeNSU=000000000000001' \
+  -H 'Accept: application/ld+json'
+```
+
+```bash
+curl -sS \
+  'http://157.173.110.195:8089/index.php/nfe/distribuicao-dfe/por-ult-nsu?AcUFAutor=ES&AeCNPJCPF=06013812000158&AeultNSU=000000000000000' \
+  -H 'Accept: application/ld+json'
+```

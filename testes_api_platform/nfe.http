@@ -46,30 +46,12 @@ GET {{baseUrl}}/nfe/distribuicao-dfe/por-chave?AcUFAutor={{uf}}&AeCNPJCPF={{cnpj
 Accept: application/ld+json
 
 ### NFe - Distribuicao DFe por ultimo NSU
-POST {{baseUrl}}/nfe/distribuicao-dfe/por-ult-nsu
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfe/distribuicao-dfe/por-ult-nsu?AcUFAutor={{uf}}&AeCNPJCPF={{cnpj}}&AeultNSU=000000000000000
 Accept: application/ld+json
-
-{
-  "payload": {
-    "AcUFAutor": "{{uf}}",
-    "AeCNPJCPF": "{{cnpj}}",
-    "AeultNSU": "000000000000000"
-  }
-}
 
 ### NFe - Distribuicao DFe por NSU
-POST {{baseUrl}}/nfe/distribuicao-dfe/por-nsu
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfe/distribuicao-dfe/por-nsu?AcUFAutor={{uf}}&AeCNPJCPF={{cnpj}}&AeNSU=000000000000001
 Accept: application/ld+json
-
-{
-  "payload": {
-    "AcUFAutor": "{{uf}}",
-    "AeCNPJCPF": "{{cnpj}}",
-    "AeNSU": "000000000000001"
-  }
-}
 
 ### NFe - Consultar recibo
 ### Substituir ARecibo por um numero de recibo valido.

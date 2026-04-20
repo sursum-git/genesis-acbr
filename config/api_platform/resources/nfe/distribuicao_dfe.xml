@@ -75,14 +75,21 @@
           </extensionProperties>
         </openapi>
       </operation>
-      <operation class="ApiPlatform\Metadata\Post"
-                 name="post_nfe_distribuicao_por_nsu"
+      <operation class="ApiPlatform\Metadata\Get"
+                 name="get_nfe_distribuicao_por_nsu"
                  uriTemplate="/nfe/distribuicao-dfe/por-nsu"
-                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+                 provider="App\State\Legacy\AcbrLegacyOperationProvider">
         <extraProperties>
           <values>
             <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
             <value name="acbr_method">DistribuicaoDFePorNSU</value>
+            <value name="acbr_query_params">
+              <values>
+                <value>AcUFAutor</value>
+                <value>AeCNPJCPF</value>
+                <value>AeNSU</value>
+              </values>
+            </value>
           </values>
         </extraProperties>
         <normalizationContext>
@@ -94,85 +101,33 @@
             </value>
           </values>
         </normalizationContext>
-        <denormalizationContext>
-          <values>
-            <value name="groups">
+        <parameters>
+          <parameter key="AcUFAutor" in="query" description="UF do autor da manifestacao ou da consulta." required="true">
+            <schema>
               <values>
-                <value>acbr_legacy_operation:write</value>
+                <value name="type">string</value>
+                <value name="example">ES</value>
               </values>
-            </value>
-          </values>
-        </denormalizationContext>
+            </schema>
+          </parameter>
+          <parameter key="AeCNPJCPF" in="query" description="CNPJ ou CPF do autor da consulta." required="true">
+            <schema>
+              <values>
+                <value name="type">string</value>
+                <value name="example">06013812000158</value>
+              </values>
+            </schema>
+          </parameter>
+          <parameter key="AeNSU" in="query" description="NSU desejado para consulta." required="true">
+            <schema>
+              <values>
+                <value name="type">string</value>
+                <value name="example">000000000000001</value>
+              </values>
+            </schema>
+          </parameter>
+        </parameters>
         <openapi>
-          <requestBody required="true">
-            <content>
-              <values>
-                <value name="application/ld+json">
-                  <values>
-                    <value name="schema">
-                      <values>
-                        <value name="type">object</value>
-                        <value name="required">
-                          <values>
-                            <value>payload</value>
-                          </values>
-                        </value>
-                        <value name="properties">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="type">object</value>
-                                <value name="required">
-                                  <values>
-                                    <value>AcUFAutor</value>
-                                    <value>AeCNPJCPF</value>
-                                    <value>AeNSU</value>
-                                  </values>
-                                </value>
-                                <value name="properties">
-                                  <values>
-                                    <value name="AcUFAutor">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">ES</value>
-                                      </values>
-                                    </value>
-                                    <value name="AeCNPJCPF">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">06013812000158</value>
-                                      </values>
-                                    </value>
-                                    <value name="AeNSU">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">000000000000001</value>
-                                      </values>
-                                    </value>
-                                  </values>
-                                </value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
-                      </values>
-                    </value>
-                    <value name="example">
-                      <values>
-                        <value name="payload">
-                          <values>
-                            <value name="AcUFAutor">ES</value>
-                            <value name="AeCNPJCPF">06013812000158</value>
-                            <value name="AeNSU">000000000000001</value>
-                          </values>
-                        </value>
-                      </values>
-                    </value>
-                  </values>
-                </value>
-              </values>
-            </content>
-          </requestBody>
           <extensionProperties>
             <values>
               <value name="x-apiplatform-tag">
@@ -184,14 +139,21 @@
           </extensionProperties>
         </openapi>
       </operation>
-      <operation class="ApiPlatform\Metadata\Post"
-                 name="post_nfe_distribuicao_por_ult_nsu"
+      <operation class="ApiPlatform\Metadata\Get"
+                 name="get_nfe_distribuicao_por_ult_nsu"
                  uriTemplate="/nfe/distribuicao-dfe/por-ult-nsu"
-                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+                 provider="App\State\Legacy\AcbrLegacyOperationProvider">
         <extraProperties>
           <values>
             <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
             <value name="acbr_method">DistribuicaoDFePorUltNSU</value>
+            <value name="acbr_query_params">
+              <values>
+                <value>AcUFAutor</value>
+                <value>AeCNPJCPF</value>
+                <value>AeultNSU</value>
+              </values>
+            </value>
           </values>
         </extraProperties>
         <normalizationContext>
@@ -203,85 +165,33 @@
             </value>
           </values>
         </normalizationContext>
-        <denormalizationContext>
-          <values>
-            <value name="groups">
+        <parameters>
+          <parameter key="AcUFAutor" in="query" description="UF do autor da manifestacao ou da consulta." required="true">
+            <schema>
               <values>
-                <value>acbr_legacy_operation:write</value>
+                <value name="type">string</value>
+                <value name="example">ES</value>
               </values>
-            </value>
-          </values>
-        </denormalizationContext>
+            </schema>
+          </parameter>
+          <parameter key="AeCNPJCPF" in="query" description="CNPJ ou CPF do autor da consulta." required="true">
+            <schema>
+              <values>
+                <value name="type">string</value>
+                <value name="example">06013812000158</value>
+              </values>
+            </schema>
+          </parameter>
+          <parameter key="AeultNSU" in="query" description="Ultimo NSU conhecido para consulta incremental." required="true">
+            <schema>
+              <values>
+                <value name="type">string</value>
+                <value name="example">000000000000000</value>
+              </values>
+            </schema>
+          </parameter>
+        </parameters>
         <openapi>
-          <requestBody required="true">
-            <content>
-              <values>
-                <value name="application/ld+json">
-                  <values>
-                    <value name="schema">
-                      <values>
-                        <value name="type">object</value>
-                        <value name="required">
-                          <values>
-                            <value>payload</value>
-                          </values>
-                        </value>
-                        <value name="properties">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="type">object</value>
-                                <value name="required">
-                                  <values>
-                                    <value>AcUFAutor</value>
-                                    <value>AeCNPJCPF</value>
-                                    <value>AeultNSU</value>
-                                  </values>
-                                </value>
-                                <value name="properties">
-                                  <values>
-                                    <value name="AcUFAutor">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">ES</value>
-                                      </values>
-                                    </value>
-                                    <value name="AeCNPJCPF">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">06013812000158</value>
-                                      </values>
-                                    </value>
-                                    <value name="AeultNSU">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">000000000000000</value>
-                                      </values>
-                                    </value>
-                                  </values>
-                                </value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
-                      </values>
-                    </value>
-                    <value name="example">
-                      <values>
-                        <value name="payload">
-                          <values>
-                            <value name="AcUFAutor">ES</value>
-                            <value name="AeCNPJCPF">06013812000158</value>
-                            <value name="AeultNSU">000000000000000</value>
-                          </values>
-                        </value>
-                      </values>
-                    </value>
-                  </values>
-                </value>
-              </values>
-            </content>
-          </requestBody>
           <extensionProperties>
             <values>
               <value name="x-apiplatform-tag">

@@ -30,15 +30,13 @@ run_get \
   "NFe - Distribuicao DFe por chave" \
   "/nfe/distribuicao-dfe/por-chave?AcUFAutor=${UF}&AeCNPJCPF=${CNPJ}&AechNFe=${CHAVE_NFE}"
 
-run_post_json \
+run_get \
   "NFe - Distribuicao DFe por ult NSU" \
-  "/nfe/distribuicao-dfe/por-ult-nsu" \
-  "{\"payload\":{\"AcUFAutor\":\"${UF}\",\"AeCNPJCPF\":\"${CNPJ}\",\"AeultNSU\":\"000000000000000\"}}"
+  "/nfe/distribuicao-dfe/por-ult-nsu?AcUFAutor=${UF}&AeCNPJCPF=${CNPJ}&AeultNSU=000000000000000"
 
-run_post_json \
+run_get \
   "NFe - Distribuicao DFe por NSU" \
-  "/nfe/distribuicao-dfe/por-nsu" \
-  "{\"payload\":{\"AcUFAutor\":\"${UF}\",\"AeCNPJCPF\":\"${CNPJ}\",\"AeNSU\":\"000000000000001\"}}"
+  "/nfe/distribuicao-dfe/por-nsu?AcUFAutor=${UF}&AeCNPJCPF=${CNPJ}&AeNSU=000000000000001"
 
 run_get \
   "NFe - Consultar recibo (placeholder)" \

@@ -74,6 +74,8 @@ Exemplos de operacoes:
 - `GET /nfe/consultas/consultar-recibo`
 - `GET /nfe/consultas/consulta-cadastro`
 - `GET /nfe/distribuicao-dfe/por-chave`
+- `GET /nfe/distribuicao-dfe/por-nsu`
+- `GET /nfe/distribuicao-dfe/por-ult-nsu`
 - `POST /nfe/envio/enviar-sincrono-xml`
 - `POST /nfe/envio/enviar-assincrono-ini`
 - `POST /nfe/eventos/cancelar`

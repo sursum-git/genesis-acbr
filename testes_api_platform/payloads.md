@@ -133,44 +133,36 @@ Exemplo:
 /nfe/distribuicao-dfe/por-chave?AcUFAutor=ES&AeCNPJCPF=06013812000158&AechNFe=32260406013812000158550030001955901308939122
 ```
 
-### `POST /nfe/distribuicao-dfe/por-nsu`
+### `GET /nfe/distribuicao-dfe/por-nsu`
 
-Campos em `payload`:
+Usa query string, sem `payload`.
+
+Parâmetros:
 
 - `AcUFAutor`
 - `AeCNPJCPF`
 - `AeNSU`
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "AcUFAutor": "ES",
-    "AeCNPJCPF": "06013812000158",
-    "AeNSU": "000000000000001"
-  }
-}
+```text
+/nfe/distribuicao-dfe/por-nsu?AcUFAutor=ES&AeCNPJCPF=06013812000158&AeNSU=000000000000001
 ```
 
-### `POST /nfe/distribuicao-dfe/por-ult-nsu`
+### `GET /nfe/distribuicao-dfe/por-ult-nsu`
 
-Campos em `payload`:
+Usa query string, sem `payload`.
+
+Parâmetros:
 
 - `AcUFAutor`
 - `AeCNPJCPF`
 - `AeultNSU`
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "AcUFAutor": "ES",
-    "AeCNPJCPF": "06013812000158",
-    "AeultNSU": "000000000000000"
-  }
-}
+```text
+/nfe/distribuicao-dfe/por-ult-nsu?AcUFAutor=ES&AeCNPJCPF=06013812000158&AeultNSU=000000000000000
 ```
 
 ### `GET /nfe/ferramentas/openssl-info`

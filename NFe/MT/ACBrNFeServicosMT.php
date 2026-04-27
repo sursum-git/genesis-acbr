@@ -58,6 +58,37 @@ $processo = "file_get_contents";
 $ffi = CarregaContents($importsPath, $dllPath);
 $handle = FFI::new("uintptr_t");
 
+function NormalizarArquivosEnvio($valor)
+{
+    if (is_array($valor)) {
+        $arquivos = [];
+
+        foreach ($valor as $item) {
+            if (!is_string($item)) {
+                continue;
+            }
+
+            $item = trim($item);
+            if ($item !== '') {
+                $arquivos[] = $item;
+            }
+        }
+
+        return $arquivos;
+    }
+
+    if (!is_string($valor)) {
+        return [];
+    }
+
+    $valor = trim($valor);
+    if ($valor === '') {
+        return [];
+    }
+
+    return [$valor];
+}
+
 try {
     $resultado = "";
     $processo = "Inicializar";
@@ -450,17 +481,27 @@ try {
     }
 
     if ($metodo == "Enviar") {
+        $arquivosEnviar = NormalizarArquivosEnvio($_POST['AeArquivoNFe'] ?? null);
+        if ($arquivosEnviar === []) {
+            echo json_encode(['mensagem' => 'Nenhum arquivo XML/INI foi informado para envio.']);
+            exit;
+        }
+
         if ($_POST['tipoArquivo'] == "xml") {
             $processo = "NFE_CarregarXml";
 
-            if (CarregarXmlNfe($handle, $ffi, $_POST['AeArquivoNFe'], $resultado) != 0) {
-                exit;
+            foreach ($arquivosEnviar as $arquivoEnviar) {
+                if (CarregarXmlNfe($handle, $ffi, $arquivoEnviar, $resultado) != 0) {
+                    exit;
+                }
             }
         } else {
             $processo = "NFE_CarregarINI";
 
-            if (CarregarINI($handle, $ffi, $_POST['AeArquivoNFe'], $resultado) != 0) {
-                exit;
+            foreach ($arquivosEnviar as $arquivoEnviar) {
+                if (CarregarINI($handle, $ffi, $arquivoEnviar, $resultado) != 0) {
+                    exit;
+                }
             }
         }
 

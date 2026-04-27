@@ -133,7 +133,7 @@
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_envio_sincrono_ini"
                  uriTemplate="/nfe/envio/enviar-sincrono-ini"
-                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+                 processor="App\State\Nfe\NfeEnvioIniProcessor">
         <extraProperties>
           <values>
             <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
@@ -161,7 +161,7 @@
                                 <value name="required"><values><value>AeArquivoNFe</value><value>ALote</value></values></value>
                                 <value name="properties">
                                   <values>
-                                    <value name="AeArquivoNFe"><values><value name="type">string</value><value name="example">/dados/ini/nfe.ini</value></values></value>
+                                    <value name="AeArquivoNFe"><values><value name="type">string</value><value name="example">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value></values></value>
                                     <value name="ALote"><values><value name="type">string</value><value name="example">1</value></values></value>
                                   </values>
                                 </value>
@@ -171,7 +171,7 @@
                         </value>
                       </values>
                     </value>
-                    <value name="example"><values><value name="payload"><values><value name="AeArquivoNFe">/dados/ini/nfe.ini</value><value name="ALote">1</value></values></value></values></value>
+                    <value name="example"><values><value name="payload"><values><value name="AeArquivoNFe">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value><value name="ALote">1</value></values></value></values></value>
                   </values>
                 </value>
               </values>
@@ -183,7 +183,7 @@
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_envio_assincrono_ini"
                  uriTemplate="/nfe/envio/enviar-assincrono-ini"
-                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+                 processor="App\State\Nfe\NfeEnvioIniProcessor">
         <extraProperties>
           <values>
             <value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value>
@@ -211,7 +211,17 @@
                                 <value name="required"><values><value>AeArquivoNFe</value><value>ALote</value></values></value>
                                 <value name="properties">
                                   <values>
-                                    <value name="AeArquivoNFe"><values><value name="type">string</value><value name="example">/dados/ini/nfe.ini</value></values></value>
+                                    <value name="AeArquivoNFe">
+                                      <values>
+                                        <value name="type">array</value>
+                                        <value name="items">
+                                          <values>
+                                            <value name="type">string</value>
+                                            <value name="example">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value>
+                                          </values>
+                                        </value>
+                                      </values>
+                                    </value>
                                     <value name="ALote"><values><value name="type">string</value><value name="example">1</value></values></value>
                                   </values>
                                 </value>
@@ -221,7 +231,7 @@
                         </value>
                       </values>
                     </value>
-                    <value name="example"><values><value name="payload"><values><value name="AeArquivoNFe">/dados/ini/nfe.ini</value><value name="ALote">1</value></values></value></values></value>
+                    <value name="example"><values><value name="payload"><values><value name="AeArquivoNFe"><values><value>[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\nidDest=2\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value><value>[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893913\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195591\ndhEmi=02/04/2026 12:39:52\ndhSaiEnt=06/04/2026 12:40:03\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=3\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value></values></value><value name="ALote">1</value></values></value></values></value>
                   </values>
                 </value>
               </values>

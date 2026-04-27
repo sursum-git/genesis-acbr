@@ -25,35 +25,29 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
             throw new AcbrLegacyApiException('Requisição HTTP atual indisponível para envio de NFe por XML.');
         }
 
-        $xml = trim((string) $request->getContent());
-        if ($xml === '') {
+        $rawBody = trim((string) $request->getContent());
+        if ($rawBody === '') {
             throw new AcbrLegacyApiException('Informe o XML completo da NF-e no corpo da requisição.');
         }
-
-        $this->assertValidXml($xml);
 
         $extraProperties = $operation->getExtraProperties();
         $script = (string) ($extraProperties['acbr_script'] ?? '');
         $method = (string) ($extraProperties['acbr_method'] ?? '');
         $presetPayload = $extraProperties['acbr_payload'] ?? [];
+        $isAsync = (string) (($presetPayload['ASincrono'] ?? '1')) === '0';
 
         if ($script === '' || $method === '') {
             throw new AcbrLegacyApiException('Operação API Platform sem metadados do legado ACBr.');
         }
 
-        $tempFile = tempnam(sys_get_temp_dir(), 'nfe-envio-');
-        if ($tempFile === false) {
-            throw new AcbrLegacyApiException('Nao foi possivel criar arquivo temporario para o XML da NF-e.');
-        }
-
-        $xmlFile = $tempFile . '.xml';
-        @unlink($tempFile);
-
-        if (file_put_contents($xmlFile, $xml) === false) {
-            throw new AcbrLegacyApiException('Nao foi possivel gravar o XML temporario da NF-e.');
-        }
+        $xmlDocuments = $this->extractXmlDocuments($rawBody, $isAsync);
+        $tempFiles = [];
 
         try {
+            foreach ($xmlDocuments as $index => $xmlDocument) {
+                $tempFiles[] = $this->writeTempXml($xmlDocument, $index + 1);
+            }
+
             $lote = trim((string) $request->query->get('ALote', '1'));
             if ($lote === '') {
                 $lote = '1';
@@ -65,13 +59,15 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
                 array_merge(
                     is_array($presetPayload) ? $presetPayload : [],
                     [
-                        'AeArquivoNFe' => $xmlFile,
+                        'AeArquivoNFe' => count($tempFiles) === 1 ? $tempFiles[0] : $tempFiles,
                         'ALote' => $lote,
                     ]
                 )
             );
         } finally {
-            @unlink($xmlFile);
+            foreach ($tempFiles as $tempFile) {
+                @unlink($tempFile);
+            }
         }
 
         return new NfeEnvioOutput(
@@ -80,15 +76,74 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
         );
     }
 
-    private function assertValidXml(string $xml): void
+    /**
+     * @return list<string>
+     */
+    private function extractXmlDocuments(string $rawBody, bool $allowMultiple): array
+    {
+        $rawBody = trim($rawBody);
+        if ($rawBody === '') {
+            throw new AcbrLegacyApiException('Informe o XML completo da NF-e no corpo da requisição.');
+        }
+
+        if ($this->isValidXml($rawBody)) {
+            return [$rawBody];
+        }
+
+        if (!$allowMultiple) {
+            throw new AcbrLegacyApiException('O corpo enviado nao contem um XML valido de NF-e.');
+        }
+
+        $chunks = preg_split('/(?=<\?xml\b)/i', $rawBody, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($chunks) || count($chunks) < 2) {
+            throw new AcbrLegacyApiException('Para envio assíncrono com múltiplos arquivos, envie XMLs concatenados no corpo, cada um com sua declaração XML.');
+        }
+
+        $documents = [];
+        foreach ($chunks as $chunk) {
+            $chunk = trim($chunk);
+            if ($chunk === '') {
+                continue;
+            }
+
+            if (!$this->isValidXml($chunk)) {
+                throw new AcbrLegacyApiException('Um dos XMLs enviados no corpo da requisição nao e valido.');
+            }
+
+            $documents[] = $chunk;
+        }
+
+        if ($documents === []) {
+            throw new AcbrLegacyApiException('Nenhum XML valido foi encontrado no corpo da requisição.');
+        }
+
+        return $documents;
+    }
+
+    private function writeTempXml(string $xml, int $index): string
+    {
+        $tempFile = tempnam(sys_get_temp_dir(), 'nfe-envio-');
+        if ($tempFile === false) {
+            throw new AcbrLegacyApiException('Nao foi possivel criar arquivo temporario para o XML da NF-e.');
+        }
+
+        $xmlFile = $tempFile . '-' . $index . '.xml';
+        @unlink($tempFile);
+
+        if (file_put_contents($xmlFile, $xml) === false) {
+            throw new AcbrLegacyApiException('Nao foi possivel gravar o XML temporario da NF-e.');
+        }
+
+        return $xmlFile;
+    }
+
+    private function isValidXml(string $xml): bool
     {
         $internalErrors = libxml_use_internal_errors(true);
 
         try {
             $document = new DOMDocument();
-            if (!$document->loadXML($xml, LIBXML_NONET | LIBXML_NOCDATA | LIBXML_NOBLANKS)) {
-                throw new AcbrLegacyApiException('O corpo enviado nao contem um XML valido de NF-e.');
-            }
+            return $document->loadXML($xml, LIBXML_NONET | LIBXML_NOCDATA | LIBXML_NOBLANKS);
         } finally {
             libxml_clear_errors();
             libxml_use_internal_errors($internalErrors);

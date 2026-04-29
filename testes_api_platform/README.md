@@ -17,6 +17,8 @@ Padroes de chamada:
 - Endpoints legados `POST` de NFe/NFSe: payload no formato `{"payload": {...}}`.
 - Excecao em NFe consultas: `POST /nfe/consultas/consultar-com-chave-xml` recebe XML bruto no corpo.
 - Esse endpoint deve usar o XML completo da NF-e, nao um XML resumido.
+- `POST /nfe/envio/enviar-assincrono-xml` aceita 1 XML completo ou multiplos XMLs concatenados no mesmo corpo.
+- Quando voce envia apenas 1 XML nesse endpoint, a API faz fallback automatico para envio sincrono para evitar a rejeicao `452`.
 - Endpoints `POST` de CEP: campos diretos no JSON, sem wrapper `payload`.
 - Header recomendado para `POST`: `Content-Type: application/ld+json`
 
@@ -64,6 +66,20 @@ curl -sS -X POST \
   'http://157.173.110.195:8089/index.php/nfe/consultas/consultar-com-chave-xml' \
   -H 'Content-Type: application/xml' \
   --data-binary @testes_api_platform/fixtures/nfe_consulta_exemplo.xml
+```
+
+```bash
+curl -sS -X POST \
+  'http://157.173.110.195:8089/index.php/nfe/envio/enviar-assincrono-xml?ALote=1' \
+  -H 'Content-Type: application/xml' \
+  --data-binary @testes_api_platform/fixtures/nfe_consulta_exemplo.xml
+```
+
+```bash
+curl -sS -X POST \
+  'http://157.173.110.195:8089/index.php/nfe/envio/enviar-assincrono-xml?ALote=1' \
+  -H 'Content-Type: application/xml' \
+  --data-binary @testes_api_platform/fixtures/nfe_envio_assincrono_exemplo.xml
 ```
 
 ```bash

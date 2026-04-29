@@ -41,6 +41,11 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
         }
 
         $xmlDocuments = $this->extractXmlDocuments($rawBody, $isAsync);
+        $effectivePayload = is_array($presetPayload) ? $presetPayload : [];
+        if ($isAsync && count($xmlDocuments) === 1) {
+            // SEFAZ rejeita lote assincrono com apenas uma NF-e; faz fallback automatico para envio sincrono.
+            $effectivePayload['ASincrono'] = '1';
+        }
         $tempFiles = [];
 
         try {
@@ -57,7 +62,7 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
                 $script,
                 $method,
                 array_merge(
-                    is_array($presetPayload) ? $presetPayload : [],
+                    $effectivePayload,
                     [
                         'AeArquivoNFe' => count($tempFiles) === 1 ? $tempFiles[0] : $tempFiles,
                         'ALote' => $lote,

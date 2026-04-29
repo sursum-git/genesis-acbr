@@ -57,9 +57,12 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
         if (in_array($path, [
             '/nfe/consultas/consultar-com-chave-xml',
             '/nfe/envio/enviar-sincrono-xml',
-            '/nfe/envio/enviar-assincrono-xml',
         ], true)) {
             $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_consulta_exemplo.xml', 'nfeProc');
+        }
+
+        if ($path === '/nfe/envio/enviar-assincrono-xml') {
+            $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_envio_assincrono_exemplo.xml', 'nfeProc');
         }
 
         if ($this->isLegacyPath($path)) {

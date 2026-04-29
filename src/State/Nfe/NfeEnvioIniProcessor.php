@@ -31,6 +31,11 @@ final class NfeEnvioIniProcessor implements ProcessorInterface
         }
 
         $contents = $this->normalizeIniContents($data->payload['AeArquivoNFe'] ?? null);
+        $effectivePayload = is_array($presetPayload) ? $presetPayload : [];
+        if ((string) (($effectivePayload['ASincrono'] ?? '1')) === '0' && count($contents) === 1) {
+            // SEFAZ rejeita lote assincrono com apenas uma NF-e; faz fallback automatico para envio sincrono.
+            $effectivePayload['ASincrono'] = '1';
+        }
         $payload = $data->payload;
         unset($payload['AeArquivoNFe']);
 
@@ -48,7 +53,7 @@ final class NfeEnvioIniProcessor implements ProcessorInterface
                 $script,
                 $method,
                 array_merge(
-                    is_array($presetPayload) ? $presetPayload : [],
+                    $effectivePayload,
                     $payload
                 )
             );

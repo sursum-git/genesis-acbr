@@ -127,7 +127,16 @@
               </schema>
             </parameter>
           </parameters>
-          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+          <extensionProperties>
+            <values>
+              <value name="x-body-note">Aceita 1 XML completo ou multiplos XMLs concatenados no mesmo corpo. Se vier somente 1 XML, o endpoint faz fallback automatico para envio sincrono para evitar a rejeicao 452 da SEFAZ.</value>
+              <value name="x-apiplatform-tag">
+                <values>
+                  <value>nfe</value>
+                </values>
+              </value>
+            </values>
+          </extensionProperties>
         </openapi>
       </operation>
       <operation class="ApiPlatform\Metadata\Post"

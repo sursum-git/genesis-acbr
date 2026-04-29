@@ -17,7 +17,7 @@
         <tpImp>1</tpImp>
         <tpEmis>1</tpEmis>
         <cDV>2</cDV>
-        <tpAmb>1</tpAmb>
+        <tpAmb>2</tpAmb>
         <finNFe>1</finNFe>
         <indFinal>0</indFinal>
         <indPres>9</indPres>
@@ -348,7 +348,7 @@
   </NFe>
   <protNFe versao="4.00">
     <infProt>
-      <tpAmb>1</tpAmb>
+      <tpAmb>2</tpAmb>
       <verAplic>SVRS2604010855DR</verAplic>
       <chNFe>32260406013812000158550030001955901308939122</chNFe>
       <dhRecbto>2026-04-02T12:40:04-03:00</dhRecbto>

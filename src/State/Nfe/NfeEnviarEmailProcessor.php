@@ -31,7 +31,7 @@ final class NfeEnviarEmailProcessor implements ProcessorInterface
         }
 
         $payload = $data->payload;
-        $this->applyInlineEmailConfigIfPresent($script, $payload);
+        $this->applyInlineEmailConfig($script, $payload);
 
         $xmlSource = $payload['AeArquivoXmlNFe'] ?? null;
         $xmlContent = $this->resolveXmlContent($xmlSource);
@@ -91,7 +91,7 @@ final class NfeEnviarEmailProcessor implements ProcessorInterface
         return str_starts_with($trimmed, '<?xml') || str_starts_with($trimmed, '<nfeProc') || str_starts_with($trimmed, '<NFe');
     }
 
-    private function applyInlineEmailConfigIfPresent(string $script, array $payload): void
+    private function applyInlineEmailConfig(string $script, array $payload): void
     {
         $configKeys = [
             'emailNome',
@@ -106,13 +106,11 @@ final class NfeEnviarEmailProcessor implements ProcessorInterface
 
         $configPayload = [];
         foreach ($configKeys as $key) {
-            if (array_key_exists($key, $payload)) {
-                $configPayload[$key] = (string) $payload[$key];
+            if (!array_key_exists($key, $payload) || trim((string) $payload[$key]) === '') {
+                throw new AcbrLegacyApiException(sprintf('Informe %s no payload para o envio de e-mail da NFe.', $key));
             }
-        }
 
-        if ($configPayload === []) {
-            return;
+            $configPayload[$key] = (string) $payload[$key];
         }
 
         $this->executor->execute($script, 'salvarConfiguracoesEmail', $configPayload);

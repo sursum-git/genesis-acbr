@@ -173,27 +173,6 @@ Exemplo:
 
 - Sem payload.
 
-### `GET /nfe/configuracoes/email`
-
-- Sem payload.
-
-### `POST /nfe/configuracoes/email`
-
-Body direto na raiz:
-
-```json
-{
-  "emailNome": "Teste SMTP",
-  "emailConta": "teste@example.com",
-  "emailServidor": "smtp.gmail.com",
-  "emailPorta": "587",
-  "emailSSL": "0",
-  "emailTLS": "1",
-  "emailUsuario": "teste@example.com",
-  "emailSenha": "segredo"
-}
-```
-
 ### `POST /nfe/envio/enviar-email`
 
 Campos em `payload`:
@@ -206,7 +185,7 @@ Campos em `payload`:
 - `AeCC`
 - `AeAnexos`
 - `AeMensagem`
-- `emailNome`, `emailConta`, `emailServidor`, `emailPorta`, `emailSSL`, `emailTLS`, `emailUsuario`, `emailSenha`: opcionais; se enviados, atualizam a configuracao de e-mail da ACBr antes do envio
+- `emailNome`, `emailConta`, `emailServidor`, `emailPorta`, `emailSSL`, `emailTLS`, `emailUsuario`, `emailSenha`: obrigatórios; a API aplica a configuração de e-mail da ACBr imediatamente antes do envio
 
 Payload:
 

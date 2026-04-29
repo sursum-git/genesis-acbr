@@ -78,8 +78,6 @@ Exemplos de operacoes:
 - `GET /nfe/distribuicao-dfe/por-ult-nsu`
 - `POST /nfe/envio/enviar-sincrono-xml`
 - `POST /nfe/envio/enviar-assincrono-ini`
-- `GET /nfe/configuracoes/email`
-- `POST /nfe/configuracoes/email`
 - `POST /nfe/envio/enviar-email`
 - `POST /nfe/eventos/cancelar`
 - `POST /nfe/inutilizacao/inutilizar`

@@ -161,6 +161,26 @@ window.onload = function() {
             '/nfe/envio/enviar-assincrono-xml',
         ];
 
+        const textareaWasEdited = function (textarea) {
+            return textarea.dataset.xmlUserEdited === '1';
+        };
+
+        const markTextareaEditable = function (textarea) {
+            if (textarea.dataset.xmlEditListenerAttached === '1') {
+                return;
+            }
+
+            textarea.addEventListener('input', function () {
+                textarea.dataset.xmlUserEdited = '1';
+            });
+            textarea.dataset.xmlEditListenerAttached = '1';
+        };
+
+        const resetTextareaState = function (textarea) {
+            delete textarea.dataset.xmlUserEdited;
+            delete textarea.dataset.xmlExampleInitialized;
+        };
+
         const patchBlock = function (opBlock) {
             const method = opBlock.querySelector('.opblock-summary-method');
             const path = opBlock.querySelector('.opblock-summary-path');
@@ -196,9 +216,19 @@ window.onload = function() {
             }
 
             const textarea = opBlock.querySelector('textarea.body-param__text');
-            if (textarea && textarea.value !== xmlExample) {
+            if (textarea) {
+                markTextareaEditable(textarea);
+            }
+
+            if (
+                textarea &&
+                textarea.dataset.xmlExampleInitialized !== '1' &&
+                !textareaWasEdited(textarea) &&
+                textarea.value !== xmlExample
+            ) {
                 textarea.value = xmlExample;
                 reactTriggerChange(textarea);
+                textarea.dataset.xmlExampleInitialized = '1';
             }
         };
 
@@ -214,8 +244,31 @@ window.onload = function() {
 
         document.addEventListener('change', function (event) {
             if (event.target instanceof HTMLSelectElement && event.target.classList.contains('body-param-content-type')) {
+                const opBlock = event.target.closest('.opblock');
+                const textarea = opBlock ? opBlock.querySelector('textarea.body-param__text') : null;
+                if (textarea) {
+                    resetTextareaState(textarea);
+                }
                 setTimeout(scan, 0);
             }
+        });
+
+        document.addEventListener('click', function (event) {
+            if (!(event.target instanceof HTMLElement)) {
+                return;
+            }
+
+            if (!event.target.classList.contains('try-out__btn')) {
+                return;
+            }
+
+            const opBlock = event.target.closest('.opblock');
+            const textarea = opBlock ? opBlock.querySelector('textarea.body-param__text') : null;
+            if (textarea) {
+                resetTextareaState(textarea);
+            }
+
+            setTimeout(scan, 0);
         });
     }
 

@@ -173,6 +173,66 @@ Exemplo:
 
 - Sem payload.
 
+### `GET /nfe/configuracoes/email`
+
+- Sem payload.
+
+### `POST /nfe/configuracoes/email`
+
+Body direto na raiz:
+
+```json
+{
+  "emailNome": "Teste SMTP",
+  "emailConta": "teste@example.com",
+  "emailServidor": "smtp.gmail.com",
+  "emailPorta": "587",
+  "emailSSL": "0",
+  "emailTLS": "1",
+  "emailUsuario": "teste@example.com",
+  "emailSenha": "segredo"
+}
+```
+
+### `POST /nfe/envio/enviar-email`
+
+Campos em `payload`:
+
+- `AeArquivoXmlNFe`: caminho interno do container ou XML bruto completo
+- `AePara`
+- `AeChaveNFe`
+- `AEnviaPDF`: `0` ou `1`
+- `AeAssunto`
+- `AeCC`
+- `AeAnexos`
+- `AeMensagem`
+- `emailNome`, `emailConta`, `emailServidor`, `emailPorta`, `emailSSL`, `emailTLS`, `emailUsuario`, `emailSenha`: opcionais; se enviados, atualizam a configuracao de e-mail da ACBr antes do envio
+
+Payload:
+
+```json
+{
+  "payload": {
+    "AeArquivoXmlNFe": "/var/www/html/NFe/arqs/06013812000158/NFe/202604/NFe/32260406013812000158550030001955901308939122-nfe.xml",
+    "AePara": "destinatario@exemplo.com",
+    "AeChaveNFe": "32260406013812000158550030001955901308939122",
+    "AEnviaPDF": 0,
+    "AeAssunto": "Envio de NF-e",
+    "AeCC": "",
+    "AeAnexos": "",
+    "AeMensagem": "Segue a NF-e em anexo.",
+    "emailNome": "Teste SMTP",
+    "emailConta": "teste@example.com",
+    "emailServidor": "smtp.gmail.com",
+    "emailPorta": "587",
+    "emailSSL": "0",
+    "emailTLS": "1",
+    "emailUsuario": "teste@example.com",
+    "emailSenha": "segredo"
+  }
+}
+```
+
 ### Outros POST de NFe
 
 Os demais endpoints de NFe tambem seguem o padrao:

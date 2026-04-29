@@ -88,6 +88,52 @@ Accept: application/ld+json
   </NFe>
 </nfeProc>
 
+### NFe - Configuracoes de Email
+GET {{baseUrl}}/nfe/configuracoes/email
+Accept: application/ld+json
+
+### NFe - Salvar configuracoes de Email
+POST {{baseUrl}}/nfe/configuracoes/email
+Accept: application/ld+json
+Content-Type: application/ld+json
+
+{
+  "emailNome": "Teste SMTP",
+  "emailConta": "teste@example.com",
+  "emailServidor": "smtp.gmail.com",
+  "emailPorta": "587",
+  "emailSSL": "0",
+  "emailTLS": "1",
+  "emailUsuario": "teste@example.com",
+  "emailSenha": "segredo"
+}
+
+### NFe - Enviar Email
+POST {{baseUrl}}/nfe/envio/enviar-email
+Accept: application/ld+json
+Content-Type: application/ld+json
+
+{
+  "payload": {
+    "AeArquivoXmlNFe": "/var/www/html/NFe/arqs/06013812000158/NFe/202604/NFe/32260406013812000158550030001955901308939122-nfe.xml",
+    "AePara": "pedroparreiras9@gmail.com",
+    "AeChaveNFe": "{{chaveNfe}}",
+    "AEnviaPDF": 0,
+    "AeAssunto": "Envio de NF-e",
+    "AeCC": "",
+    "AeAnexos": "",
+    "AeMensagem": "Segue a NF-e em anexo.",
+    "emailNome": "Teste SMTP",
+    "emailConta": "teste@example.com",
+    "emailServidor": "smtp.gmail.com",
+    "emailPorta": "587",
+    "emailSSL": "0",
+    "emailTLS": "1",
+    "emailUsuario": "teste@example.com",
+    "emailSenha": "segredo"
+  }
+}
+
 ### NFe - Distribuicao DFe por chave
 GET {{baseUrl}}/nfe/distribuicao-dfe/por-chave?AcUFAutor={{uf}}&AeCNPJCPF={{cnpj}}&AechNFe={{chaveNfe}}
 Accept: application/ld+json

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<serializer xmlns="http://symfony.com/schema/dic/serializer-mapping"
+            xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+            xsi:schemaLocation="http://symfony.com/schema/dic/serializer-mapping https://symfony.com/schema/dic/serializer-mapping/serializer-mapping-1.0.xsd">
+    <class name="App\ApiResource\Nfe\NfeEmailConfiguracaoResource">
+        <attribute name="emailNome"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="emailConta"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="emailServidor"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="emailPorta"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="emailSSL"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="emailTLS"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="emailUsuario"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="emailSenha"><group>nfe_email_config:read</group><group>nfe_email_config:write</group></attribute>
+        <attribute name="mensagem"><group>nfe_email_config:read</group></attribute>
+    </class>
+</serializer>

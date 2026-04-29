@@ -457,7 +457,7 @@
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_enviar_email"
                  uriTemplate="/nfe/envio/enviar-email"
-                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+                 processor="App\State\Nfe\NfeEnviarEmailProcessor">
         <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">EnviarEmail</value></values></extraProperties>
         <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
         <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
@@ -479,7 +479,7 @@
                                 <value name="required"><values><value>AeArquivoXmlNFe</value><value>AePara</value><value>AeChaveNFe</value><value>AEnviaPDF</value></values></value>
                                 <value name="properties">
                                   <values>
-                                    <value name="AeArquivoXmlNFe"><values><value name="type">string</value><value name="example">/dados/xml/nfe.xml</value></values></value>
+                                    <value name="AeArquivoXmlNFe"><values><value name="type">string</value><value name="example">/var/www/html/testes_api_platform/fixtures/nfe_consulta_exemplo.xml</value></values></value>
                                     <value name="AePara"><values><value name="type">string</value><value name="example">destinatario@empresa.com</value></values></value>
                                     <value name="AeChaveNFe"><values><value name="type">string</value><value name="example">32260406013812000158550030001955901308939122</value></values></value>
                                     <value name="AEnviaPDF"><values><value name="type">string</value><value name="example">1</value></values></value>
@@ -499,7 +499,7 @@
                       <values>
                         <value name="payload">
                           <values>
-                            <value name="AeArquivoXmlNFe">/dados/xml/nfe.xml</value>
+                            <value name="AeArquivoXmlNFe">/var/www/html/testes_api_platform/fixtures/nfe_consulta_exemplo.xml</value>
                             <value name="AePara">destinatario@empresa.com</value>
                             <value name="AeChaveNFe">32260406013812000158550030001955901308939122</value>
                             <value name="AEnviaPDF">1</value>
@@ -516,7 +516,12 @@
               </values>
             </content>
           </requestBody>
-          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+          <extensionProperties>
+            <values>
+              <value name="x-body-note">AeArquivoXmlNFe aceita o caminho do arquivo XML legivel neste ambiente ou o XML bruto completo. A API sempre grava um arquivo temporario antes de chamar a ACBr.</value>
+              <value name="x-apiplatform-tag"><values><value>nfe</value></values></value>
+            </values>
+          </extensionProperties>
         </openapi>
       </operation>
     </operations>

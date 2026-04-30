@@ -88,6 +88,123 @@ Accept: application/ld+json
   </NFe>
 </nfeProc>
 
+### NFe - Enviar sincrono INI
+POST {{baseUrl}}/nfe/envio/enviar-sincrono-ini?ALote=1
+Content-Type: text/plain
+Accept: application/ld+json
+
+[NFE]
+Versao=4.00
+
+[Identificacao]
+cUF=32
+cNF=30893912
+natOp=VENDA DE MERCADORIA ADQUIRIDA
+mod=55
+serie=3
+nNF=195590
+dhEmi=02/04/2026 12:39:51
+dhSaiEnt=06/04/2026 12:40:02
+tpNF=1
+idDest=2
+cMunFG=3205200
+tpImp=1
+tpEmis=1
+cDV=2
+tpAmb=2
+finNFe=1
+indFinal=0
+indPres=9
+procEmi=0
+verProc=5.0
+
+### NFe - Enviar assincrono INI com 1 documento
+### O endpoint aceita 1 INI e faz fallback automatico para envio sincrono.
+POST {{baseUrl}}/nfe/envio/enviar-assincrono-ini?ALote=1
+Content-Type: text/plain
+Accept: application/ld+json
+
+[NFE]
+Versao=4.00
+
+[Identificacao]
+cUF=32
+cNF=30893912
+natOp=VENDA DE MERCADORIA ADQUIRIDA
+mod=55
+serie=3
+nNF=195590
+dhEmi=02/04/2026 12:39:51
+dhSaiEnt=06/04/2026 12:40:02
+tpNF=1
+idDest=2
+cMunFG=3205200
+tpImp=1
+tpEmis=1
+cDV=2
+tpAmb=2
+finNFe=1
+indFinal=0
+indPres=9
+procEmi=0
+verProc=5.0
+
+### NFe - Enviar assincrono INI com 2 documentos concatenados
+### Envie um INI completo seguido do proximo INI completo no mesmo corpo, cada um iniciando com [NFE].
+POST {{baseUrl}}/nfe/envio/enviar-assincrono-ini?ALote=1
+Content-Type: text/plain
+Accept: application/ld+json
+
+[NFE]
+Versao=4.00
+
+[Identificacao]
+cUF=32
+cNF=30893912
+natOp=VENDA DE MERCADORIA ADQUIRIDA
+mod=55
+serie=3
+nNF=195590
+dhEmi=02/04/2026 12:39:51
+dhSaiEnt=06/04/2026 12:40:02
+tpNF=1
+idDest=2
+cMunFG=3205200
+tpImp=1
+tpEmis=1
+cDV=2
+tpAmb=2
+finNFe=1
+indFinal=0
+indPres=9
+procEmi=0
+verProc=5.0
+
+[NFE]
+Versao=4.00
+
+[Identificacao]
+cUF=32
+cNF=30893913
+natOp=VENDA DE MERCADORIA ADQUIRIDA
+mod=55
+serie=3
+nNF=195591
+dhEmi=02/04/2026 12:39:52
+dhSaiEnt=06/04/2026 12:40:03
+tpNF=1
+idDest=2
+cMunFG=3205200
+tpImp=1
+tpEmis=1
+cDV=3
+tpAmb=2
+finNFe=1
+indFinal=0
+indPres=9
+procEmi=0
+verProc=5.0
+
 ### NFe - Enviar Email
 POST {{baseUrl}}/nfe/envio/enviar-email
 Accept: application/ld+json

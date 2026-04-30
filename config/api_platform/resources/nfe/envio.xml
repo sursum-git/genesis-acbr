@@ -7,7 +7,7 @@
             input="App\Dto\Nfe\NfeEnvioInput"
             output="App\Dto\Nfe\NfeEnvioOutput">
     <formats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></formats>
-    <inputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></inputFormats>
+    <inputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format><format name="plain">text/plain</format></inputFormats>
     <outputFormats><format name="jsonld">application/ld+json</format><format name="xml">application/xml</format></outputFormats>
     <operations>
       <operation class="ApiPlatform\Metadata\Post"
@@ -142,6 +142,8 @@
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_envio_sincrono_ini"
                  uriTemplate="/nfe/envio/enviar-sincrono-ini"
+                 input="false"
+                 deserialize="false"
                  processor="App\State\Nfe\NfeEnvioIniProcessor">
         <extraProperties>
           <values>
@@ -151,47 +153,42 @@
           </values>
         </extraProperties>
         <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
-        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
         <openapi>
           <requestBody required="true">
             <content>
               <values>
-                <value name="application/ld+json">
+                <value name="text/plain">
                   <values>
                     <value name="schema">
                       <values>
-                        <value name="type">object</value>
-                        <value name="required"><values><value>payload</value></values></value>
-                        <value name="properties">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="type">object</value>
-                                <value name="required"><values><value>AeArquivoNFe</value><value>ALote</value></values></value>
-                                <value name="properties">
-                                  <values>
-                                    <value name="AeArquivoNFe"><values><value name="type">string</value><value name="example">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value></values></value>
-                                    <value name="ALote"><values><value name="type">string</value><value name="example">1</value></values></value>
-                                  </values>
-                                </value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
+                        <value name="type">string</value>
                       </values>
                     </value>
-                    <value name="example"><values><value name="payload"><values><value name="AeArquivoNFe">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value><value name="ALote">1</value></values></value></values></value>
+                    <value name="example">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value>
                   </values>
                 </value>
               </values>
             </content>
           </requestBody>
-          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+          <parameters>
+            <parameter name="ALote" in="query" description="Lote opcional para envio. Se omitido, usa 1." required="false">
+              <schema>
+                <values>
+                  <value name="type">string</value>
+                  <value name="default">1</value>
+                  <value name="example">1</value>
+                </values>
+              </schema>
+            </parameter>
+          </parameters>
+          <extensionProperties><values><value name="x-body-note">Envie o conteudo completo de um arquivo INI da NF-e no corpo da requisição.</value><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
         </openapi>
       </operation>
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_envio_assincrono_ini"
                  uriTemplate="/nfe/envio/enviar-assincrono-ini"
+                 input="false"
+                 deserialize="false"
                  processor="App\State\Nfe\NfeEnvioIniProcessor">
         <extraProperties>
           <values>
@@ -201,52 +198,35 @@
           </values>
         </extraProperties>
         <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
-        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
         <openapi>
           <requestBody required="true">
             <content>
               <values>
-                <value name="application/ld+json">
+                <value name="text/plain">
                   <values>
                     <value name="schema">
                       <values>
-                        <value name="type">object</value>
-                        <value name="required"><values><value>payload</value></values></value>
-                        <value name="properties">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="type">object</value>
-                                <value name="required"><values><value>AeArquivoNFe</value><value>ALote</value></values></value>
-                                <value name="properties">
-                                  <values>
-                                    <value name="AeArquivoNFe">
-                                      <values>
-                                        <value name="type">array</value>
-                                        <value name="items">
-                                          <values>
-                                            <value name="type">string</value>
-                                            <value name="example">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value>
-                                          </values>
-                                        </value>
-                                      </values>
-                                    </value>
-                                    <value name="ALote"><values><value name="type">string</value><value name="example">1</value></values></value>
-                                  </values>
-                                </value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
+                        <value name="type">string</value>
                       </values>
                     </value>
-                    <value name="example"><values><value name="payload"><values><value name="AeArquivoNFe"><values><value>[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\nidDest=2\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value><value>[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893913\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195591\ndhEmi=02/04/2026 12:39:52\ndhSaiEnt=06/04/2026 12:40:03\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=3\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value></values></value><value name="ALote">1</value></values></value></values></value>
+                    <value name="example">[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893912\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195590\ndhEmi=02/04/2026 12:39:51\ndhSaiEnt=06/04/2026 12:40:02\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=2\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0\n\n[NFE]\nVersao=4.00\n\n[Identificacao]\ncUF=32\ncNF=30893913\nnatOp=VENDA DE MERCADORIA ADQUIRIDA\nmod=55\nserie=3\nnNF=195591\ndhEmi=02/04/2026 12:39:52\ndhSaiEnt=06/04/2026 12:40:03\ntpNF=1\nidDest=2\ncMunFG=3205200\ntpImp=1\ntpEmis=1\ncDV=3\ntpAmb=2\nfinNFe=1\nindFinal=0\nindPres=9\nprocEmi=0\nverProc=5.0</value>
                   </values>
                 </value>
               </values>
             </content>
           </requestBody>
-          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+          <parameters>
+            <parameter name="ALote" in="query" description="Lote opcional para envio. Se omitido, usa 1." required="false">
+              <schema>
+                <values>
+                  <value name="type">string</value>
+                  <value name="default">1</value>
+                  <value name="example">1</value>
+                </values>
+              </schema>
+            </parameter>
+          </parameters>
+          <extensionProperties><values><value name="x-body-note">Aceita 1 INI completo ou multiplos INIs concatenados no mesmo corpo, cada um iniciando com [NFE]. Se vier somente 1 INI, o endpoint faz fallback automatico para envio sincrono.</value><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
         </openapi>
       </operation>
       <operation class="ApiPlatform\Metadata\Post"

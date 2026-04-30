@@ -105,6 +105,105 @@ Exemplo:
 </nfeProc>
 ```
 
+### `POST /nfe/envio/enviar-sincrono-ini`
+
+- O corpo deve conter o conteudo completo de um arquivo INI da NF-e.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+- `ALote` pode ser enviado por query string e, se omitido, assume `1`.
+
+Exemplo:
+
+```ini
+[NFE]
+Versao=4.00
+
+[Identificacao]
+cUF=32
+cNF=30893912
+natOp=VENDA DE MERCADORIA ADQUIRIDA
+mod=55
+serie=3
+nNF=195590
+dhEmi=02/04/2026 12:39:51
+dhSaiEnt=06/04/2026 12:40:02
+tpNF=1
+idDest=2
+cMunFG=3205200
+tpImp=1
+tpEmis=1
+cDV=2
+tpAmb=2
+finNFe=1
+indFinal=0
+indPres=9
+procEmi=0
+verProc=5.0
+```
+
+### `POST /nfe/envio/enviar-assincrono-ini`
+
+- O corpo deve conter 1 INI completo ou varios INIs concatenados.
+- Cada arquivo deve comecar com a secao `[NFE]`.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+- `ALote` pode ser enviado por query string e, se omitido, assume `1`.
+- Se vier apenas 1 INI, o endpoint faz fallback automatico para envio sincrono.
+
+Exemplo com 2 INIs:
+
+```ini
+[NFE]
+Versao=4.00
+
+[Identificacao]
+cUF=32
+cNF=30893912
+natOp=VENDA DE MERCADORIA ADQUIRIDA
+mod=55
+serie=3
+nNF=195590
+dhEmi=02/04/2026 12:39:51
+dhSaiEnt=06/04/2026 12:40:02
+tpNF=1
+idDest=2
+cMunFG=3205200
+tpImp=1
+tpEmis=1
+cDV=2
+tpAmb=2
+finNFe=1
+indFinal=0
+indPres=9
+procEmi=0
+verProc=5.0
+
+[NFE]
+Versao=4.00
+
+[Identificacao]
+cUF=32
+cNF=30893913
+natOp=VENDA DE MERCADORIA ADQUIRIDA
+mod=55
+serie=3
+nNF=195591
+dhEmi=02/04/2026 12:39:52
+dhSaiEnt=06/04/2026 12:40:03
+tpNF=1
+idDest=2
+cMunFG=3205200
+tpImp=1
+tpEmis=1
+cDV=3
+tpAmb=2
+finNFe=1
+indFinal=0
+indPres=9
+procEmi=0
+verProc=5.0
+```
+
 ### `GET /nfe/consultas/consultar-recibo`
 
 Parametros de query:

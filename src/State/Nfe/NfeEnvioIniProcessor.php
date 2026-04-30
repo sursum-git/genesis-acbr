@@ -4,41 +4,47 @@ namespace App\State\Nfe;
 
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
-use App\Dto\Legacy\AbstractLegacyOperationInput;
 use App\Dto\Nfe\NfeEnvioOutput;
 use App\Http\Exception\AcbrLegacyApiException;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 final class NfeEnvioIniProcessor implements ProcessorInterface
 {
-    public function __construct(private readonly AcbrLegacyScriptExecutor $executor)
-    {
+    public function __construct(
+        private readonly AcbrLegacyScriptExecutor $executor,
+        private readonly RequestStack $requestStack,
+    ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): NfeEnvioOutput
     {
-        if (!$data instanceof AbstractLegacyOperationInput || !is_array($data->payload)) {
-            throw new AcbrLegacyApiException('Payload inválido para envio de NFe por INI.');
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request === null) {
+            throw new AcbrLegacyApiException('Requisição HTTP atual indisponível para envio de NFe por INI.');
+        }
+
+        $rawBody = trim((string) $request->getContent());
+        if ($rawBody === '') {
+            throw new AcbrLegacyApiException('Informe o conteudo completo do arquivo INI no corpo da requisição.');
         }
 
         $extraProperties = $operation->getExtraProperties();
         $script = (string) ($extraProperties['acbr_script'] ?? '');
         $method = (string) ($extraProperties['acbr_method'] ?? '');
         $presetPayload = $extraProperties['acbr_payload'] ?? [];
+        $isAsync = (string) (($presetPayload['ASincrono'] ?? '1')) === '0';
 
         if ($script === '' || $method === '') {
             throw new AcbrLegacyApiException('Operação API Platform sem metadados do legado ACBr.');
         }
 
-        $contents = $this->normalizeIniContents($data->payload['AeArquivoNFe'] ?? null);
+        $contents = $this->extractIniDocuments($rawBody, $isAsync);
         $effectivePayload = is_array($presetPayload) ? $presetPayload : [];
-        if ((string) (($effectivePayload['ASincrono'] ?? '1')) === '0' && count($contents) === 1) {
+        if ($isAsync && count($contents) === 1) {
             // SEFAZ rejeita lote assincrono com apenas uma NF-e; faz fallback automatico para envio sincrono.
             $effectivePayload['ASincrono'] = '1';
         }
-        $payload = $data->payload;
-        unset($payload['AeArquivoNFe']);
-
         $tempFiles = [];
 
         try {
@@ -46,15 +52,17 @@ final class NfeEnvioIniProcessor implements ProcessorInterface
                 $tempFiles[] = $this->writeTempIni($content, $index + 1);
             }
 
-            $payload['AeArquivoNFe'] = count($tempFiles) === 1 ? $tempFiles[0] : $tempFiles;
-            $payload['ALote'] = $this->normalizeLote($payload['ALote'] ?? null);
+            $lote = $this->normalizeLote($request->query->get('ALote', '1'));
 
             $resultado = $this->executor->execute(
                 $script,
                 $method,
                 array_merge(
                     $effectivePayload,
-                    $payload
+                    [
+                        'AeArquivoNFe' => count($tempFiles) === 1 ? $tempFiles[0] : $tempFiles,
+                        'ALote' => $lote,
+                    ]
                 )
             );
         } finally {
@@ -72,37 +80,39 @@ final class NfeEnvioIniProcessor implements ProcessorInterface
     /**
      * @return list<string>
      */
-    private function normalizeIniContents(mixed $rawContents): array
+    private function extractIniDocuments(string $rawBody, bool $allowMultiple): array
     {
-        if (is_string($rawContents)) {
-            $content = trim($rawContents);
-
-            if ($content === '') {
-                throw new AcbrLegacyApiException('Informe o conteúdo do arquivo INI em payload.AeArquivoNFe.');
-            }
-
-            return [$content];
+        $rawBody = trim($rawBody);
+        if ($rawBody === '') {
+            throw new AcbrLegacyApiException('Informe o conteudo completo do arquivo INI no corpo da requisição.');
         }
 
-        if (!is_array($rawContents)) {
-            throw new AcbrLegacyApiException('payload.AeArquivoNFe deve ser uma string com o conteúdo INI ou uma lista de conteúdos.');
+        if (!$allowMultiple || substr_count($rawBody, '[NFE]') <= 1) {
+            $this->assertIniContent($rawBody);
+
+            return [$rawBody];
+        }
+
+        $chunks = preg_split('/(?=^\[NFE\]\s*$)/mi', $rawBody, -1, PREG_SPLIT_NO_EMPTY);
+        if (!is_array($chunks) || count($chunks) < 2) {
+            $this->assertIniContent($rawBody);
+
+            return [$rawBody];
         }
 
         $contents = [];
-
-        foreach ($rawContents as $content) {
-            if (!is_string($content)) {
+        foreach ($chunks as $content) {
+            $content = trim($content);
+            if ($content === '') {
                 continue;
             }
 
-            $content = trim($content);
-            if ($content !== '') {
-                $contents[] = $content;
-            }
+            $this->assertIniContent($content);
+            $contents[] = $content;
         }
 
         if ($contents === []) {
-            throw new AcbrLegacyApiException('Informe ao menos um conteúdo INI válido em payload.AeArquivoNFe.');
+            throw new AcbrLegacyApiException('Nenhum arquivo INI valido foi encontrado no corpo da requisição.');
         }
 
         return $contents;
@@ -113,6 +123,17 @@ final class NfeEnvioIniProcessor implements ProcessorInterface
         $lote = trim((string) $rawLote);
 
         return $lote === '' ? '1' : $lote;
+    }
+
+    private function assertIniContent(string $content): void
+    {
+        if (!preg_match('/^\[[^\]]+\]\s*$/m', $content)) {
+            throw new AcbrLegacyApiException('O corpo enviado nao contem um arquivo INI valido de NF-e.');
+        }
+
+        if (!preg_match('/^\[NFE\]\s*$/mi', $content)) {
+            throw new AcbrLegacyApiException('O arquivo INI enviado deve comecar com a secao [NFE].');
+        }
     }
 
     private function writeTempIni(string $content, int $index): string

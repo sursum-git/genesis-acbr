@@ -204,6 +204,29 @@ procEmi=0
 verProc=5.0
 ```
 
+### `POST /nfe/envio/validar-regras-negocio`
+
+- O corpo deve conter o XML completo da NF-e.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: application/xml`
+- O endpoint apenas valida o XML informado.
+
+Exemplo:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe32260406013812000158550030001955901308939122" versao="4.00">
+      <ide>
+        <cUF>32</cUF>
+        <tpAmb>2</tpAmb>
+      </ide>
+    </infNFe>
+  </NFe>
+</nfeProc>
+```
+
 ### `GET /nfe/consultas/consultar-recibo`
 
 Parametros de query:

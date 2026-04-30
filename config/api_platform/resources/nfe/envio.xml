@@ -318,44 +318,40 @@
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_validar_regras_negocio"
                  uriTemplate="/nfe/envio/validar-regras-negocio"
-                 processor="App\State\Legacy\AcbrLegacyOperationProcessor">
+                 input="false"
+                 deserialize="false"
+                 processor="App\State\Nfe\NfeXmlValidationProcessor">
         <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">ValidarRegrasdeNegocios</value></values></extraProperties>
         <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
-        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
         <openapi>
           <requestBody required="true">
             <content>
               <values>
-                <value name="application/ld+json">
+                <value name="application/xml">
                   <values>
                     <value name="schema">
                       <values>
-                        <value name="type">object</value>
-                        <value name="required"><values><value>payload</value></values></value>
-                        <value name="properties">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="type">object</value>
-                                <value name="required"><values><value>AeArquivoXmlNFe</value></values></value>
-                                <value name="properties">
-                                  <values>
-                                    <value name="AeArquivoXmlNFe"><values><value name="type">string</value><value name="example">/dados/xml/nfe.xml</value></values></value>
-                                  </values>
-                                </value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
+                        <value name="type">string</value>
+                        <value name="format">xml</value>
                       </values>
                     </value>
-                    <value name="example"><values><value name="payload"><values><value name="AeArquivoXmlNFe">/dados/xml/nfe.xml</value></values></value></values></value>
+                    <value name="example">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"&gt;
+  &lt;NFe xmlns="http://www.portalfiscal.inf.br/nfe"&gt;
+    &lt;infNFe Id="NFe32260406013812000158550030001955901308939122" versao="4.00"&gt;
+      &lt;ide&gt;
+        &lt;cUF&gt;32&lt;/cUF&gt;
+        &lt;tpAmb&gt;2&lt;/tpAmb&gt;
+      &lt;/ide&gt;
+    &lt;/infNFe&gt;
+  &lt;/NFe&gt;
+&lt;/nfeProc&gt;</value>
                   </values>
                 </value>
               </values>
             </content>
           </requestBody>
-          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+          <extensionProperties><values><value name="x-body-note">Envie o XML completo da NF-e no corpo da requisição. O endpoint apenas valida o XML informado.</value><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
         </openapi>
       </operation>
       <operation class="ApiPlatform\Metadata\Post"

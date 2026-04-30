@@ -223,6 +223,23 @@ Content-Type: application/ld+json
   }
 }
 
+### NFe - Validar regras de negocio com XML
+POST {{baseUrl}}/nfe/envio/validar-regras-negocio
+Content-Type: application/xml
+Accept: application/ld+json
+
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe{{chaveNfe}}" versao="4.00">
+      <ide>
+        <cUF>32</cUF>
+        <tpAmb>2</tpAmb>
+      </ide>
+    </infNFe>
+  </NFe>
+</nfeProc>
+
 ### NFe - Distribuicao DFe por chave
 GET {{baseUrl}}/nfe/distribuicao-dfe/por-chave?AcUFAutor={{uf}}&AeCNPJCPF={{cnpj}}&AechNFe={{chaveNfe}}
 Accept: application/ld+json

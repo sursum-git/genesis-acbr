@@ -476,7 +476,7 @@
                             <value name="payload">
                               <values>
                                 <value name="type">object</value>
-                                <value name="required"><values><value>AeArquivoXmlNFe</value><value>AePara</value><value>AeChaveNFe</value><value>AEnviaPDF</value><value>emailNome</value><value>emailConta</value><value>emailServidor</value><value>emailPorta</value><value>emailSSL</value><value>emailTLS</value><value>emailUsuario</value><value>emailSenha</value></values></value>
+                                <value name="required"><values><value>AeArquivoXmlNFe</value><value>AePara</value><value>AeChaveNFe</value><value>AEnviaPDF</value></values></value>
                                 <value name="properties">
                                   <values>
                                     <value name="AeArquivoXmlNFe"><values><value name="type">string</value><value name="example">/var/www/html/testes_api_platform/fixtures/nfe_consulta_exemplo.xml</value></values></value>
@@ -487,14 +487,6 @@
                                     <value name="AeCC"><values><value name="type">string</value><value name="example"></value></values></value>
                                     <value name="AeAnexos"><values><value name="type">string</value><value name="example"></value></values></value>
                                     <value name="AeMensagem"><values><value name="type">string</value><value name="example">Segue a NF-e em anexo.</value></values></value>
-                                    <value name="emailNome"><values><value name="type">string</value><value name="example">Teste SMTP</value></values></value>
-                                    <value name="emailConta"><values><value name="type">string</value><value name="example">teste@example.com</value></values></value>
-                                    <value name="emailServidor"><values><value name="type">string</value><value name="example">smtp.gmail.com</value></values></value>
-                                    <value name="emailPorta"><values><value name="type">string</value><value name="example">587</value></values></value>
-                                    <value name="emailSSL"><values><value name="type">string</value><value name="example">0</value></values></value>
-                                    <value name="emailTLS"><values><value name="type">string</value><value name="example">1</value></values></value>
-                                    <value name="emailUsuario"><values><value name="type">string</value><value name="example">teste@example.com</value></values></value>
-                                    <value name="emailSenha"><values><value name="type">string</value><value name="example">segredo</value></values></value>
                                   </values>
                                 </value>
                               </values>
@@ -515,14 +507,6 @@
                             <value name="AeCC"></value>
                             <value name="AeAnexos"></value>
                             <value name="AeMensagem">Segue a NF-e em anexo.</value>
-                            <value name="emailNome">Teste SMTP</value>
-                            <value name="emailConta">teste@example.com</value>
-                            <value name="emailServidor">smtp.gmail.com</value>
-                            <value name="emailPorta">587</value>
-                            <value name="emailSSL">0</value>
-                            <value name="emailTLS">1</value>
-                            <value name="emailUsuario">teste@example.com</value>
-                            <value name="emailSenha">segredo</value>
                           </values>
                         </value>
                       </values>
@@ -534,7 +518,7 @@
           </requestBody>
           <extensionProperties>
             <values>
-              <value name="x-body-note">AeArquivoXmlNFe aceita o caminho do arquivo XML legivel neste ambiente ou o XML bruto completo. Os campos email* sao obrigatorios no payload e sao aplicados na ACBr antes do envio.</value>
+              <value name="x-body-note">AeArquivoXmlNFe aceita o caminho do arquivo XML legivel neste ambiente ou o XML bruto completo.</value>
               <value name="x-apiplatform-tag"><values><value>nfe</value></values></value>
             </values>
           </extensionProperties>

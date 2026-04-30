@@ -185,7 +185,6 @@ Campos em `payload`:
 - `AeCC`
 - `AeAnexos`
 - `AeMensagem`
-- `emailNome`, `emailConta`, `emailServidor`, `emailPorta`, `emailSSL`, `emailTLS`, `emailUsuario`, `emailSenha`: obrigatórios; a API aplica a configuração de e-mail da ACBr imediatamente antes do envio
 
 Payload:
 
@@ -199,15 +198,7 @@ Payload:
     "AeAssunto": "Envio de NF-e",
     "AeCC": "",
     "AeAnexos": "",
-    "AeMensagem": "Segue a NF-e em anexo.",
-    "emailNome": "Teste SMTP",
-    "emailConta": "teste@example.com",
-    "emailServidor": "smtp.gmail.com",
-    "emailPorta": "587",
-    "emailSSL": "0",
-    "emailTLS": "1",
-    "emailUsuario": "teste@example.com",
-    "emailSenha": "segredo"
+    "AeMensagem": "Segue a NF-e em anexo."
   }
 }
 ```

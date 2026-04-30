@@ -180,22 +180,6 @@ try {
         $resultado = "Configuracoes salvas com sucesso.";
     }
 
-    if ($metodo == "salvarConfiguracoesEmail") {
-        $processo = $metodo . "/" . "NFE_ConfigGravarValor";
-
-        if (ConfigGravarValor($handle, $ffi, "Email", "Nome", $_POST['emailNome']) != 0) exit;
-        if (ConfigGravarValor($handle, $ffi, "Email", "Conta", $_POST['emailConta']) != 0) exit;
-        if (ConfigGravarValor($handle, $ffi, "Email", "Servidor", $_POST['emailServidor']) != 0) exit;
-        if (ConfigGravarValor($handle, $ffi, "Email", "Porta", $_POST['emailPorta']) != 0) exit;
-        if (ConfigGravarValor($handle, $ffi, "Email", "SSL", $_POST['emailSSL']) != 0) exit;
-        if (ConfigGravarValor($handle, $ffi, "Email", "TLS", $_POST['emailTLS']) != 0) exit;
-        if (ConfigGravarValor($handle, $ffi, "Email", "Usuario", $_POST['emailUsuario']) != 0) exit;
-        if (ConfigGravarValor($handle, $ffi, "Email", "Senha", $_POST['emailSenha']) != 0) exit;
-        if (ConfigGravar($handle, $ffi, $iniPath) != 0) exit;
-
-        $resultado = "Configuracoes de e-mail salvas com sucesso.";
-    }
-
     if ($metodo == "carregarConfiguracoes") {
         $processo = $metodo . "/" . "NFE_ConfigLer";
 
@@ -352,32 +336,6 @@ try {
                 'emailUsuario' => $emailUsuario ?? '',
                 'emailSenha' => $emailSenha ?? ''
             ]
-        ];
-    }
-
-    if ($metodo == "carregarConfiguracoesEmail") {
-        $processo = $metodo . "/" . "NFE_ConfigLer";
-
-        if (ConfigLerValor($handle, $ffi, "Email", "Nome", $emailNome) != 0) exit;
-        if (ConfigLerValor($handle, $ffi, "Email", "Conta", $emailConta) != 0) exit;
-        if (ConfigLerValor($handle, $ffi, "Email", "Servidor", $emailServidor) != 0) exit;
-        if (ConfigLerValor($handle, $ffi, "Email", "Porta", $emailPorta) != 0) exit;
-        if (ConfigLerValor($handle, $ffi, "Email", "SSL", $emailSSL) != 0) exit;
-        if (ConfigLerValor($handle, $ffi, "Email", "TLS", $emailTLS) != 0) exit;
-        if (ConfigLerValor($handle, $ffi, "Email", "Usuario", $emailUsuario) != 0) exit;
-        if (ConfigLerValor($handle, $ffi, "Email", "Senha", $emailSenha) != 0) exit;
-
-        $responseData = [
-            'dados' => [
-                'emailNome' => $emailNome ?? '',
-                'emailConta' => $emailConta ?? '',
-                'emailServidor' => $emailServidor ?? '',
-                'emailPorta' => $emailPorta ?? '',
-                'emailSSL' => $emailSSL ?? '',
-                'emailTLS' => $emailTLS ?? '',
-                'emailUsuario' => $emailUsuario ?? '',
-                'emailSenha' => $emailSenha ?? '',
-            ],
         ];
     }
 
@@ -718,7 +676,7 @@ try {
         }
     }
 
-    if (!in_array($metodo, ["carregarConfiguracoes", "carregarConfiguracoesEmail"], true)) {
+    if ($metodo != "carregarConfiguracoes") {
         $processo = "responseData";
         $responseData = [
             'mensagem' => $resultado

@@ -159,6 +159,7 @@ window.onload = function() {
             '/nfe/consultas/consultar-com-chave-xml',
             '/nfe/envio/enviar-sincrono-xml',
             '/nfe/envio/enviar-assincrono-xml',
+            '/nfe/envio/validar-regras-negocio',
         ];
 
         const textareaWasEdited = function (textarea) {

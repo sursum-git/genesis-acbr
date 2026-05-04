@@ -227,7 +227,7 @@ Exemplo:
 </nfeProc>
 ```
 
-### `POST /nfe/envio/gerar-chave`
+### `POST /nfe/envio/imprimir-pdf`
 
 - O corpo deve conter o XML completo da NF-e.
 - Nao usa `payload`.
@@ -248,6 +248,27 @@ Exemplo:
     </infNFe>
   </NFe>
 </nfeProc>
+```
+
+### `GET /nfe/envio/gerar-chave`
+
+Usa query string, sem `payload`.
+
+Parâmetros:
+
+- `ACodigoUF`: codigo da UF emitente
+- `ACodigoNumerico`: codigo numerico da chave
+- `AModelo`: modelo do documento fiscal
+- `ASerie`: serie da NF-e
+- `ANumero`: numero da NF-e
+- `ATpEmi`: tipo de emissao
+- `AEmissao`: data de emissao no formato `YYYY-MM-DD`
+- `ACNPJCPF`: CNPJ ou CPF do emitente
+
+Exemplo:
+
+```text
+/nfe/envio/gerar-chave?ACodigoUF=32&ACodigoNumerico=13089391&AModelo=55&ASerie=3&ANumero=195590&ATpEmi=1&AEmissao=2026-04-15&ACNPJCPF=06013812000158
 ```
 
 ### `GET /nfe/consultas/consultar-recibo`

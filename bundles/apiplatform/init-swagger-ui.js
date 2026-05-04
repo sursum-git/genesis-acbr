@@ -160,7 +160,7 @@ window.onload = function() {
             '/nfe/envio/enviar-sincrono-xml',
             '/nfe/envio/enviar-assincrono-xml',
             '/nfe/envio/validar-regras-negocio',
-            '/nfe/envio/gerar-chave',
+            '/nfe/envio/imprimir-pdf',
         ];
 
         const textareaWasEdited = function (textarea) {

@@ -397,6 +397,26 @@ Exemplo:
 </procInutNFe>
 ```
 
+### `GET /nfe/inutilizacao/inutilizar`
+
+Usa query string, sem `payload`.
+
+Parâmetros:
+
+- `ACNPJ`
+- `AJustificativa`
+- `AAno`
+- `AModelo`
+- `ASerie`
+- `ANumeroInicial`
+- `ANumeroFinal`
+
+Exemplo:
+
+```text
+/nfe/inutilizacao/inutilizar?ACNPJ=06013812000158&AJustificativa=Inutilizacao%20de%20numeracao%20nao%20utilizada&AAno=26&AModelo=55&ASerie=3&ANumeroInicial=195591&ANumeroFinal=195600
+```
+
 ### Outros POST de NFe
 
 Os demais endpoints de NFe tambem seguem o padrao:

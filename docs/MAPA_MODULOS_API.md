@@ -85,7 +85,7 @@ Exemplos de operacoes:
 - `GET /nfe/envio/gerar-chave`
 - `POST /nfe/envio/enviar-email`
 - `POST /nfe/eventos/cancelar`
-- `POST /nfe/inutilizacao/inutilizar`
+- `GET /nfe/inutilizacao/inutilizar`
 - `POST /nfe/inutilizacao/imprimir-pdf`
 - `GET /nfe/ferramentas/obter-certificados`
 

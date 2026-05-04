@@ -308,3 +308,7 @@ Accept: application/ld+json
     </infInut>
   </inutNFe>
 </procInutNFe>
+
+### NFe - Inutilizacao
+GET {{baseUrl}}/nfe/inutilizacao/inutilizar?ACNPJ={{cnpj}}&AJustificativa=Inutilizacao%20de%20numeracao%20nao%20utilizada&AAno=26&AModelo=55&ASerie=3&ANumeroInicial=195591&ANumeroFinal=195600
+Accept: application/ld+json

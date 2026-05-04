@@ -354,23 +354,44 @@
           <extensionProperties><values><value name="x-body-note">Envie o XML completo da NF-e no corpo da requisição. O endpoint apenas valida o XML informado.</value><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
         </openapi>
       </operation>
-      <operation class="ApiPlatform\Metadata\Get"
-                 name="get_nfe_gerar_chave"
+      <operation class="ApiPlatform\Metadata\Post"
+                 name="post_nfe_gerar_chave"
                  uriTemplate="/nfe/envio/gerar-chave"
-                 provider="App\State\Nfe\NfeGerarChaveProvider">
-        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">GerarChave</value><value name="acbr_query_params"><values><value>ACodigoUF</value><value>ACodigoNumerico</value><value>AModelo</value><value>ASerie</value><value>ANumero</value><value>ATpEmi</value><value>AEmissao</value><value>ACNPJCPF</value></values></value></values></extraProperties>
+                 input="false"
+                 deserialize="false"
+                 processor="App\State\Nfe\NfeXmlValidationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">SalvarPDF</value></values></extraProperties>
         <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
-        <parameters>
-          <parameter key="ACodigoUF" in="query" description="Codigo da UF emitente." required="true"><schema><values><value name="type">string</value><value name="example">32</value></values></schema></parameter>
-          <parameter key="ACodigoNumerico" in="query" description="Codigo numerico da chave." required="true"><schema><values><value name="type">string</value><value name="example">13089391</value></values></schema></parameter>
-          <parameter key="AModelo" in="query" description="Modelo do documento fiscal." required="true"><schema><values><value name="type">string</value><value name="example">55</value></values></schema></parameter>
-          <parameter key="ASerie" in="query" description="Serie da NF-e." required="true"><schema><values><value name="type">string</value><value name="example">3</value></values></schema></parameter>
-          <parameter key="ANumero" in="query" description="Numero da NF-e." required="true"><schema><values><value name="type">string</value><value name="example">195590</value></values></schema></parameter>
-          <parameter key="ATpEmi" in="query" description="Tipo de emissao." required="true"><schema><values><value name="type">string</value><value name="example">1</value></values></schema></parameter>
-          <parameter key="AEmissao" in="query" description="Data de emissao no formato YYYY-MM-DD." required="true"><schema><values><value name="type">string</value><value name="example">2026-04-15</value></values></schema></parameter>
-          <parameter key="ACNPJCPF" in="query" description="CNPJ ou CPF do emitente." required="true"><schema><values><value name="type">string</value><value name="example">06013812000158</value></values></schema></parameter>
-        </parameters>
-        <openapi><extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties></openapi>
+        <openapi>
+          <requestBody required="true">
+            <content>
+              <values>
+                <value name="application/xml">
+                  <values>
+                    <value name="schema">
+                      <values>
+                        <value name="type">string</value>
+                        <value name="format">xml</value>
+                      </values>
+                    </value>
+                    <value name="example">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"&gt;
+  &lt;NFe xmlns="http://www.portalfiscal.inf.br/nfe"&gt;
+    &lt;infNFe Id="NFe32260406013812000158550030001955901308939122" versao="4.00"&gt;
+      &lt;ide&gt;
+        &lt;cUF&gt;32&lt;/cUF&gt;
+        &lt;tpAmb&gt;2&lt;/tpAmb&gt;
+      &lt;/ide&gt;
+    &lt;/infNFe&gt;
+  &lt;/NFe&gt;
+&lt;/nfeProc&gt;</value>
+                  </values>
+                </value>
+              </values>
+            </content>
+          </requestBody>
+          <extensionProperties><values><value name="x-body-note">Envie o XML completo da NF-e no corpo da requisição. A ACBr salvara o PDF no diretório configurado anteriormente.</value><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+        </openapi>
       </operation>
       <operation class="ApiPlatform\Metadata\Post"
                  name="post_nfe_enviar_email"

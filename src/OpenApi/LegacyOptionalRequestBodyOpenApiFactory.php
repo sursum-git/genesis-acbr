@@ -58,6 +58,7 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
             '/nfe/consultas/consultar-com-chave-xml',
             '/nfe/envio/enviar-sincrono-xml',
             '/nfe/envio/validar-regras-negocio',
+            '/nfe/envio/gerar-chave',
         ], true)) {
             $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_consulta_exemplo.xml', 'nfeProc');
         }

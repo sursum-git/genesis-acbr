@@ -227,25 +227,27 @@ Exemplo:
 </nfeProc>
 ```
 
-### `GET /nfe/envio/gerar-chave`
+### `POST /nfe/envio/gerar-chave`
 
-Usa query string, sem `payload`.
-
-Parâmetros:
-
-- `ACodigoUF`
-- `ACodigoNumerico`
-- `AModelo`
-- `ASerie`
-- `ANumero`
-- `ATpEmi`
-- `AEmissao`
-- `ACNPJCPF`
+- O corpo deve conter o XML completo da NF-e.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: application/xml`
+- A ACBr salva o PDF no diretório já configurado anteriormente.
 
 Exemplo:
 
-```text
-/nfe/envio/gerar-chave?ACodigoUF=32&ACodigoNumerico=13089391&AModelo=55&ASerie=3&ANumero=195590&ATpEmi=1&AEmissao=2026-04-15&ACNPJCPF=06013812000158
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe32260406013812000158550030001955901308939122" versao="4.00">
+      <ide>
+        <cUF>32</cUF>
+        <tpAmb>2</tpAmb>
+      </ide>
+    </infNFe>
+  </NFe>
+</nfeProc>
 ```
 
 ### `GET /nfe/consultas/consultar-recibo`

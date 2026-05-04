@@ -27,6 +27,7 @@ final class NfeXmlValidationProcessor implements ProcessorInterface
         $extraProperties = $operation->getExtraProperties();
         $script = (string) ($extraProperties['acbr_script'] ?? '');
         $method = (string) ($extraProperties['acbr_method'] ?? '');
+        $xmlParamName = (string) ($extraProperties['acbr_xml_param_name'] ?? 'AeArquivoXmlNFe');
         $presetPayload = $extraProperties['acbr_payload'] ?? [];
 
         if ($script === '' || $method === '') {
@@ -35,7 +36,7 @@ final class NfeXmlValidationProcessor implements ProcessorInterface
 
         $xmlSource = trim((string) $request->getContent());
         if ($xmlSource === '') {
-            throw new AcbrLegacyApiException('Informe o XML completo da NF-e no corpo da requisição.');
+            throw new AcbrLegacyApiException('Informe o XML completo no corpo da requisição.');
         }
 
         $xmlPath = $this->persistXmlForAcbr($this->resolveXmlContent($xmlSource));
@@ -46,7 +47,7 @@ final class NfeXmlValidationProcessor implements ProcessorInterface
                 $method,
                 array_merge(
                     is_array($presetPayload) ? $presetPayload : [],
-                    ['AeArquivoXmlNFe' => $xmlPath]
+                    [$xmlParamName => $xmlPath]
                 )
             );
         } finally {
@@ -66,7 +67,7 @@ final class NfeXmlValidationProcessor implements ProcessorInterface
         }
 
         if (!is_file($source) || !is_readable($source)) {
-            throw new AcbrLegacyApiException('O corpo deve conter o XML completo da NF-e ou um caminho legivel neste ambiente.');
+            throw new AcbrLegacyApiException('O corpo deve conter o XML completo ou um caminho legivel neste ambiente.');
         }
 
         $content = file_get_contents($source);

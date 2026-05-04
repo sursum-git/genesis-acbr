@@ -63,6 +63,10 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
             $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_consulta_exemplo.xml', 'nfeProc');
         }
 
+        if ($path === '/nfe/inutilizacao/imprimir-pdf') {
+            $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_inutilizacao_exemplo.xml', 'procInutNFe');
+        }
+
         if ($path === '/nfe/envio/enviar-assincrono-xml') {
             $requestBody = $this->applyRawXmlFixtureExample($requestBody, 'nfe_envio_assincrono_exemplo.xml', 'nfeProc');
         }

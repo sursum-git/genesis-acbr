@@ -122,65 +122,44 @@
           <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
         </openapi>
       </operation>
-      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_imprimir_inutilizacao_pdf" uriTemplate="/nfe/inutilizacao/imprimir-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor">
-        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">ImprimirInutilizacaoPDF</value></values></extraProperties>
+      <operation class="ApiPlatform\Metadata\Post" name="post_nfe_imprimir_inutilizacao_pdf" uriTemplate="/nfe/inutilizacao/imprimir-pdf" input="false" deserialize="false" processor="App\State\Nfe\NfeXmlValidationProcessor">
+        <extraProperties><values><value name="acbr_script">NFe/MT/ACBrNFeServicosMT.php</value><value name="acbr_method">ImprimirInutilizacaoPDF</value><value name="acbr_xml_param_name">AeArquivoXml</value></values></extraProperties>
         <normalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:read</value></values></value></values></normalizationContext>
-        <denormalizationContext><values><value name="groups"><values><value>acbr_legacy_operation:write</value></values></value></values></denormalizationContext>
         <openapi>
           <requestBody required="true">
             <content>
               <values>
-                <value name="application/ld+json">
+                <value name="application/xml">
                   <values>
                     <value name="schema">
                       <values>
-                        <value name="type">object</value>
-                        <value name="required">
-                          <values>
-                            <value>payload</value>
-                          </values>
-                        </value>
-                        <value name="properties">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="type">object</value>
-                                <value name="required">
-                                  <values>
-                                    <value>AeArquivoXml</value>
-                                  </values>
-                                </value>
-                                <value name="properties">
-                                  <values>
-                                    <value name="AeArquivoXml">
-                                      <values>
-                                        <value name="type">string</value>
-                                        <value name="example">/dados/xml/inutilizacao.xml</value>
-                                      </values>
-                                    </value>
-                                  </values>
-                                </value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
-                        <value name="example">
-                          <values>
-                            <value name="payload">
-                              <values>
-                                <value name="AeArquivoXml">/dados/xml/inutilizacao.xml</value>
-                              </values>
-                            </value>
-                          </values>
-                        </value>
+                        <value name="type">string</value>
+                        <value name="format">xml</value>
                       </values>
                     </value>
+                    <value name="example">&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+&lt;procInutNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00"&gt;
+  &lt;inutNFe versao="4.00"&gt;
+    &lt;infInut Id="ID3526060601381200015855003000196318196318"&gt;
+      &lt;tpAmb&gt;2&lt;/tpAmb&gt;
+      &lt;xServ&gt;INUTILIZAR&lt;/xServ&gt;
+      &lt;cUF&gt;32&lt;/cUF&gt;
+      &lt;ano&gt;26&lt;/ano&gt;
+      &lt;CNPJ&gt;06013812000158&lt;/CNPJ&gt;
+      &lt;mod&gt;55&lt;/mod&gt;
+      &lt;serie&gt;3&lt;/serie&gt;
+      &lt;nNFIni&gt;196318&lt;/nNFIni&gt;
+      &lt;nNFFin&gt;196318&lt;/nNFFin&gt;
+      &lt;xJust&gt;Inutilizacao de numeracao nao utilizada&lt;/xJust&gt;
+    &lt;/infInut&gt;
+  &lt;/inutNFe&gt;
+&lt;/procInutNFe&gt;</value>
                   </values>
                 </value>
               </values>
             </content>
           </requestBody>
-          <extensionProperties><values><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
+          <extensionProperties><values><value name="x-body-note">Envie o XML completo da inutilizacao no corpo da requisição.</value><value name="x-apiplatform-tag"><values><value>nfe</value></values></value></values></extensionProperties>
         </openapi>
       </operation>
       <operation class="ApiPlatform\Metadata\Post" name="post_nfe_salvar_inutilizacao_pdf" uriTemplate="/nfe/inutilizacao/salvar-pdf" processor="App\State\Legacy\AcbrLegacyOperationProcessor">

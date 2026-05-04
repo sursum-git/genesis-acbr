@@ -369,6 +369,34 @@ Payload:
 }
 ```
 
+### `POST /nfe/inutilizacao/imprimir-pdf`
+
+- O corpo deve conter o XML completo da inutilizacao.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: application/xml`
+
+Exemplo:
+
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<procInutNFe xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <inutNFe versao="4.00">
+    <infInut Id="ID3526060601381200015855003000196318196318">
+      <tpAmb>2</tpAmb>
+      <xServ>INUTILIZAR</xServ>
+      <cUF>32</cUF>
+      <ano>26</ano>
+      <CNPJ>06013812000158</CNPJ>
+      <mod>55</mod>
+      <serie>3</serie>
+      <nNFIni>196318</nNFIni>
+      <nNFFin>196318</nNFFin>
+      <xJust>Inutilizacao de numeracao nao utilizada</xJust>
+    </infInut>
+  </inutNFe>
+</procInutNFe>
+```
+
 ### Outros POST de NFe
 
 Os demais endpoints de NFe tambem seguem o padrao:

@@ -161,6 +161,7 @@ window.onload = function() {
             '/nfe/envio/enviar-assincrono-xml',
             '/nfe/envio/validar-regras-negocio',
             '/nfe/envio/imprimir-pdf',
+            '/nfe/inutilizacao/imprimir-pdf',
         ];
 
         const textareaWasEdited = function (textarea) {

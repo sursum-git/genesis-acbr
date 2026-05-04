@@ -80,6 +80,7 @@ Exemplos de operacoes:
 - `POST /nfe/envio/enviar-sincrono-ini`
 - `POST /nfe/envio/enviar-assincrono-xml`
 - `POST /nfe/envio/enviar-assincrono-ini`
+- `GET /nfe/envio/gerar-chave`
 - `POST /nfe/envio/enviar-email`
 - `POST /nfe/eventos/cancelar`
 - `POST /nfe/inutilizacao/inutilizar`

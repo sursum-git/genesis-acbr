@@ -240,6 +240,10 @@ Accept: application/ld+json
   </NFe>
 </nfeProc>
 
+### NFe - Gerar chave
+GET {{baseUrl}}/nfe/envio/gerar-chave?ACodigoUF=32&ACodigoNumerico=13089391&AModelo=55&ASerie=3&ANumero=195590&ATpEmi=1&AEmissao=2026-04-15&ACNPJCPF={{cnpj}}
+Accept: application/ld+json
+
 ### NFe - Distribuicao DFe por chave
 GET {{baseUrl}}/nfe/distribuicao-dfe/por-chave?AcUFAutor={{uf}}&AeCNPJCPF={{cnpj}}&AechNFe={{chaveNfe}}
 Accept: application/ld+json

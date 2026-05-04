@@ -227,6 +227,27 @@ Exemplo:
 </nfeProc>
 ```
 
+### `GET /nfe/envio/gerar-chave`
+
+Usa query string, sem `payload`.
+
+Parâmetros:
+
+- `ACodigoUF`
+- `ACodigoNumerico`
+- `AModelo`
+- `ASerie`
+- `ANumero`
+- `ATpEmi`
+- `AEmissao`
+- `ACNPJCPF`
+
+Exemplo:
+
+```text
+/nfe/envio/gerar-chave?ACodigoUF=32&ACodigoNumerico=13089391&AModelo=55&ASerie=3&ANumero=195590&ATpEmi=1&AEmissao=2026-04-15&ACNPJCPF=06013812000158
+```
+
 ### `GET /nfe/consultas/consultar-recibo`
 
 Parametros de query:

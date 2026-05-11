@@ -109,20 +109,25 @@ Grupos identificados:
 
 Padrao tecnico:
 
-- `GET` para operacoes de leitura/ferramentas
-- `POST` para operacoes de emissao, consulta e cancelamento
+- `GET` para operacoes de leitura e consultas sem envio de arquivo
+- `POST` para operacoes que exigem XML/INI ou payload estruturado
 - execucao delegada ao script `NFSe/MT/ACBrNFSeServicosMT.php`
 
 Exemplos de operacoes:
 
 - `POST /nfse/padrao-nacional/enviar-evento`
-- `POST /nfse/padrao-nacional/consultar-dps-por-chave`
-- `POST /nfse/demais-provedores/consultas/consultar-nfse-por-periodo`
+- `GET /nfse/padrao-nacional/consultar-dps-por-chave`
+- `GET /nfse/padrao-nacional/consultar-nfse-por-chave`
+- `GET /nfse/demais-provedores/consultas/consultar-situacao`
+- `GET /nfse/demais-provedores/consultas/consultar-nfse-por-periodo`
+- `GET /nfse/demais-provedores/consultas/consultar-nfse-por-faixa`
 - `POST /nfse/demais-provedores/envio/emitir-nota`
+- `GET /nfse/demais-provedores/envio/link-nfse`
+- `GET /nfse/demais-provedores/envio/gerar-token`
 - `POST /nfse/demais-provedores/envio/substituir-nfse`
 - `POST /nfse/demais-provedores/cancelamento/cancelar`
-- `POST /nfse/demais-provedores/servicos-prestados/por-periodo`
-- `POST /nfse/demais-provedores/servicos-tomados/por-numero`
+- `GET /nfse/demais-provedores/servicos-prestados/por-periodo`
+- `GET /nfse/demais-provedores/servicos-tomados/por-numero`
 - `GET /nfse/ferramentas/openssl-info`
 
 ## Componentes de Suporte

@@ -11,51 +11,40 @@ Accept: application/ld+json
 
 ### NFSe - Padrao nacional - consultar DPS por chave
 ### Substituir a chave por uma chave valida de DPS.
-POST {{baseUrl}}/nfse/padrao-nacional/consultar-dps-por-chave
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfse/padrao-nacional/consultar-dps-por-chave?AChaveDPS=SUBSTITUIR_CHAVE_DPS
 Accept: application/ld+json
-
-{
-  "payload": {
-    "AChaveDFe": "SUBSTITUIR_CHAVE_DPS"
-  }
-}
 
 ### NFSe - Padrao nacional - consultar NFSe por chave
 ### Substituir a chave por uma chave valida de NFSe.
-POST {{baseUrl}}/nfse/padrao-nacional/consultar-nfse-por-chave
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfse/padrao-nacional/consultar-nfse-por-chave?AChaveNFSe=SUBSTITUIR_CHAVE_NFSE
 Accept: application/ld+json
-
-{
-  "payload": {
-    "AChaveDFe": "SUBSTITUIR_CHAVE_NFSE"
-  }
-}
 
 ### NFSe - Demais provedores - consultar situacao
 ### Substituir os campos conforme o provedor usado.
-POST {{baseUrl}}/nfse/demais-provedores/consultas/consultar-situacao
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfse/demais-provedores/consultas/consultar-situacao?AProtocolo=SUBSTITUIR_PROTOCOLO&ANumLote=1
 Accept: application/ld+json
-
-{
-  "payload": {
-    "APrestadorCNPJ": "{{cnpj}}",
-    "AProtocolo": "SUBSTITUIR_PROTOCOLO"
-  }
-}
 
 ### NFSe - Demais provedores - consultar NFSe por periodo
 ### Substituir as datas conforme o teste.
-POST {{baseUrl}}/nfse/demais-provedores/consultas/consultar-nfse-por-periodo
-Content-Type: application/ld+json
+GET {{baseUrl}}/nfse/demais-provedores/consultas/consultar-nfse-por-periodo?ADataInicial=01/04/2026&ADataFinal=30/04/2026&APagina=1&ATipoPeriodo=1
 Accept: application/ld+json
 
-{
-  "payload": {
-    "APrestadorCNPJ": "{{cnpj}}",
-    "ADataInicial": "2026-04-01",
-    "ADataFinal": "2026-04-30"
-  }
-}
+### NFSe - Demais provedores - consultar NFSe por faixa
+GET {{baseUrl}}/nfse/demais-provedores/consultas/consultar-nfse-por-faixa?ANumeroInicial=1000&ANumeroFinal=1010&APagina=1
+Accept: application/ld+json
+
+### NFSe - Demais provedores - link NFSe
+GET {{baseUrl}}/nfse/demais-provedores/envio/link-nfse?ANumeroNFSe=12345&ACodigoVerificacao=ABC12345&AValorServico=150.00
+Accept: application/ld+json
+
+### NFSe - Demais provedores - gerar token
+GET {{baseUrl}}/nfse/demais-provedores/envio/gerar-token
+Accept: application/ld+json
+
+### NFSe - Servicos prestados por periodo
+GET {{baseUrl}}/nfse/demais-provedores/servicos-prestados/por-periodo?ADataInicial=01/04/2026&ADataFinal=30/04/2026&APagina=1&ATipoPeriodo=1
+Accept: application/ld+json
+
+### NFSe - Servicos tomados por numero
+GET {{baseUrl}}/nfse/demais-provedores/servicos-tomados/por-numero?ANumero=12345&APagina=1&ADataInicial=01/04/2026&ADataFinal=30/04/2026&ATipoPeriodo=1
+Accept: application/ld+json

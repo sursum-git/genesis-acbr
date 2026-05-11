@@ -444,79 +444,125 @@ Arquivos de exemplo:
 
 - Sem payload.
 
-### `POST /nfse/padrao-nacional/consultar-dps-por-chave`
+### `GET /nfse/padrao-nacional/consultar-dps-por-chave`
 
-Campos em `payload`:
+Parametros de query:
 
-- `AChaveDFe`
+- `AChaveDPS`
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "AChaveDFe": "SUBSTITUIR_CHAVE_DPS"
-  }
-}
+```text
+AChaveDPS=SUBSTITUIR_CHAVE_DPS
 ```
 
-### `POST /nfse/padrao-nacional/consultar-nfse-por-chave`
+### `GET /nfse/padrao-nacional/consultar-nfse-por-chave`
 
-Campos em `payload`:
+Parametros de query:
 
-- `AChaveDFe`
+- `AChaveNFSe`
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "AChaveDFe": "SUBSTITUIR_CHAVE_NFSE"
-  }
-}
+```text
+AChaveNFSe=SUBSTITUIR_CHAVE_NFSE
 ```
 
-### `POST /nfse/demais-provedores/consultas/consultar-situacao`
+### `GET /nfse/demais-provedores/consultas/consultar-situacao`
 
-Campos comuns em `payload`:
+Parametros de query:
 
-- `APrestadorCNPJ`
 - `AProtocolo`
+- `ANumLote`
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "APrestadorCNPJ": "06013812000158",
-    "AProtocolo": "SUBSTITUIR_PROTOCOLO"
-  }
-}
+```text
+AProtocolo=SUBSTITUIR_PROTOCOLO&ANumLote=1
 ```
 
-### `POST /nfse/demais-provedores/consultas/consultar-nfse-por-periodo`
+### `GET /nfse/demais-provedores/consultas/consultar-nfse-por-periodo`
 
-Campos comuns em `payload`:
+Parametros de query:
 
-- `APrestadorCNPJ`
 - `ADataInicial`
 - `ADataFinal`
+- `APagina`
+- `ATipoPeriodo`
 
-Payload:
+Exemplo:
 
-```json
-{
-  "payload": {
-    "APrestadorCNPJ": "06013812000158",
-    "ADataInicial": "2026-04-01",
-    "ADataFinal": "2026-04-30"
-  }
-}
+```text
+ADataInicial=01/04/2026&ADataFinal=30/04/2026&APagina=1&ATipoPeriodo=1
+```
+
+### `GET /nfse/demais-provedores/consultas/consultar-nfse-por-faixa`
+
+Parametros de query:
+
+- `ANumeroInicial`
+- `ANumeroFinal`
+- `APagina`
+
+Exemplo:
+
+```text
+ANumeroInicial=1000&ANumeroFinal=1010&APagina=1
+```
+
+### `GET /nfse/demais-provedores/envio/link-nfse`
+
+Parametros de query:
+
+- `ANumeroNFSe`
+- `ACodigoVerificacao`
+- `AChaveAcesso`
+- `AValorServico`
+
+Exemplo:
+
+```text
+ANumeroNFSe=12345&ACodigoVerificacao=ABC12345&AValorServico=150.00
+```
+
+### `GET /nfse/demais-provedores/envio/gerar-token`
+
+- Sem payload.
+
+### `GET /nfse/demais-provedores/servicos-prestados/por-periodo`
+
+Parametros de query:
+
+- `ADataInicial`
+- `ADataFinal`
+- `APagina`
+- `ATipoPeriodo`
+
+Exemplo:
+
+```text
+ADataInicial=01/04/2026&ADataFinal=30/04/2026&APagina=1&ATipoPeriodo=1
+```
+
+### `GET /nfse/demais-provedores/servicos-tomados/por-numero`
+
+Parametros de query:
+
+- `ANumero`
+- `APagina`
+- `ADataInicial`
+- `ADataFinal`
+- `ATipoPeriodo`
+
+Exemplo:
+
+```text
+ANumero=12345&APagina=1&ADataInicial=01/04/2026&ADataFinal=30/04/2026&ATipoPeriodo=1
 ```
 
 ### Outros POST de NFSe
 
-Os demais endpoints de NFSe tambem seguem o mesmo padrao:
+Os endpoints que enviam XML/INI ou estruturas mais ricas continuam usando `payload`:
 
 ```json
 {
@@ -526,7 +572,6 @@ Os demais endpoints de NFSe tambem seguem o mesmo padrao:
 }
 ```
 
-Como os provedores variam, os nomes dos campos mudam conforme o metodo legado do ACBr.
 Para exemplos prontos:
 
 - [nfse.http](/dados_containers/www/testes_api_platform/nfse.http)

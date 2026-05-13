@@ -1491,9 +1491,22 @@
 
                 var reader = new FileReader();
                 reader.onload = function(e) {
-                    retorno(e.target.result);
+                    var buffer = e.target.result;
+                    var conteudo = "";
+
+                    try {
+                        conteudo = new TextDecoder('utf-8', { fatal: true }).decode(buffer);
+                    } catch (erroUtf8) {
+                        try {
+                            conteudo = new TextDecoder('windows-1252').decode(buffer);
+                        } catch (erroWin1252) {
+                            conteudo = new TextDecoder('iso-8859-1').decode(buffer);
+                        }
+                    }
+
+                    retorno(conteudo.replace(/^\uFEFF/, ''));
                 };
-                reader.readAsText(file);
+                reader.readAsArrayBuffer(file);
             };
 
             arquivoSelecionado.click();

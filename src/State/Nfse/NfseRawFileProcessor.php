@@ -42,7 +42,7 @@ final class NfseRawFileProcessor implements ProcessorInterface
             throw new AcbrLegacyApiException('Operação API Platform sem metadados suficientes para arquivo bruto de NFSe.');
         }
 
-        $tempFile = $this->writeTempFile($rawBody);
+        $tempFile = $this->writeTempFile($this->normalizeEncoding($rawBody));
 
         try {
             $payload = array_merge(
@@ -97,6 +97,23 @@ final class NfseRawFileProcessor implements ProcessorInterface
         }
 
         return $finalPath;
+    }
+
+    private function normalizeEncoding(string $content): string
+    {
+        $content = preg_replace('/^\xEF\xBB\xBF/', '', $content) ?? $content;
+
+        if (mb_check_encoding($content, 'UTF-8')) {
+            return $content;
+        }
+
+        $normalized = @mb_convert_encoding($content, 'UTF-8', 'Windows-1252, ISO-8859-1');
+
+        if (!is_string($normalized) || $normalized === '') {
+            return $content;
+        }
+
+        return preg_replace('/^\xEF\xBB\xBF/', '', $normalized) ?? $normalized;
     }
 
     private function looksLikeIni(string $content): bool

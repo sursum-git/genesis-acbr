@@ -36,6 +36,100 @@ header('Content-Type: application/json; charset=UTF-8');
 include 'ACBrNFSeMT.php';
 include '../../ACBrComum/ACBrComum.php';
 
+function normalizaUtf8ParaJson($valor)
+{
+    if (is_array($valor)) {
+        foreach ($valor as $chave => $item) {
+            $valor[$chave] = normalizaUtf8ParaJson($item);
+        }
+
+        return $valor;
+    }
+
+    if (!is_string($valor) || $valor === '') {
+        return $valor;
+    }
+
+    if (!mb_check_encoding($valor, 'UTF-8')) {
+        $convertido = @mb_convert_encoding($valor, 'UTF-8', 'Windows-1252, ISO-8859-1, UTF-8');
+
+        if (is_string($convertido) && $convertido !== '') {
+            $valor = $convertido;
+        }
+    }
+
+    return preg_replace('/^\xEF\xBB\xBF/', '', $valor) ?? $valor;
+}
+
+function respondeJson($payload)
+{
+    $payload = normalizaUtf8ParaJson($payload);
+
+    $json = json_encode(
+        $payload,
+        JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_UNESCAPED_SLASHES
+    );
+
+    if ($json === false) {
+        $json = json_encode(
+            ["mensagem" => "Falha ao serializar resposta JSON."],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES
+        );
+    }
+
+    echo $json;
+}
+
+function carregaValoresReaisDoIni($iniPath)
+{
+    if (!is_string($iniPath) || $iniPath === '' || !is_file($iniPath)) {
+        return [];
+    }
+
+    $dados = @parse_ini_file($iniPath, true, INI_SCANNER_RAW);
+
+    if (!is_array($dados)) {
+        return [];
+    }
+
+    return [
+        'UF' => $dados['DFe']['UF'] ?? null,
+        'SSLCryptLib' => $dados['DFe']['SSLCryptLib'] ?? null,
+        'SSLHttpLib' => $dados['DFe']['SSLHttpLib'] ?? null,
+        'SSLXmlSignLib' => $dados['DFe']['SSLXmlSignLib'] ?? null,
+        'ArquivoPFX' => $dados['DFe']['ArquivoPFX'] ?? null,
+        'DadosPFX' => $dados['DFe']['DadosPFX'] ?? null,
+        'senhaCertificado' => $dados['DFe']['Senha'] ?? null,
+        'NumeroSerie' => $dados['DFe']['NumeroSerie'] ?? null,
+        'CodigoMunicipio' => $dados['NFSe']['CodigoMunicipio'] ?? null,
+        'pathSalvar' => $dados['NFSe']['PathSalvar'] ?? null,
+        'pathSchemas' => $dados['NFSe']['PathSchemas'] ?? null,
+        'ambiente' => $dados['NFSe']['Ambiente'] ?? null,
+        'EmitenteCNPJ' => $dados['NFSe']['Emitente.CNPJ'] ?? null,
+        'EmitenteInscMun' => $dados['NFSe']['Emitente.InscMun'] ?? null,
+        'EmitenteRazSocial' => $dados['NFSe']['Emitente.RazSocial'] ?? null,
+        'EmitenteNomeFantasia' => $dados['NFSe']['Emitente.Dados.NomeFantasia'] ?? null,
+        'EmitenteEndereco' => $dados['NFSe']['Emitente.Dados.Endereco'] ?? null,
+        'EmitenteNumero' => $dados['NFSe']['Emitente.Dados.Numero'] ?? null,
+        'EmitenteCEP' => $dados['NFSe']['Emitente.Dados.CEP'] ?? null,
+        'EmitenteBairro' => $dados['NFSe']['Emitente.Dados.Bairro'] ?? null,
+        'EmitenteComplemento' => $dados['NFSe']['Emitente.Dados.Complemento'] ?? null,
+        'EmitenteTelefone' => $dados['NFSe']['Emitente.Dados.Telefone'] ?? null,
+        'emailNome' => $dados['Email']['Nome'] ?? null,
+        'emailConta' => $dados['Email']['Conta'] ?? null,
+        'emailServidor' => $dados['Email']['Servidor'] ?? null,
+        'emailPorta' => $dados['Email']['Porta'] ?? null,
+        'emailSSL' => $dados['Email']['SSL'] ?? null,
+        'emailTLS' => $dados['Email']['TLS'] ?? null,
+        'emailUsuario' => $dados['Email']['Usuario'] ?? null,
+        'emailSenha' => $dados['Email']['Senha'] ?? null,
+        'PathPDF' => $dados['DANFSe']['PathPDF'] ?? null,
+        'PathLogo' => $dados['DANFSe']['PathLogo'] ?? null,
+        'PrestadorLogo' => $dados['DANFSe']['Prestador.Logo'] ?? null,
+        'Prefeitura' => $dados['DANFSe']['Prefeitura'] ?? null,
+    ];
+}
+
 $nomeLib = "ACBrNFSe";
 $metodo = $_POST['metodo'];
 
@@ -308,6 +402,12 @@ try {
                 'emailSenha' => $emailSenha ?? ''
             ]
         ];
+
+        foreach (carregaValoresReaisDoIni($iniPath) as $campo => $valorReal) {
+            if ($valorReal !== null) {
+                $responseData['dados'][$campo] = $valorReal;
+            }
+        }
     }
 
     if ($metodo == "OpenSSLInfo") {
@@ -797,7 +897,7 @@ try {
     }
 } catch (Exception $e) {
     $erro = $e->getMessage();
-    echo json_encode(["mensagem" => "Exceção[$processo]: $erro"]);
+    respondeJson(["mensagem" => "Exceção[$processo]: $erro"]);
     exit;
 }
 
@@ -809,8 +909,8 @@ try {
     }
 } catch (Exception $e) {
     $erro = $e->getMessage();
-    echo json_encode(["mensagem" => "Exceção[$processo]: $erro"]);
+    respondeJson(["mensagem" => "Exceção[$processo]: $erro"]);
     exit;
 }
 
-echo json_encode($responseData);
+respondeJson($responseData);

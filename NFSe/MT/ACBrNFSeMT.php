@@ -33,6 +33,8 @@
 */
 header('Content-Type: application/json; charset=UTF-8');
 
+$GLOBALS['acbr_nfse_temp_files'] = [];
+
 function Inicializar(&$handle, $ffi, $iniPath)
 {
     $retorno = $ffi->NFSE_Inicializar(FFI::addr($handle), $iniPath, "");
@@ -71,6 +73,12 @@ function Finalizar($handle, $ffi)
     if ($retorno !== 0) {
         echo json_encode(["mensagem" => "Falha ao finalizar a biblioteca ACBr. Código de erro: $retorno"]);
         return -10;
+    }
+
+    if (isset($GLOBALS['acbr_nfse_temp_files']) && is_array($GLOBALS['acbr_nfse_temp_files'])) {
+        foreach ($GLOBALS['acbr_nfse_temp_files'] as $tempFile) {
+            @unlink($tempFile);
+        }
     }
 
     return 0;
@@ -201,8 +209,25 @@ function CarregarINI($handle, $ffi, $eArquivoOuIni, &$retornoGeral)
 
 function CarregarXML($handle, $ffi, $eArquivoOuIni, &$retornoGeral)
 {
+    $xmlNormalizado = NormalizaConteudoXml($eArquivoOuIni);
+    $xmlOuArquivo = $xmlNormalizado;
+
+    if (!is_string($eArquivoOuIni) || !is_file($eArquivoOuIni)) {
+        $tmpXml = tempnam(sys_get_temp_dir(), 'acbr-nfse-xml-');
+
+        if ($tmpXml !== false) {
+            $tmpXmlPath = $tmpXml . '.xml';
+            @unlink($tmpXml);
+
+            if (file_put_contents($tmpXmlPath, $xmlNormalizado) !== false) {
+                $xmlOuArquivo = $tmpXmlPath;
+                $GLOBALS['acbr_nfse_temp_files'][] = $tmpXmlPath;
+            }
+        }
+    }
+
     $sMensagem = FFI::new("char[535]");
-    $retorno = $ffi->NFSE_CarregarXML($handle->cdata, $eArquivoOuIni);
+    $retorno = $ffi->NFSE_CarregarXML($handle->cdata, $xmlOuArquivo);
 
     if (UltimoRetorno($handle, $ffi, $retorno, $sMensagem, "Erro ao carregar o Xml da NFSe", 1) != 0)
         return -10;
@@ -210,6 +235,46 @@ function CarregarXML($handle, $ffi, $eArquivoOuIni, &$retornoGeral)
     $retornoGeral = FFI::string($sMensagem);
 
     return 0;
+}
+
+function NormalizaConteudoXml($conteudo)
+{
+    if (!is_string($conteudo) || $conteudo === '') {
+        return $conteudo;
+    }
+
+    if (is_file($conteudo)) {
+        $conteudoArquivo = @file_get_contents($conteudo);
+
+        if ($conteudoArquivo === false || $conteudoArquivo === '') {
+            return $conteudo;
+        }
+
+        $conteudo = $conteudoArquivo;
+    }
+
+    $conteudo = preg_replace('/^\xEF\xBB\xBF/', '', $conteudo) ?? $conteudo;
+
+    if (!mb_check_encoding($conteudo, 'UTF-8')) {
+        $convertido = @mb_convert_encoding($conteudo, 'UTF-8', 'Windows-1252, ISO-8859-1');
+
+        if (is_string($convertido) && $convertido !== '') {
+            $conteudo = $convertido;
+        }
+    }
+
+    $conteudo = preg_replace(
+        '/<\?xml\s+version="1\.0"\s+encoding="[^"]*"\s*\?>/i',
+        '<?xml version="1.0" encoding="UTF-8"?>',
+        $conteudo
+    ) ?? $conteudo;
+
+    $conteudoAscii = @iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $conteudo);
+    if (is_string($conteudoAscii) && $conteudoAscii !== '') {
+        $conteudo = $conteudoAscii;
+    }
+
+    return preg_replace('/[^\x09\x0A\x0D\x20-\x7E]/', '', $conteudo) ?? $conteudo;
 }
 
 function Emitir($handle, $ffi, $ALote, $AModoEnvio, &$retornoGeral)

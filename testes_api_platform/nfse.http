@@ -1,6 +1,13 @@
 @baseUrl = http://157.173.110.195:8089/index.php
 @cnpj = 06013812000158
 
+### Observacao para Sao Paulo/SP
+### O provedor do ACBr deve estar configurado como ISSSaoPaulo, com:
+### CodigoMunicipio=3550308
+### LayoutNFSe=0
+### PathSchemas=/var/www/html/Schemas/NFSe/
+### Para Sao Paulo, prefira testar envio via INI ate ter o XML no layout especifico do provedor.
+
 ### NFSe - Ferramentas - OpenSSL info
 GET {{baseUrl}}/nfse/ferramentas/openssl-info
 Accept: application/ld+json
@@ -55,6 +62,7 @@ POST {{baseUrl}}/nfse/demais-provedores/envio/enviar-lote-rps-assincrono?ALote=1
 Content-Type: text/plain
 Accept: application/ld+json
 
+; Para Sao Paulo/SP, use o provedor ISSSaoPaulo no ACBr.
 [RPS]
 Numero=1
 Serie=A1

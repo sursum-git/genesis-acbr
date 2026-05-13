@@ -2,6 +2,17 @@
 
 ## Regra geral
 
+## NFSe Sao Paulo
+
+- Para a cidade de Sao Paulo/SP, o provedor do ACBr deve estar configurado como `ISSSaoPaulo`.
+- Essa selecao nao vai dentro do XML ou do INI de envio; ela fica na configuracao do componente.
+- Configuracao esperada no ACBr:
+  - `CodigoMunicipio=3550308`
+  - `LayoutNFSe=0`
+  - `PathSchemas=/var/www/html/Schemas/NFSe/`
+- Em Sao Paulo, o XML bruto precisa seguir o layout proprio do provedor `ISSSaoPaulo`, que e diferente do XML ABRASF generico.
+- Para testes iniciais de transmissao, prefira enviar INI bruto para o ACBr quando ainda nao houver XML assinado no layout especifico do provedor.
+
 ### Endpoints GET
 
 - Nao usam `payload`.

@@ -43,3 +43,15 @@ run_post_xml() {
     --data-binary "@${xml_file}"
   printf '\n'
 }
+
+run_post_text() {
+  local label="$1"
+  local path="$2"
+  local payload="$3"
+  print_title "$label"
+  curl -sS -X POST "${BASE_URL}${path}" \
+    -H 'Content-Type: text/plain' \
+    -H 'Accept: application/ld+json' \
+    --data-binary "$payload"
+  printf '\n'
+}

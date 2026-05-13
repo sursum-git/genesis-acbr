@@ -510,6 +510,100 @@ Exemplo:
 ANumeroInicial=1000&ANumeroFinal=1010&APagina=1
 ```
 
+### `POST /nfse/padrao-nacional/enviar-evento`
+
+- O corpo deve conter o conteudo completo do arquivo de evento.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+
+Exemplo:
+
+```ini
+[Evento]
+TipoEvento=110111
+Chave=SUBSTITUIR_CHAVE_EVENTO
+```
+
+### `POST /nfse/demais-provedores/cancelamento/cancelar`
+
+- O corpo deve conter o conteudo completo do arquivo de cancelamento.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+
+Exemplo:
+
+```ini
+[CancelamentoNFSe]
+Numero=12345
+CodigoCancelamento=1
+```
+
+### `POST /nfse/demais-provedores/consultas/consultar-nfse-generico`
+
+- O corpo deve conter o conteudo completo do arquivo INI de consulta.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+
+Exemplo:
+
+```ini
+[ConsultaNFSe]
+Numero=12345
+```
+
+### `POST /nfse/demais-provedores/consultas/consultar-link-nfse`
+
+- O corpo deve conter o conteudo completo do arquivo INI da consulta de link.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+
+Exemplo:
+
+```ini
+[ConsultaLinkNFSe]
+Numero=12345
+```
+
+### `POST /nfse/demais-provedores/envio/emitir-nota`
+
+- O corpo deve conter o conteudo completo do XML ou INI da NFSe.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+- `ALote` deve ir na query string.
+
+Exemplo:
+
+```text
+ALote=1
+```
+
+### `POST /nfse/demais-provedores/envio/enviar-lote-rps-assincrono`
+
+- O corpo deve conter o conteudo completo do XML ou INI do lote.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+- `ALote` deve ir na query string.
+
+Exemplo:
+
+```text
+ALote=1
+```
+
+### `POST /nfse/demais-provedores/envio/enviar-lote-rps-sincrono`
+
+- O corpo deve conter o conteudo completo do XML ou INI do lote.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+- `ALote` deve ir na query string.
+
+### `POST /nfse/demais-provedores/envio/enviar-um-rps`
+
+- O corpo deve conter o conteudo completo do XML ou INI do RPS.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+- `ALote` deve ir na query string.
+
 ### `GET /nfse/demais-provedores/envio/link-nfse`
 
 Parametros de query:
@@ -528,6 +622,18 @@ ANumeroNFSe=12345&ACodigoVerificacao=ABC12345&AValorServico=150.00
 ### `GET /nfse/demais-provedores/envio/gerar-token`
 
 - Sem payload.
+
+### `POST /nfse/demais-provedores/envio/salvar-pdf`
+
+- O corpo deve conter o conteudo completo do XML ou INI da NFSe.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
+
+### `POST /nfse/demais-provedores/envio/imprimir-pdf`
+
+- O corpo deve conter o conteudo completo do XML ou INI da NFSe.
+- Nao usa `payload`.
+- Header recomendado: `Content-Type: text/plain`
 
 ### `GET /nfse/demais-provedores/servicos-prestados/por-periodo`
 

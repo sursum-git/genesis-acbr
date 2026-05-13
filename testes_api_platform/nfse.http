@@ -33,6 +33,40 @@ Accept: application/ld+json
 GET {{baseUrl}}/nfse/demais-provedores/consultas/consultar-nfse-por-faixa?ANumeroInicial=1000&ANumeroFinal=1010&APagina=1
 Accept: application/ld+json
 
+### NFSe - Padrao nacional - enviar evento com arquivo bruto
+POST {{baseUrl}}/nfse/padrao-nacional/enviar-evento
+Content-Type: text/plain
+Accept: application/ld+json
+
+[Evento]
+TipoEvento=110111
+Chave=SUBSTITUIR_CHAVE_EVENTO
+
+### NFSe - Demais provedores - consultar NFSe generico com arquivo bruto
+POST {{baseUrl}}/nfse/demais-provedores/consultas/consultar-nfse-generico
+Content-Type: text/plain
+Accept: application/ld+json
+
+[ConsultaNFSe]
+Numero=12345
+
+### NFSe - Demais provedores - enviar lote RPS assincrono com arquivo bruto
+POST {{baseUrl}}/nfse/demais-provedores/envio/enviar-lote-rps-assincrono?ALote=1
+Content-Type: text/plain
+Accept: application/ld+json
+
+[RPS]
+Numero=1
+Serie=A1
+Tipo=1
+
+### NFSe - Demais provedores - salvar PDF com arquivo bruto
+POST {{baseUrl}}/nfse/demais-provedores/envio/salvar-pdf
+Content-Type: text/plain
+Accept: application/ld+json
+
+<NFSe>...</NFSe>
+
 ### NFSe - Demais provedores - link NFSe
 GET {{baseUrl}}/nfse/demais-provedores/envio/link-nfse?ANumeroNFSe=12345&ACodigoVerificacao=ABC12345&AValorServico=150.00
 Accept: application/ld+json

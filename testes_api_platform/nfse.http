@@ -6,7 +6,9 @@
 ### CodigoMunicipio=3550308
 ### LayoutNFSe=0
 ### PathSchemas=/var/www/html/Schemas/NFSe/
-### Para Sao Paulo, prefira testar envio via INI ate ter o XML no layout especifico do provedor.
+### Para Sao Paulo, prefira testar envio via INI.
+### Os XMLs de envio do provedor usam layout proprio (PedidoEnvioRPS/PedidoEnvioLoteRPS)
+### e assinatura digital especifica, diferente do ABRASF generico.
 
 ### NFSe - Ferramentas - OpenSSL info
 GET {{baseUrl}}/nfse/ferramentas/openssl-info
@@ -63,10 +65,45 @@ Content-Type: text/plain
 Accept: application/ld+json
 
 ; Para Sao Paulo/SP, use o provedor ISSSaoPaulo no ACBr.
-[RPS]
+[NFSe]
+Versao=2
+
+[Prestador]
+CNPJ=57039802000122
+InscricaoMunicipal=10768807
+RazaoSocial=TECNO FLEX IND E COM LTDA
+
+[RPS001]
 Numero=1
-Serie=A1
+Serie=TESTE
 Tipo=1
+TipoRPS=RPS
+DataEmissao=14/05/2026
+Competencia=14/05/2026
+StatusRPS=N
+TributacaoRPS=T
+ValorServicos=150.00
+ValorDeducoes=0.00
+ValorPIS=0.00
+ValorCOFINS=0.00
+ValorINSS=0.00
+ValorIR=0.00
+ValorCSLL=0.00
+Aliquota=2.00
+AliquotaServicos=0.0200
+ISSRetido=0
+ValorIss=3.00
+BaseCalculo=150.00
+ValorLiquidoNfse=150.00
+ItemListaServico=0107
+CodigoServico=0107
+CodigoTributacaoMunicipio=0107
+CodigoCnae=6201500
+CodigoMunicipio=3550308
+Discriminacao=Servico de exemplo NFSe Sao Paulo - lote assincrono.
+TomadorCPFCNPJ=12345678000195
+TomadorRazaoSocial=TOMADOR EXEMPLO LTDA
+TomadorEmail=fiscal@tflx.com.br
 
 ### NFSe - Demais provedores - salvar PDF com arquivo bruto
 POST {{baseUrl}}/nfse/demais-provedores/envio/salvar-pdf

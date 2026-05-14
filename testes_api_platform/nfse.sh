@@ -41,4 +41,4 @@ run_post_text \
 run_post_text \
   "NFSe - Demais provedores - enviar lote RPS assincrono com arquivo bruto (placeholder)" \
   "/nfse/demais-provedores/envio/enviar-lote-rps-assincrono?ALote=1" \
-  $'[RPS]\nNumero=1\nSerie=A1\nTipo=1'
+  $'[NFSe]\nVersao=2\n\n[Prestador]\nCNPJ=57039802000122\nInscricaoMunicipal=10768807\nRazaoSocial=TECNO FLEX IND E COM LTDA\n\n[RPS001]\nNumero=1\nSerie=TESTE\nTipo=1\nTipoRPS=RPS\nDataEmissao=14/05/2026\nCompetencia=14/05/2026\nStatusRPS=N\nTributacaoRPS=T\nValorServicos=150.00\nValorDeducoes=0.00\nValorPIS=0.00\nValorCOFINS=0.00\nValorINSS=0.00\nValorIR=0.00\nValorCSLL=0.00\nAliquota=2.00\nAliquotaServicos=0.0200\nISSRetido=0\nValorIss=3.00\nBaseCalculo=150.00\nValorLiquidoNfse=150.00\nItemListaServico=0107\nCodigoServico=0107\nCodigoTributacaoMunicipio=0107\nCodigoCnae=6201500\nCodigoMunicipio=3550308\nDiscriminacao=Servico de exemplo NFSe Sao Paulo - lote assincrono.\nTomadorCPFCNPJ=12345678000195\nTomadorRazaoSocial=TOMADOR EXEMPLO LTDA\nTomadorEmail=fiscal@tflx.com.br'

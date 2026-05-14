@@ -12,6 +12,7 @@
   - `PathSchemas=/var/www/html/Schemas/NFSe/`
 - Em Sao Paulo, o XML bruto precisa seguir o layout proprio do provedor `ISSSaoPaulo`, que e diferente do XML ABRASF generico.
 - Para testes iniciais de transmissao, prefira enviar INI bruto para o ACBr quando ainda nao houver XML assinado no layout especifico do provedor.
+- A inscricao municipal/CCM configurada para os exemplos desta empresa e `10768807`.
 
 ### Endpoints GET
 
@@ -117,6 +118,62 @@ Exemplo:
 ```
 
 ### `POST /nfe/envio/enviar-sincrono-ini`
+
+## NFSe
+
+### `POST /nfse/demais-provedores/envio/enviar-um-rps`
+
+- Para Sao Paulo/SP, envie preferencialmente um INI bruto no corpo.
+- O provedor continua sendo configurado no componente, nao dentro do arquivo.
+
+Exemplo de INI base:
+
+```ini
+[NFSe]
+Versao=2
+
+[Prestador]
+CNPJ=57039802000122
+InscricaoMunicipal=10768807
+RazaoSocial=TECNO FLEX IND E COM LTDA
+
+[RPS001]
+Numero=1
+Serie=TESTE
+Tipo=1
+TipoRPS=RPS
+DataEmissao=14/05/2026
+Competencia=14/05/2026
+StatusRPS=N
+TributacaoRPS=T
+ValorServicos=150.00
+ValorDeducoes=0.00
+ValorPIS=0.00
+ValorCOFINS=0.00
+ValorINSS=0.00
+ValorIR=0.00
+ValorCSLL=0.00
+Aliquota=2.00
+AliquotaServicos=0.0200
+ISSRetido=0
+ValorIss=3.00
+BaseCalculo=150.00
+ValorLiquidoNfse=150.00
+ItemListaServico=0107
+CodigoServico=0107
+CodigoTributacaoMunicipio=0107
+CodigoCnae=6201500
+CodigoMunicipio=3550308
+Discriminacao=Servico de exemplo NFSe Sao Paulo.
+TomadorCPFCNPJ=12345678000195
+TomadorRazaoSocial=TOMADOR EXEMPLO LTDA
+TomadorEmail=fiscal@tflx.com.br
+```
+
+Observacao:
+
+- O XML equivalente para Sao Paulo usa `PedidoEnvioRPS` ou `PedidoEnvioLoteRPS`.
+- Esse XML exige assinatura digital do RPS e assinatura XML do lote/pedido; por isso o INI e o melhor ponto de partida para transmissao pela ACBr.
 
 - O corpo deve conter o conteudo completo de um arquivo INI da NF-e.
 - Nao usa `payload`.

@@ -13,6 +13,8 @@
 - Em Sao Paulo, o XML bruto precisa seguir o layout proprio do provedor `ISSSaoPaulo`, que e diferente do XML ABRASF generico.
 - Para testes iniciais de transmissao, prefira enviar INI bruto para o ACBr quando ainda nao houver XML assinado no layout especifico do provedor.
 - A inscricao municipal/CCM configurada para os exemplos desta empresa e `10768807`.
+- Nesta instalacao da `ACBrLibNFSe`, o provedor `ISSSaoPaulo` nao informa URL de homologacao.
+- Portanto, para este provedor, use ambiente de `Producao` na configuracao do componente/demo.
 
 ### Endpoints GET
 

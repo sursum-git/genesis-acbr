@@ -192,6 +192,18 @@
             display: block;
         }
 
+        .provider-warning {
+            display: none;
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            background: #fff4d6;
+            border: 1px solid #d1a54a;
+            color: #5b4304;
+            font-size: 0.95rem;
+            line-height: 1.4;
+        }
+
         .grid1Col {
             display: grid;
             grid-template-columns: repeat(1, 1fr);
@@ -364,6 +376,7 @@
                                 <label for="producao">Produção</label>
                                 <input type="radio" id="homologacao" name="ambiente" value="1">
                                 <label for="homologacao">Homologação</label>
+                                <div id="providerWarning" class="provider-warning"></div>
                             </div>
                         </div>
                         <div class="grid3Col">
@@ -842,8 +855,14 @@
             });
         });
 
+        $('#CodigoMunicipio, #LayoutNFSe, input[name="ambiente"]').on('change', function() {
+            sincronizaAmbienteProvedor();
+        });
+
         // Chamada do botão para salvar configurações
         $('#salvarConfiguracoes').on('click', function() {
+            sincronizaAmbienteProvedor();
+
             const infoData = {
                 LogPath: $('#LogPath').val(),
                 LogNivel: $('#LogNivel').val(),
@@ -1519,6 +1538,26 @@
                 $('#result').val('Erro: ' + JSON.stringify(retorno, null, 4));
         }
 
+        function isIssSaoPauloConfigurado() {
+            return $('#LayoutNFSe').val() === '0' && $('#CodigoMunicipio').val() === '3550308';
+        }
+
+        function sincronizaAmbienteProvedor() {
+            const warning = $('#providerWarning');
+
+            if (!isIssSaoPauloConfigurado()) {
+                warning.hide().text('');
+                return;
+            }
+
+            warning.text('Nesta instalação da ACBr, o provedor ISSSaoPaulo não informa URL de homologação. Use Produção para testes e transmissões.');
+            warning.show();
+
+            if ($('#homologacao').is(':checked')) {
+                $('#producao').prop('checked', true);
+            }
+        }
+
         function processaRetornoConfiguracoes(response) {
             if (response.dados) {
                 $('#result').val(JSON.stringify(response, null, 4));
@@ -1598,6 +1637,8 @@
                 $('#emailTLS').prop('checked', response.dados.emailTLS == 1);
                 $('#emailUsuario').val(response.dados.emailUsuario);
                 $('#emailSenha').val(response.dados.emailSenha);
+
+                sincronizaAmbienteProvedor();
             } else {
                 processaResponseGeral(response);
             }

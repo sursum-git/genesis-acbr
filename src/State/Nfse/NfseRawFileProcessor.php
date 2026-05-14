@@ -42,24 +42,21 @@ final class NfseRawFileProcessor implements ProcessorInterface
             throw new AcbrLegacyApiException('Operação API Platform sem metadados suficientes para arquivo bruto de NFSe.');
         }
 
-        $tempFile = $this->writeTempFile($this->normalizeEncoding($rawBody));
+        $normalizedBody = $this->normalizeEncoding($rawBody);
+        $this->assertSupportedBody($normalizedBody);
 
-        try {
-            $payload = array_merge(
-                is_array($presetPayload) ? $presetPayload : [],
-                [
-                    $fileParamName => $tempFile,
-                ]
-            );
+        $payload = array_merge(
+            is_array($presetPayload) ? $presetPayload : [],
+            [
+                $fileParamName => $normalizedBody,
+            ]
+        );
 
-            if ($includeLote) {
-                $payload['ALote'] = $this->normalizeLote($request->query->get('ALote', '1'));
-            }
-
-            $resultado = $this->executor->execute($script, $method, $payload);
-        } finally {
-            @unlink($tempFile);
+        if ($includeLote) {
+            $payload['ALote'] = $this->normalizeLote($request->query->get('ALote', '1'));
         }
+
+        $resultado = $this->executor->execute($script, $method, $payload);
 
         $outputClass = $this->resolveOutputClass($operation);
 
@@ -76,27 +73,11 @@ final class NfseRawFileProcessor implements ProcessorInterface
         return $lote === '' ? '1' : $lote;
     }
 
-    private function writeTempFile(string $content): string
+    private function assertSupportedBody(string $content): void
     {
-        $extension = $this->isValidXml($content) ? '.xml' : '.ini';
-
-        if ($extension === '.ini' && !$this->looksLikeIni($content)) {
+        if (!$this->isValidXml($content) && !$this->looksLikeIni($content)) {
             throw new AcbrLegacyApiException('O corpo enviado nao contem um XML nem um INI valido de NFSe.');
         }
-
-        $tempFile = tempnam(sys_get_temp_dir(), 'nfse-raw-');
-        if ($tempFile === false) {
-            throw new AcbrLegacyApiException('Nao foi possivel criar arquivo temporario para a operação de NFSe.');
-        }
-
-        $finalPath = $tempFile . $extension;
-        @unlink($tempFile);
-
-        if (file_put_contents($finalPath, $content) === false) {
-            throw new AcbrLegacyApiException('Nao foi possivel gravar o arquivo temporario da operação de NFSe.');
-        }
-
-        return $finalPath;
     }
 
     private function normalizeEncoding(string $content): string

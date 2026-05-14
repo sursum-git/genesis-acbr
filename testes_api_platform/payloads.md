@@ -129,51 +129,76 @@ Exemplo:
 Exemplo de INI base:
 
 ```ini
-[NFSe]
-Versao=2
+[IdentificacaoNFSe]
+TipoXML=RPS
 
-[Prestador]
-CNPJ=57039802000122
-InscricaoMunicipal=10768807
-RazaoSocial=TECNO FLEX IND E COM LTDA
-
-[RPS001]
+[IdentificacaoRps]
 Numero=1
-Serie=TESTE
-Tipo=1
-TipoRPS=RPS
+Serie=RPS
 DataEmissao=14/05/2026
 Competencia=14/05/2026
-StatusRPS=N
-TributacaoRPS=T
+Tipo=1
+TipoTributacaoRps=T
+NaturezaOperacao=1
+Status=1
+
+[Prestador]
+TipoPessoa=1
+CNPJ=57039802000122
+InscricaoMunicipal=10768807
+InscricaoEstadual=104044963116
+RazaoSocial=TECNO FLEX IND E COM LTDA
+OptanteSN=1
+OptanteMEISimei=2
+IncentivadorCultural=1
+
+[Tomador]
+TipoPessoa=1
+CNPJCPF=12345678000195
+RazaoSocial=TOMADOR EXEMPLO LTDA
+Email=fiscal@tflx.com.br
+Logradouro=RUA DE TESTE
+Numero=100
+Bairro=CENTRO
+CodigoMunicipio=3550308
+xMunicipio=SAO PAULO
+UF=SP
+CEP=01001000
+
+[Servico]
+ItemListaServico=0107
+CodigoTributacaoMunicipio=0107
+CodigoServico=0107
+CodigoCnae=6201500
+Discriminacao=Servico de exemplo NFSe Sao Paulo.
+CodigoMunicipio=3550308
+MunicipioPrestacaoServico=3550308
+ExigibilidadeISS=1
+ResponsavelRetencao=1
+LocalPrestacao=1
+
+[Valores]
 ValorServicos=150.00
 ValorDeducoes=0.00
-ValorPIS=0.00
-ValorCOFINS=0.00
-ValorINSS=0.00
-ValorIR=0.00
-ValorCSLL=0.00
-Aliquota=2.00
-AliquotaServicos=0.0200
-ISSRetido=0
-ValorIss=3.00
+ValorPis=0.00
+ValorCofins=0.00
+ValorInss=0.00
+ValorIr=0.00
+ValorCsll=0.00
 BaseCalculo=150.00
+Aliquota=2.00
+ValorIss=3.00
+ISSRetido=2
 ValorLiquidoNfse=150.00
-ItemListaServico=0107
-CodigoServico=0107
-CodigoTributacaoMunicipio=0107
-CodigoCnae=6201500
-CodigoMunicipio=3550308
-Discriminacao=Servico de exemplo NFSe Sao Paulo.
-TomadorCPFCNPJ=12345678000195
-TomadorRazaoSocial=TOMADOR EXEMPLO LTDA
-TomadorEmail=fiscal@tflx.com.br
+ValorTotalNotaFiscal=150.00
 ```
 
 Observacao:
 
 - O XML equivalente para Sao Paulo usa `PedidoEnvioRPS` ou `PedidoEnvioLoteRPS`.
 - Esse XML exige assinatura digital do RPS e assinatura XML do lote/pedido; por isso o INI e o melhor ponto de partida para transmissao pela ACBr.
+- Com esse formato, a ACBr ja gera um `PedidoEnvioRPS` estruturalmente valido.
+- O proximo bloqueio atual do ambiente e externo ao arquivo: `Nao informado a URL de Homologacao`.
 
 - O corpo deve conter o conteudo completo de um arquivo INI da NF-e.
 - Nao usa `payload`.

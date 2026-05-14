@@ -150,6 +150,15 @@ function CarregaContents($importsPath, $dllPath)
 
 function VerificaXmlOuIni($conteudo)
 {
+    if (!is_string($conteudo)) {
+        return -1;
+    }
+
+    $conteudo = preg_replace('/^\xEF\xBB\xBF/', '', $conteudo) ?? $conteudo;
+    $conteudo = ltrim($conteudo);
+    $conteudo = preg_replace('/^(?:;[^\r\n]*[\r\n]+)+/', '', $conteudo) ?? $conteudo;
+    $conteudo = ltrim($conteudo);
+
     // 0=Ini
     if (preg_match('/^\[[^\]]+\]/', $conteudo)) {
         return 0;

@@ -6,12 +6,18 @@ Arquivos de contexto adicionados para descrever a arquitetura atualmente existen
 - `docs/MAPA_MODULOS_API.md`: mapa dos modulos e da exposicao atual da API
 - `docs/FLUXO_INTEGRACAO_LEGADO.md`: como a camada Symfony/API Platform integra com o legado ACBr
 - `docs/CATALOGO_PROGRAMAS_SQLITE.md`: regras do catalogo local de programas em SQLite
+- `docs/CONTEXTO_ACUMULADO_PROJETO.md`: consolidacao do estado pratico do projeto e das decisoes acumuladas
+- `docs/HISTORICO_IMPLEMENTACOES_ACBR.md`: historico resumido das implementacoes por fase
+- `docs/OPERACAO_NFSE_SAO_PAULO.md`: situacao operacional especifica da NFSe Sao Paulo
 
 Leitura recomendada:
 
 1. `ARQUITETURA_ATUAL.md`
 2. `MAPA_MODULOS_API.md`
 3. `FLUXO_INTEGRACAO_LEGADO.md`
+4. `CONTEXTO_ACUMULADO_PROJETO.md`
+5. `HISTORICO_IMPLEMENTACOES_ACBR.md`
+6. `OPERACAO_NFSE_SAO_PAULO.md`
 
 ## Regra Operacional do Projeto
 

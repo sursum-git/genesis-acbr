@@ -9,6 +9,7 @@ Arquivos de contexto adicionados para descrever a arquitetura atualmente existen
 - `docs/CONTEXTO_ACUMULADO_PROJETO.md`: consolidacao do estado pratico do projeto e das decisoes acumuladas
 - `docs/HISTORICO_IMPLEMENTACOES_ACBR.md`: historico resumido das implementacoes por fase
 - `docs/OPERACAO_NFSE_SAO_PAULO.md`: situacao operacional especifica da NFSe Sao Paulo
+- `docs/CHANGELOG_OPERACIONAL.md`: historico cronologico operacional do projeto
 
 Leitura recomendada:
 
@@ -18,6 +19,7 @@ Leitura recomendada:
 4. `CONTEXTO_ACUMULADO_PROJETO.md`
 5. `HISTORICO_IMPLEMENTACOES_ACBR.md`
 6. `OPERACAO_NFSE_SAO_PAULO.md`
+7. `CHANGELOG_OPERACIONAL.md`
 
 ## Regra Operacional do Projeto
 

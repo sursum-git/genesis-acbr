@@ -1,18 +1,18 @@
 :root {
-    --bg: #f2ede2;
-    --panel: #fffaf1;
-    --ink: #1e1f1c;
-    --muted: #5f6156;
-    --line: #d8cfbf;
-    --accent: #a63d2f;
-    --accent-2: #d9a441;
-    --accent-3: #7c2f24;
-    --chip: #ece2ce;
-    --chip-success: #d9ead6;
-    --chip-danger: #f3d7d2;
-    --chip-warning: #f5e8c9;
-    --shadow: 0 22px 60px rgba(57, 43, 16, 0.15);
-    --shadow-soft: 0 10px 26px rgba(57, 43, 16, 0.08);
+    --bg: #eef4fb;
+    --panel: #ffffff;
+    --ink: #12304d;
+    --muted: #5f7891;
+    --line: #d6e3f1;
+    --accent: #1f5fae;
+    --accent-2: #5f9ae6;
+    --accent-3: #17477f;
+    --chip: #e6f0fb;
+    --chip-success: #dff3e8;
+    --chip-danger: #f8e1e5;
+    --chip-warning: #fff0d9;
+    --shadow: 0 22px 60px rgba(18, 48, 77, 0.12);
+    --shadow-soft: 0 10px 26px rgba(18, 48, 77, 0.07);
 }
 
 * {
@@ -24,9 +24,9 @@ body.page-body {
     font-family: Georgia, "Times New Roman", serif;
     color: var(--ink);
     background:
-        radial-gradient(circle at top left, rgba(217, 164, 65, 0.25), transparent 24%),
-        radial-gradient(circle at bottom right, rgba(166, 61, 47, 0.14), transparent 22%),
-        linear-gradient(135deg, #efe6d6 0%, #f8f3ea 48%, #ece0ce 100%);
+        radial-gradient(circle at top left, rgba(95, 154, 230, 0.18), transparent 24%),
+        radial-gradient(circle at bottom right, rgba(31, 95, 174, 0.12), transparent 22%),
+        linear-gradient(135deg, #edf4fb 0%, #f8fbff 48%, #e4eef9 100%);
 }
 
 .shell {

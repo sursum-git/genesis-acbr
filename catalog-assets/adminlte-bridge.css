@@ -2,9 +2,9 @@
     --admin-surface: #f4f6f9;
     --admin-shell-line: rgba(13, 27, 42, 0.08);
     --admin-shell-shadow: 0 18px 40px rgba(15, 23, 42, 0.08);
-    --admin-brand: #8f2d1f;
-    --admin-brand-soft: #f7ede7;
-    --admin-brand-ink: #4c1d14;
+    --admin-brand: #1f5fae;
+    --admin-brand-soft: #e8f1fb;
+    --admin-brand-ink: #143f73;
 }
 
 body {
@@ -51,7 +51,7 @@ body.page-body {
 }
 
 .app-sidebar .nav-link.active {
-    background: rgba(255, 255, 255, 0.14);
+    background: rgba(95, 154, 230, 0.34);
 }
 
 .app-sidebar .nav-link p {
@@ -219,6 +219,31 @@ body.page-body {
 .admin-page .alert-card {
     border: 1px solid var(--admin-shell-line);
     background: #fff;
+}
+
+.app-header.navbar {
+    border-bottom: 1px solid #d7e5f3;
+}
+
+.app-sidebar {
+    background: linear-gradient(180deg, #1a4f8f 0%, #123967 100%) !important;
+}
+
+.app-sidebar .sidebar-brand {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.app-sidebar .nav-link {
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.app-sidebar .nav-link:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+}
+
+.app-sidebar .nav-header {
+    color: rgba(214, 233, 252, 0.78);
 }
 
 .admin-page .hero {

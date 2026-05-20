@@ -1,0 +1,92 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Monitoramento{% endblock %}
+{% block header_title %}Monitoramento{% endblock %}
+{% block header_subtitle %}Falhas recentes, testes observados e atalhos para os painéis operacionais.{% endblock %}
+
+{% block body %}
+    <section class="admin-focus-hero">
+        <div class="hero">
+            <div class="hero-copy">
+                <h1>Monitoramento</h1>
+                <p>Esta página concentra os sinais operacionais que estavam espalhados na home anterior: falhas recentes, últimos testes observados e atalhos para inspeção detalhada.</p>
+            </div>
+            <div class="hero-stats">
+                <article class="stat-card">
+                    <strong>Falhas</strong>
+                    <span>{{ auditSummary.falhas }}</span>
+                </article>
+                <article class="stat-card">
+                    <strong>Tempo máximo</strong>
+                    <span>{{ auditMetrics.tempo_max_ms }} ms</span>
+                </article>
+                <article class="stat-card">
+                    <strong>Execuções</strong>
+                    <span>{{ testSummary.total_runs }}</span>
+                </article>
+                <article class="stat-card">
+                    <strong>Com payload</strong>
+                    <span>{{ testSummary.payload_tests }}</span>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="admin-focus-grid">
+        {% for item in overviewItems %}
+            <article class="admin-focus-card">
+                <div>
+                    <h3>{{ item.label }}</h3>
+                    <p>{{ item.description }}</p>
+                </div>
+                <div class="actions">
+                    <a class="button button-primary" href="{{ item.url }}">Abrir</a>
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+
+    <section class="admin-focus-split mt-4">
+        <article class="admin-overview-panel">
+            <h2>Falhas recentes</h2>
+            <p>Atalhos para as últimas requisições com falha registradas na auditoria.</p>
+            <div class="admin-overview-list">
+                {% if recentFailures is empty %}
+                    <div class="admin-overview-item">
+                        <strong>Sem falhas recentes</strong>
+                        <span>Não houve erro recente no recorte carregado.</span>
+                    </div>
+                {% else %}
+                    {% for failure in recentFailures %}
+                        <a class="admin-overview-item text-decoration-none text-reset" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?requisicao=' ~ failure.u_c_request_id ~ '#audit-workspace' }}">
+                            <strong>{{ failure.c_programa|default('programa n/d') }} • {{ failure.c_metodo_http|default('HTTP') }}</strong>
+                            <span>{{ failure.c_caminho|default('caminho n/d') }}</span>
+                            <small>{{ failure.dt_hr_recebimento|default('data n/d') }}</small>
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </article>
+
+        <article class="admin-overview-panel">
+            <h2>Testes observados</h2>
+            <p>Últimos cenários capturados para voltar rápido ao catálogo de testes.</p>
+            <div class="admin-overview-list">
+                {% if recentTests is empty %}
+                    <div class="admin-overview-item">
+                        <strong>Sem testes recentes</strong>
+                        <span>Nenhum cenário recente foi identificado.</span>
+                    </div>
+                {% else %}
+                    {% for test in recentTests %}
+                        <a class="admin-overview-item text-decoration-none text-reset" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?teste=' ~ test.code ~ '#test-workspace' }}">
+                            <strong>{{ test.name }}</strong>
+                            <span>{{ test.group_name }} • {{ test.method }} {{ test.path }}</span>
+                            <small>{{ test.last_recorded_at|default('data n/d') }}</small>
+                        </a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+        </article>
+    </section>
+{% endblock %}

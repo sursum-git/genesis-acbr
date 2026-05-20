@@ -1,0 +1,53 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}{{ title }}{% endblock %}
+{% block header_title %}{{ title }}{% endblock %}
+{% block header_subtitle %}{{ subtitle }}{% endblock %}
+
+{% block body %}
+    <section class="admin-focus-hero">
+        <div class="hero">
+            <div class="hero-copy">
+                <h1>{{ title }}</h1>
+                <p>{{ subtitle }}</p>
+            </div>
+            {% if metrics is defined and metrics is not empty %}
+                <div class="hero-stats">
+                    {% for metric in metrics %}
+                        <article class="stat-card">
+                            <strong>{{ metric.label }}</strong>
+                            <span>{{ metric.value }}</span>
+                        </article>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <section class="admin-focus-grid">
+        {% for item in items %}
+            <article class="admin-focus-card">
+                <div>
+                    <h3>{{ item.label }}</h3>
+                    <p>{{ item.description }}</p>
+                </div>
+                {% if item.meta is defined and item.meta is not empty %}
+                    <div class="meta">
+                        {% for meta in item.meta %}
+                            <span>{{ meta }}</span>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                <div class="actions">
+                    {% if item.actions is defined and item.actions is not empty %}
+                        {% for action in item.actions %}
+                            <a class="button {{ action.variant|default('button-primary') }}" href="{{ action.url }}"{% if action.target_blank|default(false) %} target="_blank" rel="noreferrer"{% endif %}>{{ action.label }}</a>
+                        {% endfor %}
+                    {% else %}
+                        <a class="button button-primary" href="{{ item.url }}"{% if item.target_blank|default(false) %} target="_blank" rel="noreferrer"{% endif %}>Abrir</a>
+                    {% endif %}
+                </div>
+            </article>
+        {% endfor %}
+    </section>
+{% endblock %}

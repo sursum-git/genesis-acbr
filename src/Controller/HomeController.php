@@ -19,98 +19,119 @@ final class HomeController extends AbstractController
     #[Route('/', name: 'app_home', methods: ['GET'])]
     public function home(): Response
     {
-        $auditSummary = $this->auditRepository->getSummary([]);
-        $auditMetrics = $this->auditRepository->getAdvancedMetrics([]);
-        $recentFailures = $this->auditRepository->findRecentFailures(6);
-        $testSummary = $this->testRepository->getSummary();
-        $recentTests = $this->testRepository->findRecentObservedTests(6);
+        return $this->render('home/dashboard.html.twig', array_merge($this->buildDashboardContext(), [
+            'shortcuts' => [
+                [
+                    'title' => 'Operação por módulo',
+                    'description' => 'Docs, testes e auditoria separados por CEP, NFe e NFSe.',
+                    'meta' => 'Página dedicada a fluxos por módulo',
+                ],
+                [
+                    'title' => 'Documentação',
+                    'description' => 'Entradas diretas para o API Platform geral e filtrado.',
+                    'meta' => 'Somente navegação de docs',
+                ],
+                [
+                    'title' => 'Monitoramento',
+                    'description' => 'Falhas, testes recentes e atalhos para auditoria e catálogos.',
+                    'meta' => 'Painel de acompanhamento operacional',
+                ],
+            ],
+            'focusAreas' => [
+                [
+                    'title' => 'Operação por módulo',
+                    'description' => 'Escolha CEP, NFe ou NFSe e entre nos três fluxos centrais de cada módulo.',
+                    'badges' => ['Docs', 'Testes', 'Auditoria'],
+                    'url' => '/index.php/operacao',
+                ],
+                [
+                    'title' => 'Documentação',
+                    'description' => 'Acesso limpo ao Swagger/API Platform sem misturar atalhos operacionais.',
+                    'badges' => ['Todos', 'CEP', 'NFe', 'NFSe'],
+                    'url' => '/index.php/apis',
+                ],
+                [
+                    'title' => 'Demos legados',
+                    'description' => 'Entrada separada para os aplicativos antigos ainda usados no runtime.',
+                    'badges' => ['Boleto', 'CEP', 'Consulta CNPJ', 'GTIN', 'NFe', 'NFSe'],
+                    'url' => '/index.php/demos',
+                ],
+                [
+                    'title' => 'Monitoramento',
+                    'description' => 'Falhas recentes, testes observados e acesso rápido aos catálogos de inspeção.',
+                    'badges' => ['Falhas', 'Testes', 'Auditoria'],
+                    'url' => '/index.php/monitoramento',
+                ],
+            ],
+        ]));
+    }
 
-        return $this->render('home/hub.html.twig', [
-            'apisUrl' => '/index.php/apis',
-            'demosUrl' => '/index.php/demos',
-            'catalogUrl' => '/index.php/catalogo-programas',
-            'testCatalogUrl' => '/index.php/catalogo-testes',
-            'auditDashboardUrl' => '/index.php/auditoria-requisicoes',
-            'apiOptions' => [
-                ['label' => 'API Platform: Tudo', 'url' => '/index.php/docs/todos/', 'description' => 'Documentação completa de todas as APIs.'],
-                ['label' => 'API Platform: CEP', 'url' => '/index.php/docs/cep/', 'description' => 'Endpoints e exemplos do módulo CEP.'],
-                ['label' => 'API Platform: NFe', 'url' => '/index.php/docs/nfe/', 'description' => 'Endpoints, consultas e operações de NFe.'],
-                ['label' => 'API Platform: NFSe', 'url' => '/index.php/docs/nfse/', 'description' => 'Endpoints e operações do módulo NFSe.'],
-            ],
-            'demoOptions' => [
-                ['label' => 'Boleto', 'url' => '/Boleto/ACBrBoletoDemoMT.php', 'description' => 'Demo legado do módulo de boleto.'],
-                ['label' => 'CEP', 'url' => '/ConsultaCEP/ACBrCEPDemoMT.php', 'description' => 'Demo legado de consulta CEP.'],
-                ['label' => 'Consulta CNPJ', 'url' => '/ConsultaCNPJ/ACBrConsultaCNPJDemoMT.php', 'description' => 'Demo legado de consulta de CNPJ.'],
-                ['label' => 'GTIN', 'url' => '/GTIN/ACBrGTINDemoMT.php', 'description' => 'Demo legado do módulo GTIN.'],
-                ['label' => 'NFe', 'url' => '/NFe/ACBrNFeDemoMT.php', 'description' => 'Demo legado do módulo NFe.'],
-                ['label' => 'NFSe', 'url' => '/NFSe/ACBrNFSeDemoMT.php', 'description' => 'Demo legado do módulo NFSe.'],
-            ],
-            'testModuleOptions' => [
-                ['label' => 'Todos os testes', 'url' => '/index.php/catalogo-testes', 'description' => 'Abrir o catálogo completo de cenários gravados.'],
-                ['label' => 'Testes CEP', 'url' => '/index.php/catalogo-testes?grupo=cep', 'description' => 'Filtrar cenários do módulo CEP.'],
-                ['label' => 'Testes NFe', 'url' => '/index.php/catalogo-testes?grupo=nfe', 'description' => 'Filtrar cenários do módulo NFe.'],
-                ['label' => 'Testes NFSe', 'url' => '/index.php/catalogo-testes?grupo=nfse', 'description' => 'Filtrar cenários do módulo NFSe.'],
-            ],
-            'auditModuleOptions' => [
-                ['label' => 'Auditoria geral', 'url' => '/index.php/auditoria-requisicoes', 'description' => 'Abrir o dashboard completo sem filtro de módulo.'],
-                ['label' => 'Auditoria CEP', 'url' => '/index.php/auditoria-requisicoes?programa=cep', 'description' => 'Abrir a auditoria filtrada no módulo CEP.'],
-                ['label' => 'Auditoria NFe', 'url' => '/index.php/auditoria-requisicoes?programa=nfe', 'description' => 'Abrir a auditoria filtrada no módulo NFe.'],
-                ['label' => 'Auditoria NFSe', 'url' => '/index.php/auditoria-requisicoes?programa=nfse', 'description' => 'Abrir a auditoria filtrada no módulo NFSe.'],
-            ],
-            'failureModuleOptions' => [
-                ['label' => 'Todas as falhas', 'url' => '/index.php/auditoria-requisicoes?status_processamento=4', 'description' => 'Ver a fila completa de falhas recentes.'],
-                ['label' => 'Falhas CEP', 'url' => '/index.php/auditoria-requisicoes?programa=cep&status_processamento=4', 'description' => 'Ver falhas recentes do módulo CEP.'],
-                ['label' => 'Falhas NFe', 'url' => '/index.php/auditoria-requisicoes?programa=nfe&status_processamento=4', 'description' => 'Ver falhas recentes do módulo NFe.'],
-                ['label' => 'Falhas NFSe', 'url' => '/index.php/auditoria-requisicoes?programa=nfse&status_processamento=4', 'description' => 'Ver falhas recentes do módulo NFSe.'],
-            ],
-            'moduleStacks' => [
+    #[Route('/operacao', name: 'app_operations', methods: ['GET'])]
+    public function operations(): Response
+    {
+        return $this->render('home/focus_page.html.twig', [
+            'title' => 'Operação por Módulo',
+            'subtitle' => 'Cada card agrupa apenas os acessos operacionais do mesmo módulo: documentação, testes gravados e auditoria filtrada.',
+            'items' => [
                 [
                     'label' => 'CEP',
-                    'description' => 'Acessos principais do módulo CEP.',
-                    'links' => [
-                        ['label' => 'Docs', 'url' => '/index.php/docs/cep/'],
-                        ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=cep'],
-                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=cep'],
+                    'description' => 'Operação principal do módulo CEP com docs, catálogo de testes e auditoria filtrada.',
+                    'meta' => ['Docs', 'Testes', 'Auditoria'],
+                    'actions' => [
+                        ['label' => 'Docs', 'url' => '/index.php/docs/cep/', 'variant' => 'button-primary'],
+                        ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=cep', 'variant' => 'button-secondary'],
+                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=cep', 'variant' => 'button-tertiary'],
                     ],
                 ],
                 [
                     'label' => 'NFe',
-                    'description' => 'Acessos principais do módulo NFe.',
-                    'links' => [
-                        ['label' => 'Docs', 'url' => '/index.php/docs/nfe/'],
-                        ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=nfe'],
-                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=nfe'],
+                    'description' => 'Acesso direto aos fluxos mais usados de NFe sem passar por páginas misturadas.',
+                    'meta' => ['Docs', 'Testes', 'Auditoria'],
+                    'actions' => [
+                        ['label' => 'Docs', 'url' => '/index.php/docs/nfe/', 'variant' => 'button-primary'],
+                        ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=nfe', 'variant' => 'button-secondary'],
+                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=nfe', 'variant' => 'button-tertiary'],
                     ],
                 ],
                 [
                     'label' => 'NFSe',
-                    'description' => 'Acessos principais do módulo NFSe.',
-                    'links' => [
-                        ['label' => 'Docs', 'url' => '/index.php/docs/nfse/'],
-                        ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=nfse'],
-                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=nfse'],
+                    'description' => 'Entrada unificada do módulo NFSe para consulta, operação e acompanhamento.',
+                    'meta' => ['Docs', 'Testes', 'Auditoria'],
+                    'actions' => [
+                        ['label' => 'Docs', 'url' => '/index.php/docs/nfse/', 'variant' => 'button-primary'],
+                        ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=nfse', 'variant' => 'button-secondary'],
+                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=nfse', 'variant' => 'button-tertiary'],
                     ],
                 ],
+                [
+                    'label' => 'Catálogo de Programas',
+                    'description' => 'Inventário técnico do backend para navegar por programa e histórico.',
+                    'meta' => ['SQLite', 'Inventário'],
+                    'url' => '/index.php/catalogo-programas',
+                ],
             ],
-            'auditSummary' => $auditSummary,
-            'auditMetrics' => $auditMetrics,
-            'recentFailures' => $recentFailures,
-            'testSummary' => $testSummary,
-            'recentTests' => $recentTests,
+            'metrics' => [
+                ['label' => 'Módulos centrais', 'value' => '3'],
+                ['label' => 'Catálogos', 'value' => '2'],
+                ['label' => 'Painel auditável', 'value' => '1'],
+            ],
         ]);
     }
 
     #[Route('/apis', name: 'app_apis', methods: ['GET'])]
     public function apis(): Response
     {
-        return $this->render('home/section.html.twig', [
-            'title' => 'APIs',
-            'subtitle' => 'Documentação separada por módulo e catálogo completo do API Platform.',
+        return $this->render('home/focus_page.html.twig', [
+            'title' => 'Documentação',
+            'subtitle' => 'Página dedicada apenas aos acessos do API Platform, com recortes separados por módulo.',
             'items' => [
-                ['label' => 'API Platform: Tudo', 'url' => '/index.php/docs/todos/'],
-                ['label' => 'API Platform: CEP', 'url' => '/index.php/docs/cep/'],
-                ['label' => 'API Platform: NFe', 'url' => '/index.php/docs/nfe/'],
-                ['label' => 'API Platform: NFSe', 'url' => '/index.php/docs/nfse/'],
+                ['label' => 'API Platform: Tudo', 'url' => '/index.php/docs/todos/', 'description' => 'Documentação completa de todas as APIs publicadas.', 'meta' => ['Visão geral']],
+                ['label' => 'API Platform: CEP', 'url' => '/index.php/docs/cep/', 'description' => 'Endpoints e exemplos do módulo CEP.', 'meta' => ['Filtro CEP']],
+                ['label' => 'API Platform: NFe', 'url' => '/index.php/docs/nfe/', 'description' => 'Consultas, envio, eventos e ferramentas de NFe.', 'meta' => ['Filtro NFe']],
+                ['label' => 'API Platform: NFSe', 'url' => '/index.php/docs/nfse/', 'description' => 'Operações e grupos de endpoints da NFSe.', 'meta' => ['Filtro NFSe']],
+            ],
+            'metrics' => [
+                ['label' => 'Visões de docs', 'value' => '4'],
             ],
         ]);
     }
@@ -118,17 +139,60 @@ final class HomeController extends AbstractController
     #[Route('/demos', name: 'app_demos', methods: ['GET'])]
     public function demos(): Response
     {
-        return $this->render('home/section.html.twig', [
+        return $this->render('home/focus_page.html.twig', [
             'title' => 'Demos Legados',
-            'subtitle' => 'Acesso direto às aplicações antigas enquanto a conversão para API continua.',
+            'subtitle' => 'Página exclusiva para as aplicações antigas que continuam úteis para validação do legado ACBr.',
             'items' => [
-                ['label' => 'Boleto', 'url' => '/Boleto/ACBrBoletoDemoMT.php'],
-                ['label' => 'CEP', 'url' => '/ConsultaCEP/ACBrCEPDemoMT.php'],
-                ['label' => 'ConsultaCNPJ', 'url' => '/ConsultaCNPJ/ACBrConsultaCNPJDemoMT.php'],
-                ['label' => 'GTIN', 'url' => '/GTIN/ACBrGTINDemoMT.php'],
-                ['label' => 'NFe', 'url' => '/NFe/ACBrNFeDemoMT.php'],
-                ['label' => 'NFSe', 'url' => '/NFSe/ACBrNFSeDemoMT.php'],
+                ['label' => 'Boleto', 'url' => '/Boleto/ACBrBoletoDemoMT.php', 'description' => 'Demo legado do módulo de boleto.', 'meta' => ['Legado'], 'target_blank' => true],
+                ['label' => 'CEP', 'url' => '/ConsultaCEP/ACBrCEPDemoMT.php', 'description' => 'Demo legado de consulta CEP.', 'meta' => ['Legado'], 'target_blank' => true],
+                ['label' => 'Consulta CNPJ', 'url' => '/ConsultaCNPJ/ACBrConsultaCNPJDemoMT.php', 'description' => 'Demo legado de consulta de CNPJ.', 'meta' => ['Legado'], 'target_blank' => true],
+                ['label' => 'GTIN', 'url' => '/GTIN/ACBrGTINDemoMT.php', 'description' => 'Demo legado do módulo GTIN.', 'meta' => ['Legado'], 'target_blank' => true],
+                ['label' => 'NFe', 'url' => '/NFe/ACBrNFeDemoMT.php', 'description' => 'Demo legado do módulo NFe.', 'meta' => ['Legado'], 'target_blank' => true],
+                ['label' => 'NFSe', 'url' => '/NFSe/ACBrNFSeDemoMT.php', 'description' => 'Demo legado do módulo NFSe.', 'meta' => ['Legado'], 'target_blank' => true],
+            ],
+            'metrics' => [
+                ['label' => 'Demos ativas', 'value' => '6'],
             ],
         ]);
+    }
+
+    #[Route('/monitoramento', name: 'app_monitoring', methods: ['GET'])]
+    public function monitoring(): Response
+    {
+        $context = $this->buildDashboardContext();
+
+        return $this->render('home/monitoring.html.twig', array_merge($context, [
+            'overviewItems' => [
+                [
+                    'label' => 'Auditoria completa',
+                    'description' => 'Abrir o dashboard com filtros, métricas e detalhe completo das requisições.',
+                    'url' => '/index.php/auditoria-requisicoes',
+                ],
+                [
+                    'label' => 'Catálogo de Testes',
+                    'description' => 'Inspecionar cenários gravados, payloads e reruns operacionais.',
+                    'url' => '/index.php/catalogo-testes',
+                ],
+                [
+                    'label' => 'Catálogo de Programas',
+                    'description' => 'Consultar o inventário técnico e o histórico local de módulos.',
+                    'url' => '/index.php/catalogo-programas',
+                ],
+            ],
+        ]));
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function buildDashboardContext(): array
+    {
+        return [
+            'auditSummary' => $this->auditRepository->getSummary([]),
+            'auditMetrics' => $this->auditRepository->getAdvancedMetrics([]),
+            'recentFailures' => $this->auditRepository->findRecentFailures(6),
+            'testSummary' => $this->testRepository->getSummary(),
+            'recentTests' => $this->testRepository->findRecentObservedTests(6),
+        ];
     }
 }

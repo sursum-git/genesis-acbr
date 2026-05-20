@@ -1,13 +1,8 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Catálogo{% endblock %}</title>
-    <link rel="icon" href="https://raw.githubusercontent.com/Projeto-ACBr-Oficial/Docker/main/PHP/img/favico-acbr.png" type="image/x-icon">
-    <link rel="stylesheet" href="{{ app.request.basePath ~ '/catalog-assets/catalog.css' }}">
-</head>
-<body class="page-body">
+{% extends 'admin/base.html.twig' %}
+
+{% block page_styles %}{% endblock %}
+
+{% block body %}
     <div class="shell">
         <nav class="catalog-nav">
             <a class="nav-link" href="{{ app.request.basePath ~ '/index.php/' }}">Hub</a>
@@ -16,15 +11,11 @@
             <a class="nav-link{% if app.request.attributes.get('_route') == 'app_api_audit_dashboard' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}">Auditoria</a>
         </nav>
 
-        {% for message in app.flashes('success') %}
-            <div class="flash flash-success">{{ message }}</div>
-        {% endfor %}
-        {% for message in app.flashes('error') %}
-            <div class="flash flash-error">{{ message }}</div>
-        {% endfor %}
-
-        {% block body %}{% endblock %}
+        {% block catalog_body %}{% endblock %}
     </div>
+{% endblock %}
+
+{% block page_scripts %}
     <script>
         function persistCatalogFilters(form) {
             const storageKey = form.dataset.filterStorage || '';
@@ -668,6 +659,4 @@
 
         });
     </script>
-    {% block page_scripts %}{% endblock %}
-</body>
-</html>
+{% endblock %}

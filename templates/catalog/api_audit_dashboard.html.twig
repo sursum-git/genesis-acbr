@@ -1,0 +1,783 @@
+{% extends 'catalog/base.html.twig' %}
+
+{% block title %}Auditoria de Requisições{% endblock %}
+
+{% block body %}
+    <section class="hero">
+        <div class="hero-copy">
+            <h1>Auditoria de Requisições</h1>
+            <p>Painel operacional das chamadas gravadas no PostgreSQL, com filtros por assinante, data, método, endpoint, status, modo de execução e programa atendente.</p>
+        </div>
+        <div class="hero-stats">
+            <article class="stat-card">
+                <strong>Total filtrado</strong>
+                <span>{{ summary.total }}</span>
+            </article>
+            <article class="stat-card">
+                <strong>Concluídas</strong>
+                <span>{{ summary.concluidas }}</span>
+            </article>
+            <article class="stat-card">
+                <strong>Falhas</strong>
+                <span>{{ summary.falhas }}</span>
+            </article>
+            <article class="stat-card">
+                <strong>Assinantes</strong>
+                <span>{{ summary.assinantes }}</span>
+            </article>
+            <article class="stat-card">
+                <strong>Tempo médio</strong>
+                <span>{{ advancedMetrics.tempo_medio_ms }} ms</span>
+            </article>
+            <article class="stat-card">
+                <strong>Tempo máximo</strong>
+                <span>{{ advancedMetrics.tempo_max_ms }} ms</span>
+            </article>
+            <article class="stat-card">
+                <strong>Taxa de erro</strong>
+                <span>{{ advancedMetrics.taxa_erro_perc }}%</span>
+            </article>
+        </div>
+    </section>
+
+    <section class="panel compact-panel">
+        <div class="action-bar compact-bar">
+            <div class="compact-copy">
+                <strong>Modo de inspeção</strong>
+                <span>Alterna uma leitura mais densa da auditoria sem mudar filtros ou seleção.</span>
+            </div>
+            <button class="button button-secondary" type="button" data-audit-compact-toggle>Modo compacto</button>
+        </div>
+    </section>
+
+    <section class="panel executive-panel">
+        <div class="panel-header">
+            <h2>Leitura Executiva</h2>
+            <p>{{ comparison.label_atual }} contra {{ comparison.label_anterior }}</p>
+        </div>
+        <div class="details executive-details">
+            <div class="executive-deltas">
+                <div class="executive-delta-card">
+                    <strong>Volume</strong>
+                    <span>{{ comparison.atual.total }}</span>
+                    <small class="comparison-delta is-{{ comparison.deltas.total.trend }}">{{ comparison.deltas.total.formatted }} | {{ comparison.deltas.total.percent }}%</small>
+                </div>
+                <div class="executive-delta-card">
+                    <strong>Falhas</strong>
+                    <span>{{ comparison.atual.falhas }}</span>
+                    <small class="comparison-delta is-{{ comparison.deltas.falhas.trend }}">{{ comparison.deltas.falhas.formatted }} | {{ comparison.deltas.falhas.percent }}%</small>
+                </div>
+                <div class="executive-delta-card">
+                    <strong>Tempo médio</strong>
+                    <span>{{ comparison.atual.tempo_medio_ms }} ms</span>
+                    <small class="comparison-delta is-{{ comparison.deltas.tempo_medio_ms.trend }}">{{ comparison.deltas.tempo_medio_ms.formatted }} | {{ comparison.deltas.tempo_medio_ms.percent }}%</small>
+                </div>
+                <div class="executive-delta-card">
+                    <strong>Taxa de erro</strong>
+                    <span>{{ comparison.atual.taxa_erro_perc }}%</span>
+                    <small class="comparison-delta is-{{ comparison.deltas.taxa_erro_perc.trend }}">{{ comparison.deltas.taxa_erro_perc.formatted }}</small>
+                </div>
+            </div>
+            <div class="alert-ribbon">
+                {% for alert in alerts %}
+                    <div class="alert-item is-{{ alert.nivel }}">
+                        <strong>{{ alert.titulo }}</strong>
+                        <span>{{ alert.mensagem }}</span>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Filtros</h2>
+            <p>Use combinações simples para localizar chamadas específicas ou analisar um período.</p>
+        </div>
+
+        <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}" data-filter-storage="auditoria_requisicoes_filtros" data-clear-storage-selector="[data-clear-audit-filters]">
+            <input type="text" name="q" value="{{ filters.q }}" placeholder="Buscar por request_id, endpoint, operação, assinante...">
+            <select name="assinante">
+                <option value="">Todos os assinantes</option>
+                {% for assinante in assinantes %}
+                    <option value="{{ assinante.identificador }}"{% if filters.assinante == assinante.identificador %} selected{% endif %}>
+                        {{ assinante.identificador }}{% if assinante.nome %} - {{ assinante.nome }}{% endif %}
+                    </option>
+                {% endfor %}
+            </select>
+            <select name="metodo">
+                <option value="">Todos os métodos</option>
+                {% for method in methods %}
+                    <option value="{{ method }}"{% if filters.metodo == method %} selected{% endif %}>{{ method }}</option>
+                {% endfor %}
+            </select>
+            <select name="modo">
+                <option value="">Todos os modos</option>
+                {% for mode in modes %}
+                    <option value="{{ mode }}"{% if filters.modo == mode %} selected{% endif %}>{{ mode }}</option>
+                {% endfor %}
+            </select>
+            <select name="programa">
+                <option value="">Todos os programas</option>
+                {% for program in programs %}
+                    <option value="{{ program }}"{% if filters.programa == program %} selected{% endif %}>{{ program }}</option>
+                {% endfor %}
+            </select>
+            <select name="status_processamento">
+                <option value="">Todos os status</option>
+                {% for code, label in statusOptions %}
+                    <option value="{{ code }}"{% if filters.status_processamento == (code ~ '') %} selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+            <input type="text" name="status_http" value="{{ filters.status_http }}" placeholder="HTTP ex.: 200">
+            <input type="text" name="caminho" value="{{ filters.caminho }}" placeholder="Caminho ex.: /nfe/consultas">
+            <input type="date" name="data_ini" value="{{ filters.data_ini }}">
+            <input type="date" name="data_fim" value="{{ filters.data_fim }}">
+            <select name="limite">
+                {% for option in [40, 80, 120, 200, 300] %}
+                    <option value="{{ option }}"{% if limit == option %} selected{% endif %}>{{ option }} linhas</option>
+                {% endfor %}
+            </select>
+            <button class="button button-primary" type="submit">Filtrar</button>
+            <a class="button button-tertiary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?csv=1'
+                ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                ~ '&ordenar=' ~ sort
+                ~ '&direcao=' ~ direction
+            }}">Exportar CSV</a>
+            <a class="button button-tertiary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?xlsx=1'
+                ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                ~ '&ordenar=' ~ sort
+                ~ '&direcao=' ~ direction
+            }}">Exportar XLSX</a>
+            <a class="button button-secondary" data-clear-audit-filters href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}">Limpar</a>
+        </form>
+        <div class="preset-bar">
+            {% for preset in presets %}
+                <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?pagina=1&limite=' ~ limit
+                    ~ (preset.query.q is defined ? '&q=' ~ preset.query.q|url_encode : '')
+                    ~ (preset.query.assinante is defined ? '&assinante=' ~ preset.query.assinante|url_encode : '')
+                    ~ (preset.query.metodo is defined ? '&metodo=' ~ preset.query.metodo|url_encode : '')
+                    ~ (preset.query.modo is defined ? '&modo=' ~ preset.query.modo|url_encode : '')
+                    ~ (preset.query.programa is defined ? '&programa=' ~ preset.query.programa|url_encode : '')
+                    ~ (preset.query.status_processamento is defined ? '&status_processamento=' ~ preset.query.status_processamento|url_encode : '')
+                    ~ '&ordenar=' ~ sort
+                    ~ '&direcao=' ~ direction
+                }}">{{ preset.label }}</a>
+            {% endfor %}
+        </div>
+        <div class="saved-filter-panel" data-saved-filter-root data-storage-key="auditoria_requisicoes_favoritos">
+            <div class="saved-filter-form">
+                <input type="text" placeholder="Nome do filtro salvo" data-saved-filter-name>
+                <button class="button button-primary" type="button" data-save-current-filter>Salvar filtro atual</button>
+                <button class="button button-tertiary" type="button" data-copy-current-filter-link>Copiar link atual</button>
+            </div>
+            <div class="saved-filter-list" data-saved-filter-list>
+                <span class="muted-text">Nenhum filtro salvo ainda.</span>
+            </div>
+        </div>
+    </section>
+
+    <section id="audit-workspace" class="layout audit-layout">
+        <aside class="panel">
+            <div class="panel-header">
+                <h2>Requisições</h2>
+                <p>Lista clicável com data, assinante, endpoint e status. A linha ativa fica destacada.</p>
+            </div>
+
+            {% if requests is empty %}
+                <div class="empty">Nenhuma requisição encontrada para os filtros atuais.</div>
+            {% else %}
+                <div class="audit-list">
+                    <div class="audit-list-head">
+                        <span><a class="sort-link{% if sort == 'dt_hr_recebimento' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?ordenar=dt_hr_recebimento&direcao=' ~ (sort == 'dt_hr_recebimento' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1&limite=' ~ limit
+                            ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                            ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                            ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                            ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                            ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                            ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                            ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                            ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                            ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                            ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                        }}">Quando</a></span>
+                        <span><a class="sort-link{% if sort == 'assinante' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?ordenar=assinante&direcao=' ~ (sort == 'assinante' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1&limite=' ~ limit
+                            ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                            ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                            ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                            ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                            ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                            ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                            ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                            ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                            ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                            ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                        }}">Assinante</a></span>
+                        <span><a class="sort-link{% if sort == 'caminho' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?ordenar=caminho&direcao=' ~ (sort == 'caminho' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1&limite=' ~ limit
+                            ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                            ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                            ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                            ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                            ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                            ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                            ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                            ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                            ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                            ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                        }}">Requisição</a></span>
+                        <span><a class="sort-link{% if sort == 'status' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?ordenar=status&direcao=' ~ (sort == 'status' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1&limite=' ~ limit
+                            ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                            ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                            ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                            ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                            ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                            ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                            ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                            ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                            ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                            ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                        }}">Status</a></span>
+                    </div>
+
+                    <div class="audit-list-body" data-scroll-memory="audit_list_scroll" data-keyboard-list data-audit-list-body>
+                        {% set currentDay = '' %}
+                        {% for item in requests %}
+                            {% set itemDay = item.dt_hr_recebimento|date('Y-m-d') %}
+                            {% if itemDay != currentDay %}
+                                <div class="audit-day-divider">{{ item.dt_hr_recebimento|date('d/m/Y') }}</div>
+                                {% set currentDay = itemDay %}
+                            {% endif %}
+                            <a
+                                data-keyboard-item
+                                data-remember-page-scroll="audit_page_scroll"
+                                data-audit-request-link
+                                data-request-id="{{ item.u_c_request_id }}"
+                                class="audit-row{% if selectedRequest and selectedRequest.u_c_request_id == item.u_c_request_id %} is-active{% endif %}"
+                                href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?requisicao=' ~ item.u_c_request_id
+                                    ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                                    ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                                    ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                                    ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                                    ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                                    ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                                    ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                                    ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                                    ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                                    ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                                    ~ '&pagina=' ~ page
+                                    ~ '&limite=' ~ limit
+                                }}#audit-workspace"
+                            >
+                                <div class="audit-cell audit-when">
+                                    <strong>{{ item.dt_hr_recebimento|date('d/m H:i:s') }}</strong>
+                                    <span>{{ item.c_metodo }}</span>
+                                </div>
+
+                                <div class="audit-cell audit-subscriber">
+                                    <strong>{{ item.c_assinante_identificador ?: 'sem assinante' }}</strong>
+                                    <span>{{ item.c_assinante_nome ?: 'sem nome' }}</span>
+                                </div>
+
+                                <div class="audit-cell audit-request">
+                                    <strong>{{ item.c_caminho }}</strong>
+                                    <span class="mono">{{ item.u_c_request_id }}</span>
+                                    <div class="chips">
+                                        {% if item.c_modo_execucao %}
+                                            <span class="chip">{{ item.c_modo_execucao }}</span>
+                                        {% endif %}
+                                        {% if item.si_status_http %}
+                                            <span class="chip">HTTP {{ item.si_status_http }}</span>
+                                        {% endif %}
+                                        {% if item.c_cod_programa %}
+                                            <span class="chip">{{ item.c_cod_programa }}</span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+
+                                <div class="audit-cell audit-status">
+                                    <span class="chip{% if item.si_status_processamento == 3 %} chip-success{% elseif item.si_status_processamento in [4, 5] %} chip-danger{% endif %}">
+                                        {{ statusOptions[item.si_status_processamento] ?? item.si_status_processamento }}
+                                    </span>
+                                    {% if item.t_resumo %}
+                                        <span>{{ item.t_resumo|slice(0, 140) }}{% if item.t_resumo|length > 140 %}...{% endif %}</span>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="pagination">
+                    <div class="pagination-info">Página {{ page }} de {{ totalPages }}. Exibindo {{ requests|length }} de {{ totalRequests }} requisições.</div>
+                    <div class="nav-actions">
+                        {% if page > 1 %}
+                            <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?pagina=' ~ (page - 1)
+                                ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                                ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                                ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                                ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                                ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                                ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                                ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                                ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                                ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                                ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                                ~ '&limite=' ~ limit
+                            }}">Página anterior</a>
+                        {% endif %}
+                        {% if page < totalPages %}
+                            <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?pagina=' ~ (page + 1)
+                                ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                                ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                                ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                                ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                                ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                                ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                                ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                                ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                                ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                                ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                                ~ '&limite=' ~ limit
+                            }}">Próxima página</a>
+                        {% endif %}
+                    </div>
+                </div>
+            {% endif %}
+        </aside>
+
+        <main class="panel" data-audit-detail-panel>
+            {% if selectedRequest %}
+                <div class="panel-header">
+                    <h2>Detalhes da Requisição</h2>
+                    <p>Registro principal da `t99001`, com contexto do programa, payloads, resposta e histórico operacional.</p>
+                </div>
+
+                <div class="details audit-detail-panel" data-scroll-memory="audit_detail_scroll">
+                    <div class="detail-tools">
+                        <input type="text" class="detail-search-input" placeholder="Buscar dentro deste detalhe..." data-detail-search-input data-detail-search-target="#audit-detail-content">
+                        <div class="detail-tools-actions">
+                            <button class="button button-secondary" type="button" data-fold-open-all>Abrir tudo</button>
+                            <button class="button button-tertiary" type="button" data-fold-close-all>Fechar tudo</button>
+                            <button class="button button-tertiary" type="button" data-export-detail-html="#audit-detail-export" data-export-filename="auditoria-detalhe.html">Exportar HTML</button>
+                            <button class="button button-tertiary" type="button" data-export-detail-print="#audit-detail-export">Imprimir detalhe</button>
+                        </div>
+                    </div>
+                    <div class="toolbar">
+                        <div class="toolbar-group">
+                            <button class="copy-button" type="button" data-copy-text="{{ selectedRequest.u_c_request_id }}">Copiar request_id</button>
+                            <button class="copy-button" type="button" data-copy-text="{{ selectedRequest.c_metodo }} {{ selectedRequest.c_caminho }}">Copiar chamada</button>
+                        </div>
+                        <div class="toolbar-group">
+                            {% if previousRequestId %}
+                                <a class="button button-secondary" data-audit-request-link data-request-id="{{ previousRequestId }}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?requisicao=' ~ previousRequestId
+                                    ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                                    ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                                    ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                                    ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                                    ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                                    ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                                    ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                                    ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                                    ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                                    ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                                    ~ '&pagina=' ~ page
+                                    ~ '&limite=' ~ limit
+                                }}#audit-workspace" data-remember-page-scroll="audit_page_scroll">Anterior</a>
+                            {% endif %}
+                            {% if nextRequestId %}
+                                <a class="button button-secondary" data-audit-request-link data-request-id="{{ nextRequestId }}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?requisicao=' ~ nextRequestId
+                                    ~ (filters.q != '' ? '&q=' ~ filters.q|url_encode : '')
+                                    ~ (filters.assinante != '' ? '&assinante=' ~ filters.assinante|url_encode : '')
+                                    ~ (filters.metodo != '' ? '&metodo=' ~ filters.metodo|url_encode : '')
+                                    ~ (filters.modo != '' ? '&modo=' ~ filters.modo|url_encode : '')
+                                    ~ (filters.programa != '' ? '&programa=' ~ filters.programa|url_encode : '')
+                                    ~ (filters.status_processamento != '' ? '&status_processamento=' ~ filters.status_processamento|url_encode : '')
+                                    ~ (filters.status_http != '' ? '&status_http=' ~ filters.status_http|url_encode : '')
+                                    ~ (filters.caminho != '' ? '&caminho=' ~ filters.caminho|url_encode : '')
+                                    ~ (filters.data_ini != '' ? '&data_ini=' ~ filters.data_ini|url_encode : '')
+                                    ~ (filters.data_fim != '' ? '&data_fim=' ~ filters.data_fim|url_encode : '')
+                                    ~ '&pagina=' ~ page
+                                    ~ '&limite=' ~ limit
+                                }}#audit-workspace" data-remember-page-scroll="audit_page_scroll">Próxima</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="audit-detail-hero">
+                        <div class="audit-detail-title-wrap">
+                            <div class="audit-detail-kicker">Requisição selecionada</div>
+                            <h3>{{ selectedRequest.c_metodo }} {{ selectedRequest.c_caminho }}</h3>
+                        </div>
+                    </div>
+
+                    <div class="meta meta-strong audit-detail-meta">
+                        <span>{{ selectedRequest.u_c_request_id }}</span>
+                        <span class="{% if selectedRequest.si_status_processamento in [4, 5] %}chip-danger{% elseif selectedRequest.si_status_processamento == 3 %}chip-success{% else %}chip-warning{% endif %}">{{ statusOptions[selectedRequest.si_status_processamento] ?? selectedRequest.si_status_processamento }}</span>
+                        {% if selectedRequest.si_status_http %}
+                            <span class="{% if selectedRequest.si_status_http >= 400 %}chip-danger{% else %}chip-success{% endif %}">HTTP {{ selectedRequest.si_status_http }}</span>
+                        {% endif %}
+                        {% if selectedRequest.c_modo_execucao %}
+                            <span>{{ selectedRequest.c_modo_execucao }}</span>
+                        {% endif %}
+                        {% if selectedRequest.i_tempo_processamento_ms %}
+                            <span class="{% if selectedRequest.i_tempo_processamento_ms >= 3000 %}chip-danger{% elseif selectedRequest.i_tempo_processamento_ms >= 1200 %}chip-warning{% endif %}">{{ selectedRequest.i_tempo_processamento_ms }} ms</span>
+                        {% endif %}
+                    </div>
+
+                    <div id="audit-detail-content" data-fold-scope data-fold-memory="audit_detail_folds">
+                    <div id="audit-detail-export">
+                    <div class="info-grid info-grid-tight">
+                        <div class="block block-card" data-detail-search-item>
+                            <h4>Assinante</h4>
+                            <p>{{ selectedRequest.c_assinante_identificador ?: 'não identificado' }}{% if selectedRequest.c_assinante_nome %} - {{ selectedRequest.c_assinante_nome }}{% endif %}</p>
+                        </div>
+
+                        <div class="block block-card" data-detail-search-item>
+                            <h4>Programa</h4>
+                            <p>{{ selectedRequest.c_cod_programa ?: 'n/d' }}{% if selectedRequest.c_nome_programa %} - {{ selectedRequest.c_nome_programa }}{% endif %}</p>
+                            <p>Versão: {{ selectedRequest.c_versao_programa ?: 'n/d' }}</p>
+                            <p>Revisão: {{ selectedRequest.c_revisao_programa ?: 'n/d' }}</p>
+                            <p>Última atualização: {{ selectedRequest.dt_hr_ult_atu_programa ?: 'n/d' }}</p>
+                            <p>Fonte da versão: {{ selectedRequest.c_fonte_versao ?: 'n/d' }}</p>
+                        </div>
+
+                        <div class="block block-card" data-detail-search-item>
+                            <h4>Tempo</h4>
+                            <p>Recebida em {{ selectedRequest.dt_hr_recebimento ?: 'n/d' }}</p>
+                            <p>Início do processamento: {{ selectedRequest.dt_hr_ini_processamento ?: 'n/d' }}</p>
+                            <p>Fim do processamento: {{ selectedRequest.dt_hr_fim_processamento ?: 'n/d' }}</p>
+                            <p>IP de origem: {{ selectedRequest.c_ip_origem ?: 'n/d' }}</p>
+                        </div>
+
+                        {% if selectedRequest.c_nome_operacao or selectedRequest.c_rota %}
+                            <div class="block block-card" data-detail-search-item>
+                                <h4>Roteamento</h4>
+                                <p>Operação: {{ selectedRequest.c_nome_operacao ?: 'n/d' }} | Rota: {{ selectedRequest.c_rota ?: 'n/d' }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    {% if selectedRequest.t_query_string %}
+                        <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="query_string">
+                            <summary>Query string</summary>
+                            <div class="fold-body">
+                                <pre class="code-block"><code>{{ selectedRequest.t_query_string }}</code></pre>
+                            </div>
+                        </details>
+                    {% endif %}
+
+                    <div class="info-grid info-grid-tight">
+                        <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="headers_requisicao">
+                            <summary>Headers da requisição</summary>
+                            <div class="fold-body">
+                                <pre class="code-block"><code>{{ selectedRequest.t_headers_requisicao_pretty ?? selectedRequest.t_headers_requisicao ?? 'Sem headers salvos.' }}</code></pre>
+                            </div>
+                        </details>
+
+                        <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="corpo_requisicao">
+                            <summary>Corpo da requisição</summary>
+                            <div class="fold-body">
+                                <pre class="code-block"><code>{{ selectedRequest.t_corpo_requisicao ?? 'Sem body.' }}</code></pre>
+                            </div>
+                        </details>
+                    </div>
+
+                    <div class="info-grid info-grid-tight">
+                        <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="headers_resposta">
+                            <summary>Headers da resposta</summary>
+                            <div class="fold-body">
+                                <pre class="code-block"><code>{{ selectedRequest.t_headers_resposta_pretty ?? selectedRequest.t_headers_resposta ?? 'Sem headers salvos.' }}</code></pre>
+                            </div>
+                        </details>
+
+                        <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="corpo_resposta">
+                            <summary>Corpo da resposta</summary>
+                            <div class="fold-body">
+                                <pre class="code-block"><code>{{ selectedRequest.t_corpo_resposta ?? 'Sem resposta salva.' }}</code></pre>
+                            </div>
+                        </details>
+                    </div>
+
+                    {% if selectedRequest.t_erro %}
+                        <details class="fold-card is-danger" open data-detail-search-item data-fold-item data-fold-key="erro">
+                            <summary>Erro</summary>
+                            <div class="fold-body">
+                                <pre class="code-block"><code>{{ selectedRequest.t_erro }}</code></pre>
+                            </div>
+                        </details>
+                    {% endif %}
+
+                    <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="snapshot_assinante">
+                        <summary>Snapshot do assinante</summary>
+                        <div class="fold-body">
+                            <pre class="code-block"><code>{{ selectedRequest.t_assinante_json_pretty ?? selectedRequest.t_assinante_json ?? 'Sem snapshot salvo.' }}</code></pre>
+                        </div>
+                    </details>
+
+                    <div class="block block-card" data-detail-search-item>
+                        <h4>Tentativas do worker</h4>
+                        {% if attempts is empty %}
+                            <p>Sem tentativas registradas na `t99002`.</p>
+                        {% else %}
+                            <div class="table-wrap">
+                                <table class="results-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Tentativa</th>
+                                            <th>Status</th>
+                                            <th>HTTP</th>
+                                            <th>Versão</th>
+                                            <th>Início</th>
+                                            <th>Fim</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for attempt in attempts %}
+                                            <tr>
+                                                <td>{{ attempt.si_num_tentativa }}</td>
+                                                <td>{{ statusOptions[attempt.si_status_processamento] ?? attempt.si_status_processamento }}</td>
+                                                <td>{{ attempt.si_status_http ?: 'n/d' }}</td>
+                                                <td>{{ attempt.c_versao_programa ?: 'n/d' }}</td>
+                                                <td>{{ attempt.dt_hr_ini_processamento ?: 'n/d' }}</td>
+                                                <td>{{ attempt.dt_hr_fim_processamento ?: 'n/d' }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="block block-card" data-detail-search-item>
+                        <h4>Eventos operacionais</h4>
+                        {% if events is empty %}
+                            <p>Sem eventos registrados na `t99004`.</p>
+                        {% else %}
+                            <div class="table-wrap">
+                                <table class="results-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Quando</th>
+                                            <th>Evento</th>
+                                            <th>Detalhe</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for event in events %}
+                                            <tr>
+                                                <td>{{ event.dt_hr_evento }}</td>
+                                                <td>{{ event.c_evento }}</td>
+                                                <td>{{ event.t_detalhe ?: 'n/d' }}</td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% endif %}
+                    </div>
+                    </div>
+                    </div>
+                </div>
+            {% else %}
+                <div class="empty">Nenhuma requisição disponível para exibir detalhes.</div>
+            {% endif %}
+        </main>
+    </section>
+
+    <section class="panel analytics-panel">
+        <div class="panel-header">
+            <h2>Leitura Analítica</h2>
+            <p>Séries e rankings detalhados ficam aqui para análise mais profunda, sem poluir a primeira dobra.</p>
+        </div>
+        <div class="details">
+            <div class="group-grid">
+                <article class="chart-card">
+                    <div>
+                        <h3>Requisições por dia</h3>
+                        <p>Volume diário das requisições filtradas.</p>
+                    </div>
+                    {% if advancedMetrics.requisicoes_por_dia_svg.bars is not empty %}
+                        <svg class="dashboard-svg-chart" viewBox="0 0 {{ advancedMetrics.requisicoes_por_dia_svg.width }} {{ advancedMetrics.requisicoes_por_dia_svg.height }}" aria-label="Requisições por dia">
+                            <line x1="12" y1="{{ advancedMetrics.requisicoes_por_dia_svg.axis_y }}" x2="{{ advancedMetrics.requisicoes_por_dia_svg.width - 12 }}" y2="{{ advancedMetrics.requisicoes_por_dia_svg.axis_y }}" class="chart-axis"></line>
+                            {% for item in advancedMetrics.requisicoes_por_dia_svg.bars %}
+                                <rect x="{{ item.x }}" y="{{ item.y }}" width="{{ item.width }}" height="{{ item.height }}" rx="1.5" class="chart-bar"></rect>
+                                <text x="{{ item.label_x }}" y="{{ item.value_y }}" class="chart-value">{{ item.value }}</text>
+                                <text x="{{ item.label_x }}" y="{{ item.label_y }}" class="chart-label">{{ item.label }}</text>
+                            {% endfor %}
+                        </svg>
+                    {% else %}
+                        <p>Sem dados.</p>
+                    {% endif %}
+                </article>
+
+                <article class="chart-card">
+                    <div>
+                        <h3>Erros por dia</h3>
+                        <p>Falhas lógicas ou HTTP 4xx/5xx no período filtrado.</p>
+                    </div>
+                    {% if advancedMetrics.erros_por_dia_svg.bars is not empty %}
+                        <svg class="dashboard-svg-chart is-danger" viewBox="0 0 {{ advancedMetrics.erros_por_dia_svg.width }} {{ advancedMetrics.erros_por_dia_svg.height }}" aria-label="Erros por dia">
+                            <line x1="12" y1="{{ advancedMetrics.erros_por_dia_svg.axis_y }}" x2="{{ advancedMetrics.erros_por_dia_svg.width - 12 }}" y2="{{ advancedMetrics.erros_por_dia_svg.axis_y }}" class="chart-axis"></line>
+                            {% for item in advancedMetrics.erros_por_dia_svg.bars %}
+                                <rect x="{{ item.x }}" y="{{ item.y }}" width="{{ item.width }}" height="{{ item.height }}" rx="1.5" class="chart-bar"></rect>
+                                <text x="{{ item.label_x }}" y="{{ item.value_y }}" class="chart-value">{{ item.value }}</text>
+                                <text x="{{ item.label_x }}" y="{{ item.label_y }}" class="chart-label">{{ item.label }}</text>
+                            {% endfor %}
+                        </svg>
+                    {% else %}
+                        <p>Sem dados.</p>
+                    {% endif %}
+                </article>
+
+                <article class="chart-card">
+                    <div>
+                        <h3>Tempo médio por endpoint</h3>
+                        <p>Endpoints mais lentos, em média, dentro do filtro atual.</p>
+                    </div>
+                    {% if advancedMetrics.tempo_medio_por_endpoint is not empty %}
+                        <div class="metric-list">
+                            {% for endpoint in advancedMetrics.tempo_medio_por_endpoint %}
+                                <div class="metric-row metric-row-rich metric-row-endpoint-latency">
+                                    <div>
+                                        <div class="metric-label metric-label-path mono">{{ endpoint.c_caminho }}</div>
+                                        <div class="metric-track">
+                                            <div class="metric-fill" style="width: {{ endpoint.bar_percent }}%;"></div>
+                                        </div>
+                                    </div>
+                                    <div class="metric-value metric-badge metric-badge-latency">{{ endpoint.tempo_medio_ms }} ms</div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p>Sem dados.</p>
+                    {% endif %}
+                </article>
+            </div>
+
+            <div class="group-grid analytics-secondary-grid">
+                <article class="chart-card">
+                    <div>
+                        <h3>Top endpoints</h3>
+                        <p>Os caminhos com mais ocorrências nos filtros atuais.</p>
+                    </div>
+                    <div class="metric-list">
+                        {% for endpoint in advancedMetrics.top_endpoints %}
+                            <div class="metric-row metric-row-rich metric-row-endpoint-latency">
+                                <div>
+                                    <div class="metric-label metric-label-path mono">{{ endpoint.c_caminho }}</div>
+                                    <div class="metric-track">
+                                        <div class="metric-fill" style="width: {{ endpoint.bar_percent }}%;"></div>
+                                    </div>
+                                </div>
+                                <div class="metric-value metric-badge metric-badge-latency">{{ endpoint.total }}x</div>
+                            </div>
+                        {% else %}
+                            <p>Sem dados.</p>
+                        {% endfor %}
+                    </div>
+                </article>
+
+                <article class="chart-card">
+                    <div>
+                        <h3>Top assinantes</h3>
+                        <p>Quem mais chamou os endpoints filtrados.</p>
+                    </div>
+                    <div class="metric-list">
+                        {% for assinante in advancedMetrics.top_assinantes %}
+                            <div class="metric-row metric-row-rich">
+                                <div>
+                                    <div class="metric-label">{{ assinante.identificador ?: 'sem identificador' }}{% if assinante.nome %} - {{ assinante.nome }}{% endif %}</div>
+                                    <div class="metric-track">
+                                        <div class="metric-fill" style="width: {{ assinante.bar_percent }}%;"></div>
+                                    </div>
+                                </div>
+                                <div class="metric-value metric-badge">{{ assinante.total }}x</div>
+                            </div>
+                        {% else %}
+                            <p>Sem dados.</p>
+                        {% endfor %}
+                    </div>
+                </article>
+
+                <article class="chart-card">
+                    <div>
+                        <h3>Status HTTP</h3>
+                        <p>Distribuição dos códigos HTTP retornados.</p>
+                    </div>
+                    <div class="metric-list">
+                        {% for item in advancedMetrics.status_http %}
+                            <div class="metric-row metric-row-rich">
+                                <div>
+                                    <div class="metric-label">HTTP {{ item.status_http }}</div>
+                                    <div class="metric-track">
+                                        <div class="metric-fill is-danger" style="width: {{ item.bar_percent }}%;"></div>
+                                    </div>
+                                </div>
+                                <div class="metric-value metric-badge">{{ item.total }}</div>
+                            </div>
+                        {% else %}
+                            <p>Sem dados.</p>
+                        {% endfor %}
+                    </div>
+                </article>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const detailConfig = {
+                detailScrollKey: 'audit_detail_scroll',
+                foldStorageKey: 'audit_detail_folds',
+                initMarkerPrefix: 'audit'
+            };
+
+            function initAuditDetail(scope) {
+                window.initCatalogDetailScope(scope, detailConfig);
+            }
+
+            window.initCatalogVisualToggle({
+                toggleSelector: '[data-audit-compact-toggle]',
+                storageKey: 'audit_compact_mode',
+                bodyClass: 'audit-compact-mode',
+                activeLabel: 'Modo expandido',
+                inactiveLabel: 'Modo compacto'
+            });
+            initAuditDetail(document);
+            window.initCatalogPartialNavigation({
+                rootMarker: 'auditPartialNavigationInit',
+                linkSelector: '[data-audit-request-link]',
+                detailPanelSelector: '[data-audit-detail-panel]',
+                listBodySelector: '[data-audit-list-body]',
+                activeRowSelector: '.audit-row[data-request-id]',
+                activeValueAttribute: 'data-request-id',
+                queryParam: 'requisicao',
+                detailScrollKey: detailConfig.detailScrollKey,
+                initDetailScope: initAuditDetail
+            });
+            window.initCatalogSavedFilters({
+                rootSelector: '[data-saved-filter-root]',
+                storageKey: 'auditoria_requisicoes_favoritos',
+                emptyMessage: 'Nenhum filtro salvo ainda.'
+            });
+        });
+    </script>
+{% endblock %}

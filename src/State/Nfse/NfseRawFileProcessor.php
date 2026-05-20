@@ -7,6 +7,7 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Legacy\AbstractLegacyOperationOutput;
 use App\Dto\Nfse\NfseOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use DOMDocument;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -16,6 +17,7 @@ final class NfseRawFileProcessor implements ProcessorInterface
     public function __construct(
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
+        private readonly ApiAsyncResponder $asyncResponder,
     ) {
     }
 
@@ -54,6 +56,18 @@ final class NfseRawFileProcessor implements ProcessorInterface
 
         if ($includeLote) {
             $payload['ALote'] = $this->normalizeLote($request->query->get('ALote', '1'));
+        }
+
+        if ($this->asyncResponder->shouldQueue($operation, $request)) {
+            $outputClass = $this->resolveOutputClass($operation);
+
+            return new $outputClass(
+                $this->asyncResponder->accept($request, $operation, [
+                    'parametro_arquivo' => $fileParamName,
+                    'ALote' => $payload['ALote'] ?? null,
+                ]),
+                'Requisicao aceita para processamento assincrono.'
+            );
         }
 
         $resultado = $this->executor->execute($script, $method, $payload);

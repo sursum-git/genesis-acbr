@@ -7,12 +7,17 @@ use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Legacy\AbstractLegacyOperationInput;
 use App\Dto\Nfe\NfeOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 final class NfeEnviarEmailProcessor implements ProcessorInterface
 {
-    public function __construct(private readonly AcbrLegacyScriptExecutor $executor)
-    {
+    public function __construct(
+        private readonly AcbrLegacyScriptExecutor $executor,
+        private readonly ApiAsyncResponder $asyncResponder,
+        private readonly RequestStack $requestStack,
+    ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): NfeOperationOutput
@@ -31,6 +36,14 @@ final class NfeEnviarEmailProcessor implements ProcessorInterface
         }
 
         $payload = $data->payload;
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request !== null && $this->asyncResponder->shouldQueue($operation, $request)) {
+            return new NfeOperationOutput(
+                $this->asyncResponder->accept($request, $operation, $payload),
+                'Requisicao aceita para processamento assincrono.'
+            );
+        }
+
         $xmlSource = $payload['AeArquivoXmlNFe'] ?? null;
         $xmlContent = $this->resolveXmlContent($xmlSource);
         $emailXmlPath = $this->persistXmlForAcbr($xmlContent, (string) ($payload['AeChaveNFe'] ?? ''));

@@ -39,8 +39,19 @@ final class ApiTestCatalogRepository
     /**
      * @return list<array<string, mixed>>
      */
-    public function findTests(string $search = '', string $groupCode = ''): array
+    public function findTests(string $search = '', string $groupCode = '', int $limit = 40, int $offset = 0, string $sort = 'last_recorded_at', string $direction = 'desc'): array
     {
+        $sortMap = [
+            'method' => 't.method',
+            'name' => 't.name',
+            'group_name' => 'g.name',
+            'request_count' => 't.request_count',
+            'last_recorded_at' => 't.last_recorded_at',
+            'last_status_code' => 't.last_status_code',
+        ];
+        $sortColumn = $sortMap[$sort] ?? 't.last_recorded_at';
+        $sortDirection = strtolower($direction) === 'asc' ? 'ASC' : 'DESC';
+
         $queryBuilder = $this->connection->createQueryBuilder()
             ->select(
                 't.id',
@@ -64,9 +75,10 @@ final class ApiTestCatalogRepository
             ->from('api_tests', 't')
             ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
             ->where('t.is_active = 1')
-            ->orderBy('g.sort_order', 'ASC')
-            ->addOrderBy('t.last_recorded_at', 'DESC')
-            ->addOrderBy('t.name', 'ASC');
+            ->orderBy($sortColumn, $sortDirection)
+            ->addOrderBy('t.name', 'ASC')
+            ->setMaxResults($limit)
+            ->setFirstResult($offset);
 
         if ($search !== '') {
             $queryBuilder
@@ -88,6 +100,29 @@ final class ApiTestCatalogRepository
         }
 
         return $tests;
+    }
+
+    public function countTests(string $search = '', string $groupCode = ''): int
+    {
+        $queryBuilder = $this->connection->createQueryBuilder()
+            ->select('COUNT(*)')
+            ->from('api_tests', 't')
+            ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
+            ->where('t.is_active = 1');
+
+        if ($search !== '') {
+            $queryBuilder
+                ->andWhere('t.name LIKE :term OR t.code LIKE :term OR t.path LIKE :term OR t.query_string LIKE :term OR t.request_body LIKE :term OR g.name LIKE :term')
+                ->setParameter('term', '%' . $search . '%');
+        }
+
+        if ($groupCode !== '') {
+            $queryBuilder
+                ->andWhere('g.code = :group_code')
+                ->setParameter('group_code', $groupCode);
+        }
+
+        return (int) $queryBuilder->fetchOne();
     }
 
     /**
@@ -453,6 +488,41 @@ final class ApiTestCatalogRepository
             'total_groups' => (int) $groups,
             'total_runs' => (int) $runs,
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function findRecentObservedTests(int $limit = 8): array
+    {
+        /** @var list<array<string, mixed>> $tests */
+        $tests = $this->connection->createQueryBuilder()
+            ->select(
+                't.id',
+                't.code',
+                't.name',
+                't.method',
+                't.path',
+                't.request_count',
+                't.last_recorded_at',
+                't.last_status_code',
+                't.last_duration_ms',
+                'g.code AS group_code',
+                'g.name AS group_name'
+            )
+            ->from('api_tests', 't')
+            ->innerJoin('t', 'test_groups', 'g', 'g.id = t.group_id')
+            ->where('t.is_active = 1')
+            ->orderBy('t.last_recorded_at', 'DESC')
+            ->addOrderBy('t.id', 'DESC')
+            ->setMaxResults(max(1, min($limit, 20)))
+            ->fetchAllAssociative();
+
+        foreach ($tests as &$test) {
+            $test['last_run'] = $this->findLatestRunByTestId((int) $test['id']);
+        }
+
+        return $tests;
     }
 
     /**

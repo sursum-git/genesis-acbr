@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Dto\Nfe\NfeOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -14,6 +15,7 @@ final class NfeGerarChaveProvider implements ProviderInterface
     public function __construct(
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
+        private readonly ApiAsyncResponder $asyncResponder,
     ) {
     }
 
@@ -47,6 +49,13 @@ final class NfeGerarChaveProvider implements ProviderInterface
             $payload[$name] = $name === 'AEmissao'
                 ? $this->normalizeDate((string) $value)
                 : (string) $value;
+        }
+
+        if ($this->asyncResponder->shouldQueue($operation, $request)) {
+            return new NfeOperationOutput(
+                $this->asyncResponder->accept($request, $operation, $payload),
+                'Requisicao aceita para processamento assincrono.'
+            );
         }
 
         $resultado = $this->executor->execute($script, $method, $payload);

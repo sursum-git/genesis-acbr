@@ -8,6 +8,7 @@ use App\Dto\Legacy\AbstractLegacyOperationOutput;
 use App\Dto\Nfe\NfeOperationOutput;
 use App\Dto\Nfse\NfseOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -15,9 +16,9 @@ final class AcbrLegacyOperationProvider implements ProviderInterface
 {
     public function __construct(
         private readonly AcbrLegacyScriptExecutor $executor,
-        private readonly RequestStack $requestStack
-    )
-    {
+        private readonly RequestStack $requestStack,
+        private readonly ApiAsyncResponder $asyncResponder,
+    ) {
     }
 
     public function provide(Operation $operation, array $uriVariables = [], array $context = []): AbstractLegacyOperationOutput
@@ -45,6 +46,15 @@ final class AcbrLegacyOperationProvider implements ProviderInterface
                     $queryPayload[$name] = $value;
                 }
             }
+        }
+
+        if ($request !== null && $this->asyncResponder->shouldQueue($operation, $request)) {
+            $outputClass = $this->resolveOutputClass($extraProperties, $script);
+
+            return new $outputClass(
+                $this->asyncResponder->accept($request, $operation, $queryPayload),
+                'Requisicao aceita para processamento assincrono.'
+            );
         }
 
         $resultado = $this->executor->execute(

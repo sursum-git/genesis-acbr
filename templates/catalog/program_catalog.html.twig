@@ -11,7 +11,7 @@
         <div class="hero-stats">
             <article class="stat-card">
                 <strong>Total cadastrado</strong>
-                <span>{{ programs|length }}</span>
+                <span>{{ totalPrograms }}</span>
             </article>
             <article class="stat-card">
                 <strong>Origem</strong>
@@ -20,84 +20,170 @@
         </div>
     </section>
 
-    <section class="layout">
+    <section id="program-workspace" class="layout">
         <aside class="panel">
             <div class="panel-header">
                 <h2>Programas</h2>
                 <p>Filtre por nome, código, caminho ou texto da explicação.</p>
             </div>
 
-            <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}">
+            <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}" data-filter-storage="catalogo_programas_filtros" data-clear-storage-selector="[data-clear-program-catalog-filters]">
                 <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nfe, cep, schemas, legado...">
                 <button class="button button-primary" type="submit">Buscar</button>
+                <a class="button button-tertiary" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?csv=1'
+                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                    ~ '&ordenar=' ~ sort
+                    ~ '&direcao=' ~ direction
+                }}">Exportar CSV</a>
+                <a class="button button-tertiary" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?xlsx=1'
+                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                    ~ '&ordenar=' ~ sort
+                    ~ '&direcao=' ~ direction
+                }}">Exportar XLSX</a>
                 {% if search != '' %}
-                    <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}">Limpar</a>
+                    <a class="button button-secondary" data-clear-program-catalog-filters href="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}">Limpar</a>
                 {% endif %}
             </form>
 
             {% if programs is empty %}
                 <div class="empty">Nenhum programa encontrado para a busca atual.</div>
             {% else %}
-                <div class="entity-list">
-                    {% for program in programs %}
-                        <a
-                            class="entity-item{% if selectedProgram and selectedProgram.code == program.code %} is-active{% endif %}"
-                            href="{{ app.request.basePath ~ '/index.php/catalogo-programas?programa=' ~ program.code ~ (search != '' ? '&q=' ~ search|url_encode : '') }}"
-                        >
-                            <strong>{{ program.name }}</strong>
-                            <p>{{ program.description }}</p>
-                            <div class="chips">
-                                <span class="chip">{{ program.code }}</span>
-                                <span class="chip">{{ program.category }}</span>
-                                <span class="chip">{{ program.status }}</span>
-                            </div>
-                        </a>
-                    {% endfor %}
+                <div class="catalog-list catalog-programs">
+                    <div class="catalog-list-head">
+                        <span><a class="sort-link{% if sort == 'code' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?ordenar=code&direcao=' ~ (sort == 'code' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1' ~ (search != '' ? '&q=' ~ search|url_encode : '') }}">Código</a></span>
+                        <span><a class="sort-link{% if sort == 'name' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?ordenar=name&direcao=' ~ (sort == 'name' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1' ~ (search != '' ? '&q=' ~ search|url_encode : '') }}">Programa</a></span>
+                        <span><a class="sort-link{% if sort in ['status', 'last_updated_at'] %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?ordenar=last_updated_at&direcao=' ~ (sort == 'last_updated_at' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1' ~ (search != '' ? '&q=' ~ search|url_encode : '') }}">Status / Atualização</a></span>
+                    </div>
+
+                    <div class="catalog-list-body" data-scroll-memory="program_list_scroll" data-keyboard-list data-program-list-body>
+                        {% for program in programs %}
+                            <a
+                                data-keyboard-item
+                                data-program-link
+                                data-program-code="{{ program.code }}"
+                                data-remember-page-scroll="program_page_scroll"
+                                class="catalog-row{% if selectedProgram and selectedProgram.code == program.code %} is-active{% endif %}"
+                                href="{{ app.request.basePath ~ '/index.php/catalogo-programas?programa=' ~ program.code
+                                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                                    ~ '&pagina=' ~ page
+                                }}#program-workspace"
+                            >
+                                <div class="catalog-cell">
+                                    <strong class="mono">{{ program.code }}</strong>
+                                    <span>{{ program.category }}</span>
+                                </div>
+                                <div class="catalog-cell">
+                                    <strong>{{ program.name }}</strong>
+                                    <span>{{ program.description|slice(0, 140) }}{% if program.description|length > 140 %}...{% endif %}</span>
+                                </div>
+                                <div class="catalog-cell">
+                                    <strong>{{ program.status }}</strong>
+                                    <span>{{ program.version ?: 'versão n/d' }}</span>
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="pagination">
+                    <div class="pagination-info">Página {{ page }} de {{ totalPages }}. Exibindo {{ programs|length }} de {{ totalPrograms }} programas.</div>
+                    <div class="nav-actions">
+                        {% if page > 1 %}
+                            <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?pagina=' ~ (page - 1) ~ (search != '' ? '&q=' ~ search|url_encode : '') }}">Página anterior</a>
+                        {% endif %}
+                        {% if page < totalPages %}
+                            <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?pagina=' ~ (page + 1) ~ (search != '' ? '&q=' ~ search|url_encode : '') }}">Próxima página</a>
+                        {% endif %}
+                    </div>
                 </div>
             {% endif %}
         </aside>
 
-        <main class="panel">
+        <main class="panel" data-program-detail-panel>
             {% if selectedProgram %}
                 <div class="panel-header">
                     <h2>Detalhes</h2>
                     <p>Estado atual do programa selecionado e seu histórico registrado.</p>
                 </div>
 
-                <div class="details">
+                <div class="details" data-scroll-memory="program_detail_scroll">
+                    <div class="detail-tools">
+                        <input type="text" class="detail-search-input" placeholder="Buscar dentro deste detalhe..." data-detail-search-input data-detail-search-target="#program-detail-content">
+                        <div class="detail-tools-actions">
+                            <button class="button button-secondary" type="button" data-fold-open-all>Abrir tudo</button>
+                            <button class="button button-tertiary" type="button" data-fold-close-all>Fechar tudo</button>
+                            <button class="button button-tertiary" type="button" data-export-detail-html="#program-detail-export" data-export-filename="programa-detalhe.html">Exportar HTML</button>
+                            <button class="button button-tertiary" type="button" data-export-detail-print="#program-detail-export">Imprimir detalhe</button>
+                        </div>
+                    </div>
                     <h3>{{ selectedProgram.name }}</h3>
+                    <div class="toolbar">
+                        <div class="toolbar-group">
+                            <button class="copy-button" type="button" data-copy-text="{{ selectedProgram.code }}">Copiar código</button>
+                            {% if selectedProgram.reference_commit %}
+                                <button class="copy-button" type="button" data-copy-text="{{ selectedProgram.reference_commit }}">Copiar revisão</button>
+                            {% endif %}
+                        </div>
+                        <div class="toolbar-group">
+                            {% if previousProgramCode %}
+                                <a class="button button-secondary" data-program-link data-program-code="{{ previousProgramCode }}" data-remember-page-scroll="program_page_scroll" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?programa=' ~ previousProgramCode ~ (search != '' ? '&q=' ~ search|url_encode : '') ~ '&pagina=' ~ page }}#program-workspace">Anterior</a>
+                            {% endif %}
+                            {% if nextProgramCode %}
+                                <a class="button button-secondary" data-program-link data-program-code="{{ nextProgramCode }}" data-remember-page-scroll="program_page_scroll" href="{{ app.request.basePath ~ '/index.php/catalogo-programas?programa=' ~ nextProgramCode ~ (search != '' ? '&q=' ~ search|url_encode : '') ~ '&pagina=' ~ page }}#program-workspace">Próximo</a>
+                            {% endif %}
+                        </div>
+                    </div>
 
-                    <div class="meta">
+                    <div class="meta meta-strong">
                         <span>{{ selectedProgram.code }}</span>
                         <span>{{ selectedProgram.category }}</span>
                         <span>{{ selectedProgram.status }}</span>
                         <span>{{ selectedProgram.path }}</span>
                     </div>
 
-                    <div class="block">
-                        <h4>Descrição</h4>
+                    <div id="program-detail-content" data-fold-scope data-fold-memory="program_detail_folds">
+                    <div id="program-detail-export">
+                    <div class="info-grid info-grid-tight">
+                        <div class="block block-card" data-detail-search-item>
+                            <h4>Versao do programa</h4>
+                            <p>
+                                Versao: {{ selectedProgram.version ?: 'nao definida' }} |
+                                Data ultima atualizacao: {{ selectedProgram.last_updated_at ?: 'nao definida' }} |
+                                Revisao: {{ selectedProgram.reference_commit ?: 'nao definida' }}
+                            </p>
+                            <p>Fonte da versao: {{ selectedProgram.version_source ?: 'nao definida' }}</p>
+                        </div>
+
+                        <div class="block block-card" data-detail-search-item>
+                            <h4>Vigência e auditoria</h4>
+                            <p>Início: {{ selectedProgram.started_at }}{% if selectedProgram.ended_at %} | Término: {{ selectedProgram.ended_at }}{% else %} | Sem término registrado{% endif %}</p>
+                            <p>Criado em {{ selectedProgram.created_at|default(selectedProgram.started_at) }} | Atualizado em {{ selectedProgram.updated_at }}</p>
+                        </div>
+                    </div>
+
+                    <div class="block block-card" data-detail-search-item>
+                        <h4>Identidade técnica</h4>
+                        <p>{{ selectedProgram.code }} | {{ selectedProgram.category }} | {{ selectedProgram.status }}</p>
+                        <pre class="code-block"><code>{{ selectedProgram.path }}</code></pre>
+                    </div>
+
+                    <div class="block block-card" data-detail-search-item>
+                        <h4>Descrição executiva</h4>
                         <p>{{ selectedProgram.description }}</p>
                     </div>
 
-                    <div class="block">
-                        <h4>Caminho físico principal</h4>
-                        <pre class="code-block"><code>{{ selectedProgram.physical_path }}</code></pre>
-                    </div>
+                    <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="caminho_fisico">
+                        <summary>Caminho físico principal</summary>
+                        <div class="fold-body">
+                            <pre class="code-block"><code>{{ selectedProgram.physical_path }}</code></pre>
+                        </div>
+                    </details>
 
-                    <div class="block">
-                        <h4>Explicação detalhada</h4>
-                        <p>{{ selectedProgram.detailed_explanation }}</p>
-                    </div>
-
-                    <div class="block">
-                        <h4>Vigência</h4>
-                        <p>Início: {{ selectedProgram.started_at }}{% if selectedProgram.ended_at %} | Término: {{ selectedProgram.ended_at }}{% else %} | Sem término registrado{% endif %}</p>
-                    </div>
-
-                    <div class="block">
-                        <h4>Auditoria</h4>
-                        <p>Criado em {{ selectedProgram.created_at|default(selectedProgram.started_at) }} | Atualizado em {{ selectedProgram.updated_at }}</p>
-                    </div>
+                    <details class="fold-card" open data-detail-search-item data-fold-item data-fold-key="explicacao_detalhada">
+                        <summary>Explicação detalhada</summary>
+                        <div class="fold-body">
+                            <p>{{ selectedProgram.detailed_explanation }}</p>
+                        </div>
+                    </details>
 
                     <section class="history">
                         <h4>Histórico</h4>
@@ -114,6 +200,15 @@
                                     <p>{{ item.event_summary }}</p>
                                     <div class="chips">
                                         <span class="chip">{{ item.status_snapshot }}</span>
+                                        {% if item.version_snapshot %}
+                                            <span class="chip">Versao {{ item.version_snapshot }}</span>
+                                        {% endif %}
+                                        {% if item.reference_commit_snapshot %}
+                                            <span class="chip">Revisao {{ item.reference_commit_snapshot|slice(0, 12) }}</span>
+                                        {% endif %}
+                                        {% if item.last_updated_at_snapshot %}
+                                            <span class="chip">Ult. atu. {{ item.last_updated_at_snapshot }}</span>
+                                        {% endif %}
                                         {% if item.started_at_snapshot %}
                                             <span class="chip">Início {{ item.started_at_snapshot }}</span>
                                         {% endif %}
@@ -125,10 +220,41 @@
                             {% endfor %}
                         {% endif %}
                     </section>
+                    </div>
+                    </div>
                 </div>
             {% else %}
                 <div class="empty">Nenhum programa disponível para exibir detalhes.</div>
             {% endif %}
         </main>
     </section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const detailConfig = {
+                detailScrollKey: 'program_detail_scroll',
+                foldStorageKey: 'program_detail_folds',
+                initMarkerPrefix: 'program'
+            };
+
+            function initProgramDetail(scope) {
+                window.initCatalogDetailScope(scope, detailConfig);
+            }
+
+            initProgramDetail(document);
+            window.initCatalogPartialNavigation({
+                rootMarker: 'programPartialNavigationInit',
+                linkSelector: '[data-program-link]',
+                detailPanelSelector: '[data-program-detail-panel]',
+                listBodySelector: '[data-program-list-body]',
+                activeRowSelector: '.catalog-row[data-program-code]',
+                activeValueAttribute: 'data-program-code',
+                queryParam: 'programa',
+                detailScrollKey: detailConfig.detailScrollKey,
+                initDetailScope: initProgramDetail
+            });
+        });
+    </script>
 {% endblock %}

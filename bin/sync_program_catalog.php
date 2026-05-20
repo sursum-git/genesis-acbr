@@ -191,6 +191,15 @@ $programs = [
         'detailed_explanation' => 'Abriga providers especificos para operacoes NFe que precisam de contrato tipado e validacao dedicada. A consulta-cadastro passou a usar um provider proprio que mapeia query params para DTO, interpreta TipoDocumento e so entao chama o legado preenchendo AnIE=1 apenas para inscricao estadual.',
     ],
     [
+        'code' => 'src_api_auditoria',
+        'name' => 'Infra de Auditoria da API',
+        'path' => 'src/Service/Api',
+        'physical_path' => 'src/Service/Api/ApiAuditManager.php',
+        'category' => 'src_module',
+        'description' => 'Autenticacao por token, auditoria no PostgreSQL e fila async das APIs.',
+        'detailed_explanation' => 'Centraliza a gravacao das requisicoes nas tabelas t99001 a t99004, autentica assinantes via t00002, decide execucao sync ou async e permite consulta posterior por request_id. Esse modulo representa a infraestrutura operacional nova da API.',
+    ],
+    [
         'code' => 'boleto',
         'name' => 'ACBr Boleto',
         'path' => 'Boleto',
@@ -337,6 +346,10 @@ CREATE TABLE IF NOT EXISTS programs (
     status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'inactive', 'deprecated', 'ended')),
     description TEXT NOT NULL,
     detailed_explanation TEXT NOT NULL,
+    version TEXT NULL,
+    version_source TEXT NULL,
+    reference_commit TEXT NULL,
+    last_updated_at TEXT NULL,
     started_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
     ended_at TEXT NULL,
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -353,6 +366,9 @@ CREATE TABLE IF NOT EXISTS program_history (
     description_snapshot TEXT NOT NULL,
     detailed_explanation_snapshot TEXT NOT NULL,
     status_snapshot TEXT NOT NULL,
+    version_snapshot TEXT NULL,
+    reference_commit_snapshot TEXT NULL,
+    last_updated_at_snapshot TEXT NULL,
     started_at_snapshot TEXT NOT NULL,
     ended_at_snapshot TEXT NULL,
     event_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -361,7 +377,7 @@ CREATE TABLE IF NOT EXISTS program_history (
 SQL,
     <<<'SQL'
 CREATE TRIGGER IF NOT EXISTS trg_programs_updated_at
-AFTER UPDATE OF name, path, physical_path, category, status, description, detailed_explanation, started_at, ended_at ON programs
+AFTER UPDATE OF name, path, physical_path, category, status, description, detailed_explanation, version, version_source, reference_commit, last_updated_at, started_at, ended_at ON programs
 FOR EACH ROW
 BEGIN
     UPDATE programs
@@ -371,7 +387,7 @@ END
 SQL,
     <<<'SQL'
 CREATE TRIGGER IF NOT EXISTS trg_programs_history_update
-AFTER UPDATE OF name, path, physical_path, category, status, description, detailed_explanation, started_at ON programs
+AFTER UPDATE OF name, path, physical_path, category, status, description, detailed_explanation, version, version_source, reference_commit, last_updated_at, started_at ON programs
 FOR EACH ROW
 WHEN (
     NEW.name IS NOT OLD.name OR
@@ -381,6 +397,10 @@ WHEN (
     NEW.status IS NOT OLD.status OR
     NEW.description IS NOT OLD.description OR
     NEW.detailed_explanation IS NOT OLD.detailed_explanation OR
+    NEW.version IS NOT OLD.version OR
+    NEW.version_source IS NOT OLD.version_source OR
+    NEW.reference_commit IS NOT OLD.reference_commit OR
+    NEW.last_updated_at IS NOT OLD.last_updated_at OR
     NEW.started_at IS NOT OLD.started_at
 )
 BEGIN
@@ -392,6 +412,9 @@ BEGIN
         description_snapshot,
         detailed_explanation_snapshot,
         status_snapshot,
+        version_snapshot,
+        reference_commit_snapshot,
+        last_updated_at_snapshot,
         started_at_snapshot,
         ended_at_snapshot
     )
@@ -403,6 +426,9 @@ BEGIN
         NEW.description,
         NEW.detailed_explanation,
         NEW.status,
+        NEW.version,
+        NEW.reference_commit,
+        NEW.last_updated_at,
         NEW.started_at,
         NEW.ended_at
     );
@@ -422,6 +448,9 @@ BEGIN
         description_snapshot,
         detailed_explanation_snapshot,
         status_snapshot,
+        version_snapshot,
+        reference_commit_snapshot,
+        last_updated_at_snapshot,
         started_at_snapshot,
         ended_at_snapshot
     )
@@ -433,6 +462,9 @@ BEGIN
         NEW.description,
         NEW.detailed_explanation,
         NEW.status,
+        NEW.version,
+        NEW.reference_commit,
+        NEW.last_updated_at,
         NEW.started_at,
         NEW.ended_at
     );
@@ -456,10 +488,31 @@ $programColumnNames = array_column($connection->fetchAllAssociative('PRAGMA tabl
 if (!in_array('physical_path', $programColumnNames, true)) {
     $connection->executeStatement("ALTER TABLE programs ADD COLUMN physical_path TEXT NOT NULL DEFAULT ''");
 }
+if (!in_array('version', $programColumnNames, true)) {
+    $connection->executeStatement("ALTER TABLE programs ADD COLUMN version TEXT NULL");
+}
+if (!in_array('version_source', $programColumnNames, true)) {
+    $connection->executeStatement("ALTER TABLE programs ADD COLUMN version_source TEXT NULL");
+}
+if (!in_array('reference_commit', $programColumnNames, true)) {
+    $connection->executeStatement("ALTER TABLE programs ADD COLUMN reference_commit TEXT NULL");
+}
+if (!in_array('last_updated_at', $programColumnNames, true)) {
+    $connection->executeStatement("ALTER TABLE programs ADD COLUMN last_updated_at TEXT NULL");
+}
 
 $historyColumnNames = array_column($connection->fetchAllAssociative('PRAGMA table_info(program_history)'), 'name');
 if (!in_array('physical_path_snapshot', $historyColumnNames, true)) {
     $connection->executeStatement("ALTER TABLE program_history ADD COLUMN physical_path_snapshot TEXT NOT NULL DEFAULT ''");
+}
+if (!in_array('version_snapshot', $historyColumnNames, true)) {
+    $connection->executeStatement("ALTER TABLE program_history ADD COLUMN version_snapshot TEXT NULL");
+}
+if (!in_array('reference_commit_snapshot', $historyColumnNames, true)) {
+    $connection->executeStatement("ALTER TABLE program_history ADD COLUMN reference_commit_snapshot TEXT NULL");
+}
+if (!in_array('last_updated_at_snapshot', $historyColumnNames, true)) {
+    $connection->executeStatement("ALTER TABLE program_history ADD COLUMN last_updated_at_snapshot TEXT NULL");
 }
 
 $connection->executeStatement(
@@ -476,6 +529,7 @@ $connection->beginTransaction();
 
 try {
     foreach ($programs as $program) {
+        $versionData = resolveProgramVersionData($program['physical_path'], $projectRoot);
         $existing = $connection->fetchAssociative(
             'SELECT id, description, detailed_explanation, physical_path, status, started_at, ended_at FROM programs WHERE code = :code',
             ['code' => $program['code']]
@@ -491,6 +545,10 @@ try {
                 'status' => 'active',
                 'description' => $program['description'],
                 'detailed_explanation' => $program['detailed_explanation'],
+                'version' => $versionData['version'],
+                'version_source' => $versionData['version_source'],
+                'reference_commit' => $versionData['reference_commit'],
+                'last_updated_at' => $versionData['last_updated_at'],
             ]);
 
             $programId = (int) $connection->lastInsertId();
@@ -503,6 +561,9 @@ try {
                 'description_snapshot' => $program['description'],
                 'detailed_explanation_snapshot' => $program['detailed_explanation'],
                 'status_snapshot' => 'active',
+                'version_snapshot' => $versionData['version'],
+                'reference_commit_snapshot' => $versionData['reference_commit'],
+                'last_updated_at_snapshot' => $versionData['last_updated_at'],
                 'started_at_snapshot' => date('Y-m-d H:i:s'),
                 'ended_at_snapshot' => null,
             ]);
@@ -518,6 +579,10 @@ try {
             'status' => $existing['ended_at'] === null ? 'active' : $existing['status'],
             'description' => $program['description'],
             'detailed_explanation' => $program['detailed_explanation'],
+            'version' => $versionData['version'],
+            'version_source' => $versionData['version_source'],
+            'reference_commit' => $versionData['reference_commit'],
+            'last_updated_at' => $versionData['last_updated_at'],
         ], [
             'code' => $program['code'],
         ]);
@@ -533,3 +598,52 @@ try {
 echo "Banco criado/atualizado em {$dbPath}\n";
 
 @chmod($dbPath, 0666);
+
+/**
+ * @return array{version:?string,version_source:?string,reference_commit:?string,last_updated_at:?string}
+ */
+function resolveProgramVersionData(string $physicalPath, string $projectDir): array
+{
+    $absolutePath = $projectDir . DIRECTORY_SEPARATOR . $physicalPath;
+    $gitOutput = null;
+
+    if (is_file($absolutePath)) {
+        $command = sprintf(
+            'cd %s && git log -1 --format=%s -- %s 2>/dev/null',
+            escapeshellarg($projectDir),
+            escapeshellarg('%H|%h|%cI'),
+            escapeshellarg($physicalPath)
+        );
+        $gitOutput = trim((string) shell_exec($command));
+    }
+
+    if ($gitOutput !== '') {
+        [$commitHash, $shortHash, $committedAt] = array_pad(explode('|', $gitOutput), 3, null);
+
+        return [
+            'version' => $shortHash === null || $shortHash === '' ? null : 'git-' . $shortHash,
+            'version_source' => 'git',
+            'reference_commit' => $commitHash ?: null,
+            'last_updated_at' => $committedAt ?: null,
+        ];
+    }
+
+    if (is_file($absolutePath)) {
+        $mtime = @filemtime($absolutePath);
+        if ($mtime !== false) {
+            return [
+                'version' => 'arquivo-' . date('YmdHis', $mtime),
+                'version_source' => 'filesystem',
+                'reference_commit' => null,
+                'last_updated_at' => date('c', $mtime),
+            ];
+        }
+    }
+
+    return [
+        'version' => null,
+        'version_source' => null,
+        'reference_commit' => null,
+        'last_updated_at' => null,
+    ];
+}

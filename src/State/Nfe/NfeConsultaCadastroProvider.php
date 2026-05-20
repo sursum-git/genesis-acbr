@@ -7,6 +7,7 @@ use ApiPlatform\State\ProviderInterface;
 use App\Dto\Nfe\NfeConsultaCadastroInput;
 use App\Dto\Nfe\NfeOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
@@ -17,6 +18,7 @@ final class NfeConsultaCadastroProvider implements ProviderInterface
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
         private readonly ValidatorInterface $validator,
+        private readonly ApiAsyncResponder $asyncResponder,
     ) {
     }
 
@@ -53,6 +55,13 @@ final class NfeConsultaCadastroProvider implements ProviderInterface
 
         if ($script === '' || $method === '') {
             throw new AcbrLegacyApiException('Operacao API Platform sem metadados do legado ACBr.');
+        }
+
+        if ($this->asyncResponder->shouldQueue($operation, $request)) {
+            return new NfeOperationOutput(
+                $this->asyncResponder->accept($request, $operation, $input->toLegacyPayload()),
+                'Requisicao aceita para processamento assincrono.'
+            );
         }
 
         $resultado = $this->executor->execute(

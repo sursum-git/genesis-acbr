@@ -13,6 +13,7 @@
             <a class="nav-link" href="{{ app.request.basePath ~ '/index.php/' }}">Hub</a>
             <a class="nav-link{% if app.request.attributes.get('_route') == 'app_program_catalog' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}">Catálogo de Programas</a>
             <a class="nav-link{% if app.request.attributes.get('_route') == 'app_test_catalog' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">Catálogo de Testes</a>
+            <a class="nav-link{% if app.request.attributes.get('_route') == 'app_api_audit_dashboard' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}">Auditoria</a>
         </nav>
 
         {% for message in app.flashes('success') %}
@@ -24,5 +25,649 @@
 
         {% block body %}{% endblock %}
     </div>
+    <script>
+        function persistCatalogFilters(form) {
+            const storageKey = form.dataset.filterStorage || '';
+            if (storageKey === '') {
+                return;
+            }
+
+            const values = {};
+            Array.from(form.elements).forEach(function (element) {
+                if (!element.name || element.type === 'hidden') {
+                    return;
+                }
+                values[element.name] = element.value;
+            });
+            window.localStorage.setItem(storageKey, JSON.stringify(values));
+        }
+
+        document.addEventListener('click', function (event) {
+            const button = event.target.closest('[data-copy-text]');
+            if (!button) {
+                return;
+            }
+
+            const text = button.getAttribute('data-copy-text') || '';
+            if (text === '') {
+                return;
+            }
+
+            const previousLabel = button.textContent;
+            navigator.clipboard.writeText(text).then(function () {
+                button.textContent = 'Copiado';
+                window.setTimeout(function () {
+                    button.textContent = previousLabel;
+                }, 1200);
+            });
+        });
+
+        function clearDetailHighlights(root) {
+            root.querySelectorAll('mark.detail-highlight').forEach(function (mark) {
+                const textNode = document.createTextNode(mark.textContent || '');
+                mark.replaceWith(textNode);
+            });
+            root.normalize();
+        }
+
+        function applyDetailHighlight(root, term) {
+            if (!term) {
+                return;
+            }
+
+            const lowerTerm = term.toLowerCase();
+            const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+                acceptNode: function (node) {
+                    if (!node.nodeValue || node.nodeValue.trim() === '') {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+
+                    const parentName = node.parentNode && node.parentNode.nodeName ? node.parentNode.nodeName.toLowerCase() : '';
+                    if (parentName === 'script' || parentName === 'style' || parentName === 'mark') {
+                        return NodeFilter.FILTER_REJECT;
+                    }
+
+                    return NodeFilter.FILTER_ACCEPT;
+                }
+            });
+
+            const matches = [];
+            let currentNode = walker.nextNode();
+            while (currentNode) {
+                if ((currentNode.nodeValue || '').toLowerCase().indexOf(lowerTerm) !== -1) {
+                    matches.push(currentNode);
+                }
+                currentNode = walker.nextNode();
+            }
+
+            matches.forEach(function (textNode) {
+                const value = textNode.nodeValue || '';
+                const lowerValue = value.toLowerCase();
+                let searchFrom = 0;
+                let foundAt = lowerValue.indexOf(lowerTerm, searchFrom);
+                if (foundAt === -1) {
+                    return;
+                }
+
+                const fragment = document.createDocumentFragment();
+                while (foundAt !== -1) {
+                    if (foundAt > searchFrom) {
+                        fragment.appendChild(document.createTextNode(value.slice(searchFrom, foundAt)));
+                    }
+
+                    const mark = document.createElement('mark');
+                    mark.className = 'detail-highlight';
+                    mark.textContent = value.slice(foundAt, foundAt + term.length);
+                    fragment.appendChild(mark);
+
+                    searchFrom = foundAt + term.length;
+                    foundAt = lowerValue.indexOf(lowerTerm, searchFrom);
+                }
+
+                if (searchFrom < value.length) {
+                    fragment.appendChild(document.createTextNode(value.slice(searchFrom)));
+                }
+
+                textNode.parentNode.replaceChild(fragment, textNode);
+            });
+        }
+
+        function buildCatalogDetailDocumentHtml(targetHtml) {
+            return '<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Detalhe</title><link rel="stylesheet" href="' + window.location.origin + '{{ app.request.basePath ~ '/catalog-assets/catalog.css' }}' + '"></head><body class="page-body"><div class="shell"><div class="panel"><div class="details">' + targetHtml + '</div></div></div></body></html>';
+        }
+
+        window.initCatalogDetailScope = function (scope, config) {
+            const settings = Object.assign({
+                detailScrollKey: '',
+                foldStorageKey: '',
+                initMarkerPrefix: 'catalog'
+            }, config || {});
+
+            const markerPrefix = settings.initMarkerPrefix || 'catalog';
+
+            scope.querySelectorAll('[data-detail-search-input]').forEach(function (input) {
+                const marker = markerPrefix + 'DetailSearchInit';
+                if (input.dataset[marker] === '1') {
+                    return;
+                }
+                input.dataset[marker] = '1';
+
+                const targetSelector = input.getAttribute('data-detail-search-target') || '';
+                const target = targetSelector ? (scope.querySelector(targetSelector) || document.querySelector(targetSelector)) : null;
+                if (!target) {
+                    return;
+                }
+
+                const items = target.querySelectorAll('[data-detail-search-item]');
+                input.addEventListener('input', function () {
+                    const term = (input.value || '').trim().toLowerCase();
+                    items.forEach(function (item) {
+                        clearDetailHighlights(item);
+                        const text = (item.textContent || '').toLowerCase();
+                        const visible = term === '' || text.indexOf(term) !== -1;
+                        item.hidden = !visible;
+                        if (visible && term !== '') {
+                            applyDetailHighlight(item, term);
+                        }
+                    });
+                });
+            });
+
+            scope.querySelectorAll('[data-fold-scope]').forEach(function (foldScope) {
+                const marker = markerPrefix + 'FoldScopeInit';
+                if (foldScope.dataset[marker] === '1') {
+                    return;
+                }
+                foldScope.dataset[marker] = '1';
+
+                const folds = foldScope.querySelectorAll('[data-fold-item]');
+                const openAllButton = foldScope.parentElement ? foldScope.parentElement.querySelector('[data-fold-open-all]') : null;
+                const closeAllButton = foldScope.parentElement ? foldScope.parentElement.querySelector('[data-fold-close-all]') : null;
+
+                function getFoldStateKey(index, element) {
+                    return 'fold_' + index + '_' + ((element.getAttribute('data-fold-key') || '').trim() || 'item');
+                }
+
+                function readState() {
+                    if (settings.foldStorageKey === '') {
+                        return {};
+                    }
+                    try {
+                        const state = JSON.parse(window.localStorage.getItem(settings.foldStorageKey) || '{}');
+                        return state && typeof state === 'object' ? state : {};
+                    } catch (error) {
+                        return {};
+                    }
+                }
+
+                function writeState(state) {
+                    if (settings.foldStorageKey === '') {
+                        return;
+                    }
+                    window.localStorage.setItem(settings.foldStorageKey, JSON.stringify(state));
+                }
+
+                const storedState = readState();
+                folds.forEach(function (fold, index) {
+                    const foldKey = getFoldStateKey(index, fold);
+                    if (Object.prototype.hasOwnProperty.call(storedState, foldKey)) {
+                        fold.open = !!storedState[foldKey];
+                    }
+
+                    fold.addEventListener('toggle', function () {
+                        const currentState = readState();
+                        currentState[foldKey] = fold.open;
+                        writeState(currentState);
+                    });
+                });
+
+                if (openAllButton) {
+                    openAllButton.addEventListener('click', function () {
+                        folds.forEach(function (fold) {
+                            fold.open = true;
+                        });
+                    });
+                }
+
+                if (closeAllButton) {
+                    closeAllButton.addEventListener('click', function () {
+                        folds.forEach(function (fold) {
+                            fold.open = false;
+                        });
+                    });
+                }
+            });
+
+            scope.querySelectorAll('[data-export-detail-html]').forEach(function (button) {
+                const marker = markerPrefix + 'ExportHtmlInit';
+                if (button.dataset[marker] === '1') {
+                    return;
+                }
+                button.dataset[marker] = '1';
+
+                button.addEventListener('click', function () {
+                    const selector = button.getAttribute('data-export-detail-html') || '';
+                    const filename = button.getAttribute('data-export-filename') || 'detalhe.html';
+                    const target = selector ? (scope.querySelector(selector) || document.querySelector(selector)) : null;
+                    if (!target) {
+                        return;
+                    }
+
+                    const html = buildCatalogDetailDocumentHtml(target.innerHTML);
+                    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = filename;
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                    window.setTimeout(function () {
+                        URL.revokeObjectURL(url);
+                    }, 1000);
+                });
+            });
+
+            scope.querySelectorAll('[data-export-detail-print]').forEach(function (button) {
+                const marker = markerPrefix + 'ExportPrintInit';
+                if (button.dataset[marker] === '1') {
+                    return;
+                }
+                button.dataset[marker] = '1';
+
+                button.addEventListener('click', function () {
+                    const selector = button.getAttribute('data-export-detail-print') || '';
+                    const target = selector ? (scope.querySelector(selector) || document.querySelector(selector)) : null;
+                    if (!target) {
+                        return;
+                    }
+
+                    const printWindow = window.open('', '_blank');
+                    if (!printWindow) {
+                        return;
+                    }
+
+                    printWindow.document.open();
+                    printWindow.document.write(buildCatalogDetailDocumentHtml(target.innerHTML));
+                    printWindow.document.close();
+                    printWindow.focus();
+                    window.setTimeout(function () {
+                        printWindow.print();
+                    }, 250);
+                });
+            });
+
+            scope.querySelectorAll('[data-scroll-memory]').forEach(function (container) {
+                const marker = markerPrefix + 'DetailScrollInit';
+                const storageKey = container.getAttribute('data-scroll-memory') || '';
+                if (storageKey !== settings.detailScrollKey || container.dataset[marker] === '1') {
+                    return;
+                }
+                container.dataset[marker] = '1';
+
+                const storedValue = window.localStorage.getItem(storageKey);
+                container.scrollTop = storedValue && !Number.isNaN(Number(storedValue)) ? Number(storedValue) : 0;
+                container.addEventListener('scroll', function () {
+                    window.localStorage.setItem(storageKey, String(container.scrollTop));
+                }, { passive: true });
+            });
+        };
+
+        window.initCatalogPartialNavigation = function (config) {
+            const settings = Object.assign({
+                rootMarker: '',
+                linkSelector: '',
+                detailPanelSelector: '',
+                listBodySelector: '',
+                activeRowSelector: '',
+                activeValueAttribute: '',
+                queryParam: '',
+                detailScrollKey: '',
+                initDetailScope: function () {
+                }
+            }, config || {});
+
+            if (settings.rootMarker === '' || document.body.dataset[settings.rootMarker] === '1') {
+                return;
+            }
+            document.body.dataset[settings.rootMarker] = '1';
+
+            function setActiveValue(value) {
+                document.querySelectorAll(settings.activeRowSelector).forEach(function (row) {
+                    row.classList.toggle('is-active', (row.getAttribute(settings.activeValueAttribute) || '') === value);
+                });
+            }
+
+            async function loadDetail(url, pushHistory) {
+                const detailPanel = document.querySelector(settings.detailPanelSelector);
+                if (!detailPanel) {
+                    window.location.href = url;
+                    return;
+                }
+
+                const listBody = document.querySelector(settings.listBodySelector);
+                const rememberedListScroll = listBody ? listBody.scrollTop : 0;
+                detailPanel.classList.add('is-loading');
+
+                try {
+                    const response = await window.fetch(url, {
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                        credentials: 'same-origin'
+                    });
+                    if (!response.ok) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+
+                    const html = await response.text();
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const nextDetailPanel = doc.querySelector(settings.detailPanelSelector);
+                    if (!nextDetailPanel) {
+                        throw new Error('Painel de detalhe não encontrado');
+                    }
+
+                    detailPanel.replaceWith(nextDetailPanel);
+                    if (settings.detailScrollKey !== '') {
+                        window.localStorage.removeItem(settings.detailScrollKey);
+                    }
+                    settings.initDetailScope(nextDetailPanel);
+
+                    const selectedValue = new URL(url, window.location.origin).searchParams.get(settings.queryParam) || '';
+                    setActiveValue(selectedValue);
+
+                    if (listBody) {
+                        listBody.scrollTop = rememberedListScroll;
+                    }
+
+                    if (pushHistory) {
+                        window.history.pushState({ url: url }, '', url);
+                    }
+                } catch (error) {
+                    window.location.href = url;
+                    return;
+                } finally {
+                    const freshPanel = document.querySelector(settings.detailPanelSelector);
+                    if (freshPanel) {
+                        freshPanel.classList.remove('is-loading');
+                    }
+                }
+            }
+
+            document.addEventListener('click', function (event) {
+                const link = event.target.closest(settings.linkSelector);
+                if (!link) {
+                    return;
+                }
+
+                const href = link.getAttribute('href') || '';
+                if (href === '') {
+                    return;
+                }
+
+                const targetUrl = new URL(href, window.location.origin);
+                if (targetUrl.pathname !== window.location.pathname || !targetUrl.searchParams.get(settings.queryParam)) {
+                    return;
+                }
+
+                event.preventDefault();
+                loadDetail(targetUrl.toString(), true);
+            });
+
+            window.addEventListener('popstate', function () {
+                const currentUrl = new URL(window.location.href);
+                if (currentUrl.pathname !== window.location.pathname) {
+                    return;
+                }
+                if (currentUrl.searchParams.get(settings.queryParam)) {
+                    loadDetail(currentUrl.toString(), false);
+                    return;
+                }
+                window.location.href = currentUrl.toString();
+            });
+        };
+
+        window.initCatalogSavedFilters = function (config) {
+            const settings = Object.assign({
+                rootSelector: '[data-saved-filter-root]',
+                storageKey: '',
+                emptyMessage: 'Nenhum filtro salvo ainda.'
+            }, config || {});
+
+            const root = document.querySelector(settings.rootSelector);
+            if (!root) {
+                return;
+            }
+
+            const storageKey = settings.storageKey || root.dataset.storageKey || '';
+            if (storageKey === '') {
+                return;
+            }
+
+            const list = root.querySelector('[data-saved-filter-list]');
+            const nameInput = root.querySelector('[data-saved-filter-name]');
+            const saveButton = root.querySelector('[data-save-current-filter]');
+            const copyLinkButton = root.querySelector('[data-copy-current-filter-link]');
+            if (!list) {
+                return;
+            }
+
+            function readItems() {
+                try {
+                    const items = JSON.parse(window.localStorage.getItem(storageKey) || '[]');
+                    return Array.isArray(items) ? items : [];
+                } catch (error) {
+                    return [];
+                }
+            }
+
+            function writeItems(items) {
+                window.localStorage.setItem(storageKey, JSON.stringify(items));
+            }
+
+            function buildCurrentUrl() {
+                return window.location.pathname + window.location.search;
+            }
+
+            function render() {
+                const items = readItems();
+                list.innerHTML = '';
+
+                if (items.length === 0) {
+                    const empty = document.createElement('span');
+                    empty.className = 'muted-text';
+                    empty.textContent = settings.emptyMessage;
+                    list.appendChild(empty);
+                    return;
+                }
+
+                items.forEach(function (item, index) {
+                    const row = document.createElement('div');
+                    row.className = 'saved-filter-item';
+
+                    const name = document.createElement('strong');
+                    name.textContent = item.name || ('Filtro ' + (index + 1));
+                    row.appendChild(name);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'saved-filter-actions';
+
+                    const openButton = document.createElement('a');
+                    openButton.className = 'button button-secondary';
+                    openButton.href = item.url || buildCurrentUrl();
+                    openButton.textContent = 'Aplicar';
+                    actions.appendChild(openButton);
+
+                    const copyButton = document.createElement('button');
+                    copyButton.className = 'button button-tertiary';
+                    copyButton.type = 'button';
+                    copyButton.textContent = 'Copiar link';
+                    copyButton.addEventListener('click', function () {
+                        navigator.clipboard.writeText(window.location.origin + (item.url || buildCurrentUrl()));
+                    });
+                    actions.appendChild(copyButton);
+
+                    const removeButton = document.createElement('button');
+                    removeButton.className = 'button button-tertiary';
+                    removeButton.type = 'button';
+                    removeButton.textContent = 'Excluir';
+                    removeButton.addEventListener('click', function () {
+                        const items = readItems();
+                        items.splice(index, 1);
+                        writeItems(items);
+                        render();
+                    });
+                    actions.appendChild(removeButton);
+
+                    row.appendChild(actions);
+                    list.appendChild(row);
+                });
+            }
+
+            if (saveButton && nameInput && saveButton.dataset.savedFilterInit !== '1') {
+                saveButton.dataset.savedFilterInit = '1';
+                saveButton.addEventListener('click', function () {
+                    const name = (nameInput.value || '').trim();
+                    if (name === '') {
+                        nameInput.focus();
+                        return;
+                    }
+
+                    const items = readItems().filter(function (item) {
+                        return item.name !== name;
+                    });
+                    items.unshift({ name: name, url: buildCurrentUrl() });
+                    writeItems(items.slice(0, 12));
+                    nameInput.value = '';
+                    render();
+                });
+            }
+
+            if (copyLinkButton && copyLinkButton.dataset.savedFilterInit !== '1') {
+                copyLinkButton.dataset.savedFilterInit = '1';
+                copyLinkButton.addEventListener('click', function () {
+                    navigator.clipboard.writeText(window.location.href);
+                    const previousLabel = copyLinkButton.textContent;
+                    copyLinkButton.textContent = 'Link copiado';
+                    window.setTimeout(function () {
+                        copyLinkButton.textContent = previousLabel;
+                    }, 1200);
+                });
+            }
+
+            render();
+        };
+
+        window.initCatalogVisualToggle = function (config) {
+            const settings = Object.assign({
+                toggleSelector: '',
+                storageKey: '',
+                bodyClass: '',
+                activeLabel: 'Ativado',
+                inactiveLabel: 'Desativado'
+            }, config || {});
+
+            if (settings.toggleSelector === '' || settings.storageKey === '' || settings.bodyClass === '') {
+                return;
+            }
+
+            const button = document.querySelector(settings.toggleSelector);
+            if (!button) {
+                return;
+            }
+
+            function applyState(enabled) {
+                document.body.classList.toggle(settings.bodyClass, enabled);
+                button.textContent = enabled ? settings.activeLabel : settings.inactiveLabel;
+            }
+
+            applyState(window.localStorage.getItem(settings.storageKey) === '1');
+
+            if (button.dataset.visualToggleInit === '1') {
+                return;
+            }
+            button.dataset.visualToggleInit = '1';
+
+            button.addEventListener('click', function () {
+                const nextEnabled = !document.body.classList.contains(settings.bodyClass);
+                window.localStorage.setItem(settings.storageKey, nextEnabled ? '1' : '0');
+                applyState(nextEnabled);
+            });
+        };
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const pageScrollKey = 'catalog_page_scroll';
+            const rememberedPageScrollKey = 'catalog_page_scroll_remembered';
+
+            document.querySelectorAll('[data-remember-page-scroll]').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    const customKey = link.getAttribute('data-remember-page-scroll') || pageScrollKey;
+                    window.localStorage.setItem(customKey, String(window.scrollY || window.pageYOffset || 0));
+                    window.localStorage.setItem(rememberedPageScrollKey, customKey);
+                });
+            });
+
+            const activePageScrollKey = window.localStorage.getItem(rememberedPageScrollKey);
+            if (activePageScrollKey) {
+                const storedPageScroll = window.localStorage.getItem(activePageScrollKey);
+                if (storedPageScroll && !Number.isNaN(Number(storedPageScroll))) {
+                    window.requestAnimationFrame(function () {
+                        window.scrollTo(0, Number(storedPageScroll));
+                        window.localStorage.removeItem(activePageScrollKey);
+                        window.localStorage.removeItem(rememberedPageScrollKey);
+                    });
+                }
+            }
+
+            document.querySelectorAll('form[data-filter-storage]').forEach(function (form) {
+                const storageKey = form.dataset.filterStorage || '';
+                if (storageKey === '') {
+                    return;
+                }
+
+                const clearSelector = form.dataset.clearStorageSelector || '';
+                if (clearSelector !== '') {
+                    document.querySelectorAll(clearSelector).forEach(function (clearButton) {
+                        clearButton.addEventListener('click', function () {
+                            window.localStorage.removeItem(storageKey);
+                        });
+                    });
+                }
+
+                const hasQuery = window.location.search !== '';
+                const stored = window.localStorage.getItem(storageKey);
+                if (!hasQuery && stored) {
+                    let restoredAny = false;
+                    try {
+                        const values = JSON.parse(stored);
+                        Object.entries(values).forEach(function (entry) {
+                            const name = entry[0];
+                            const value = entry[1];
+                            const field = form.elements.namedItem(name);
+                            if (field && typeof value === 'string' && field.value === '') {
+                                field.value = value;
+                                if (value !== '') {
+                                    restoredAny = true;
+                                }
+                            }
+                        });
+                    } catch (error) {
+                    }
+
+                    if (restoredAny) {
+                        form.requestSubmit();
+                        return;
+                    }
+                }
+
+                form.addEventListener('change', function () {
+                    persistCatalogFilters(form);
+                });
+                form.addEventListener('submit', function () {
+                    persistCatalogFilters(form);
+                });
+            });
+
+        });
+    </script>
+    {% block page_scripts %}{% endblock %}
 </body>
 </html>

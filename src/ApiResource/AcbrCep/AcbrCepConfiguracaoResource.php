@@ -10,6 +10,7 @@ final class AcbrCepConfiguracaoResource
         public ?string $chaveAcesso = '',
         public ?string $webservice = '0',
         public ?string $mensagem = null,
+        public ?array $resultado = null,
     ) {
     }
 }

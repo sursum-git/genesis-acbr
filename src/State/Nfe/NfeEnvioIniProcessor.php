@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Nfe\NfeEnvioOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -14,6 +15,7 @@ final class NfeEnvioIniProcessor implements ProcessorInterface
     public function __construct(
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
+        private readonly ApiAsyncResponder $asyncResponder,
     ) {
     }
 
@@ -45,6 +47,17 @@ final class NfeEnvioIniProcessor implements ProcessorInterface
             // SEFAZ rejeita lote assincrono com apenas uma NF-e; faz fallback automatico para envio sincrono.
             $effectivePayload['ASincrono'] = '1';
         }
+
+        if ($this->asyncResponder->shouldQueue($operation, $request)) {
+            return new NfeEnvioOutput(
+                $this->asyncResponder->accept($request, $operation, [
+                    'ALote' => $this->normalizeLote($request->query->get('ALote', '1')),
+                    'quantidade_documentos' => count($contents),
+                ]),
+                'Requisicao aceita para processamento assincrono.'
+            );
+        }
+
         $tempFiles = [];
 
         try {

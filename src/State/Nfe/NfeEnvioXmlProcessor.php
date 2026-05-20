@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Nfe\NfeEnvioOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use DOMDocument;
 use Symfony\Component\HttpFoundation\RequestStack;
@@ -15,6 +16,7 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
     public function __construct(
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
+        private readonly ApiAsyncResponder $asyncResponder,
     ) {
     }
 
@@ -46,6 +48,17 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
             // SEFAZ rejeita lote assincrono com apenas uma NF-e; faz fallback automatico para envio sincrono.
             $effectivePayload['ASincrono'] = '1';
         }
+
+        if ($this->asyncResponder->shouldQueue($operation, $request)) {
+            return new NfeEnvioOutput(
+                $this->asyncResponder->accept($request, $operation, [
+                    'ALote' => $this->normalizeLote($request->query->get('ALote', '1')),
+                    'quantidade_documentos' => count($xmlDocuments),
+                ]),
+                'Requisicao aceita para processamento assincrono.'
+            );
+        }
+
         $tempFiles = [];
 
         try {
@@ -53,10 +66,7 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
                 $tempFiles[] = $this->writeTempXml($xmlDocument, $index + 1);
             }
 
-            $lote = trim((string) $request->query->get('ALote', '1'));
-            if ($lote === '') {
-                $lote = '1';
-            }
+            $lote = $this->normalizeLote($request->query->get('ALote', '1'));
 
             $resultado = $this->executor->execute(
                 $script,
@@ -123,6 +133,13 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
         }
 
         return $documents;
+    }
+
+    private function normalizeLote(mixed $rawLote): string
+    {
+        $lote = trim((string) $rawLote);
+
+        return $lote === '' ? '1' : $lote;
     }
 
     private function writeTempXml(string $xml, int $index): string

@@ -1,6 +1,7 @@
 imports:
   - { resource: services/consulta_cep.yaml }
   - { resource: services/doctrine_connection.xml }
+  - { resource: services/audit_connection.xml }
 
 services:
   _defaults:
@@ -18,3 +19,27 @@ services:
     decorates: 'api_platform.openapi.factory'
     arguments:
       $decorated: '@App\OpenApi\LegacyOptionalRequestBodyOpenApiFactory.inner'
+
+  App\Repository\ApiAssinanteRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\ApiExecutionModeRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\ApiAuditRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\ApiAuditDashboardRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Service\Api\ApiExecutionModeResolver:
+    arguments:
+      $defaultMode: '%env(string:API_EXECUTION_MODE_DEFAULT)%'
+
+  App\Service\Api\InternalApiRequestRunner:
+    arguments:
+      $internalBaseUrl: '%env(string:APP_INTERNAL_BASE_URL)%'

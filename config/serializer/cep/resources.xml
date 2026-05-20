@@ -8,6 +8,7 @@
         <attribute name="chaveAcesso"><group>acbr_cep_config:read</group><group>acbr_cep_config:write</group></attribute>
         <attribute name="webservice"><group>acbr_cep_config:read</group><group>acbr_cep_config:write</group></attribute>
         <attribute name="mensagem"><group>acbr_cep_config:read</group></attribute>
+        <attribute name="resultado"><group>acbr_cep_config:read</group></attribute>
     </class>
     <class name="App\ApiResource\AcbrCep\AcbrCepConsultaCepResource">
         <attribute name="cep"><group>acbr_cep_consulta_cep:write</group><group>acbr_cep_consulta_cep:read</group></attribute>
@@ -15,6 +16,7 @@
         <attribute name="retorno"><group>acbr_cep_consulta_cep:read</group></attribute>
         <attribute name="mensagem"><group>acbr_cep_consulta_cep:read</group></attribute>
         <attribute name="dados"><group>acbr_cep_consulta_cep:read</group></attribute>
+        <attribute name="resultado"><group>acbr_cep_consulta_cep:read</group></attribute>
     </class>
     <class name="App\ApiResource\AcbrCep\AcbrCepConsultaLogradouroResource">
         <attribute name="cidade"><group>acbr_cep_consulta_logradouro:write</group><group>acbr_cep_consulta_logradouro:read</group></attribute>
@@ -26,6 +28,7 @@
         <attribute name="retorno"><group>acbr_cep_consulta_logradouro:read</group></attribute>
         <attribute name="mensagem"><group>acbr_cep_consulta_logradouro:read</group></attribute>
         <attribute name="dados"><group>acbr_cep_consulta_logradouro:read</group></attribute>
+        <attribute name="resultado"><group>acbr_cep_consulta_logradouro:read</group></attribute>
     </class>
     <class name="App\ApiResource\AcbrCep\AcbrCepEnderecoResource">
         <attribute name="bairro"><group>acbr_cep_consulta_cep:read</group><group>acbr_cep_consulta_logradouro:read</group></attribute>

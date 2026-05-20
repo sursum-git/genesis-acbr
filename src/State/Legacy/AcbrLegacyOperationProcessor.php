@@ -9,12 +9,17 @@ use App\Dto\Legacy\AbstractLegacyOperationOutput;
 use App\Dto\Nfe\NfeOperationOutput;
 use App\Dto\Nfse\NfseOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 final class AcbrLegacyOperationProcessor implements ProcessorInterface
 {
-    public function __construct(private readonly AcbrLegacyScriptExecutor $executor)
-    {
+    public function __construct(
+        private readonly AcbrLegacyScriptExecutor $executor,
+        private readonly ApiAsyncResponder $asyncResponder,
+        private readonly RequestStack $requestStack,
+    ) {
     }
 
     public function process(mixed $data, Operation $operation, array $uriVariables = [], array $context = []): AbstractLegacyOperationOutput
@@ -30,6 +35,18 @@ final class AcbrLegacyOperationProcessor implements ProcessorInterface
 
         if ($script === '' || $method === '') {
             throw new AcbrLegacyApiException('Operação API Platform sem metadados do legado ACBr.');
+        }
+
+        $request = $this->requestStack->getCurrentRequest();
+        if ($request !== null && $this->asyncResponder->shouldQueue($operation, $request)) {
+            $outputClass = $this->resolveOutputClass($extraProperties, $script);
+
+            return new $outputClass(
+                $this->asyncResponder->accept($request, $operation, [
+                    'payload' => is_array($data->payload) ? $data->payload : [],
+                ]),
+                'Requisicao aceita para processamento assincrono.'
+            );
         }
 
         $resultado = $this->executor->execute(

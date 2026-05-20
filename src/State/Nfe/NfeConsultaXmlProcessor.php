@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Nfe\NfeOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use DOMDocument;
 use DOMXPath;
@@ -16,6 +17,7 @@ final class NfeConsultaXmlProcessor implements ProcessorInterface
     public function __construct(
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
+        private readonly ApiAsyncResponder $asyncResponder,
     ) {
     }
 
@@ -41,6 +43,13 @@ final class NfeConsultaXmlProcessor implements ProcessorInterface
         }
 
         $chave = $this->extractAccessKey($xml);
+        if ($this->asyncResponder->shouldQueue($operation, $request)) {
+            return new NfeOperationOutput(
+                $this->asyncResponder->accept($request, $operation, ['eChaveOuNFe' => $chave]),
+                'Requisicao aceita para processamento assincrono.'
+            );
+        }
+
         $resultado = $this->executor->execute(
             $script,
             $method,

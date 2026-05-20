@@ -10,6 +10,7 @@ final class AcbrCepConsultaCepResource
         public ?int $retorno = null,
         public ?string $mensagem = null,
         public ?AcbrCepEnderecoResource $dados = null,
+        public ?array $resultado = null,
     ) {
     }
 }

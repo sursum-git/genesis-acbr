@@ -28,16 +28,56 @@ Arquivos desta pasta:
 - [cep.http](/dados_containers/www/testes_api_platform/cep.http)
 - [nfse.http](/dados_containers/www/testes_api_platform/nfse.http)
 - [nfe.sh](/dados_containers/www/testes_api_platform/nfe.sh)
+- [nfe_diagnostico.sh](/dados_containers/www/testes_api_platform/nfe_diagnostico.sh)
+- [nfe_rede_externa.sh](/dados_containers/www/testes_api_platform/nfe_rede_externa.sh)
 - [cep.sh](/dados_containers/www/testes_api_platform/cep.sh)
 - [nfse.sh](/dados_containers/www/testes_api_platform/nfse.sh)
+- [auditoria_requisicoes.sh](/dados_containers/www/testes_api_platform/auditoria_requisicoes.sh)
 - [_common.sh](/dados_containers/www/testes_api_platform/_common.sh)
 - [payloads.md](/dados_containers/www/testes_api_platform/payloads.md)
 
 Scripts shell:
 
 - `bash testes_api_platform/nfe.sh`
+- `bash testes_api_platform/nfe_diagnostico.sh`
+- `bash testes_api_platform/nfe_rede_externa.sh`
 - `bash testes_api_platform/cep.sh`
 - `bash testes_api_platform/nfse.sh`
+- `bash testes_api_platform/auditoria_requisicoes.sh`
+
+Teste repetivel de auditoria/gravação no PostgreSQL:
+
+- faz uma chamada síncrona autenticada e valida a gravação na `t99001`
+- força um endpoint seguro para modo `async` via `t99003`
+- valida retorno `202`
+- roda `php bin/console app:api-request-worker --once --limit=1`
+- confirma a gravação final em `t99001`, a tentativa em `t99002` e a leitura por `/requests/{requestId}`
+
+Variáveis úteis para repetir sem editar o arquivo:
+
+```bash
+API_TOKEN='SEU_TOKEN' bash testes_api_platform/auditoria_requisicoes.sh
+```
+
+```bash
+ASSINANTE_IDENTIFICADOR='002' bash testes_api_platform/auditoria_requisicoes.sh
+```
+
+```bash
+BASE_URL='http://127.0.0.1/index.php' AUDIT_DB_HOST='157.173.110.195' bash testes_api_platform/auditoria_requisicoes.sh
+```
+
+Os scripts agora tentam carregar automaticamente o token do assinante pela `t00002` usando:
+
+- `ASSINANTE_IDENTIFICADOR` para localizar o assinante
+- `AUDIT_DB_HOST`, `AUDIT_DB_PORT`, `AUDIT_DB_NAME`, `AUDIT_DB_USER`, `AUDIT_DB_PASSWORD`
+
+Nos scripts shell, o token e enviado por `X-Api-Token`, porque esse ambiente Apache nao preserva `Authorization` de forma confiavel.
+
+Diagnostico de NFe:
+
+- `nfe_diagnostico.sh` roda um conjunto menor de chamadas e imprime tambem a versao do programa salva na `t99001`
+- `nfe_rede_externa.sh` testa conectividade direta do servidor para os endpoints externos da SVRS usados por `status-servico` e `consulta-cadastro`
 
 Voce pode sobrescrever variaveis sem editar os arquivos:
 

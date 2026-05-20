@@ -6,6 +6,7 @@ use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Nfe\NfeOperationOutput;
 use App\Http\Exception\AcbrLegacyApiException;
+use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -14,6 +15,7 @@ final class NfeXmlValidationProcessor implements ProcessorInterface
     public function __construct(
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
+        private readonly ApiAsyncResponder $asyncResponder,
     ) {
     }
 
@@ -37,6 +39,15 @@ final class NfeXmlValidationProcessor implements ProcessorInterface
         $xmlSource = trim((string) $request->getContent());
         if ($xmlSource === '') {
             throw new AcbrLegacyApiException('Informe o XML completo no corpo da requisição.');
+        }
+
+        if ($this->asyncResponder->shouldQueue($operation, $request)) {
+            return new NfeOperationOutput(
+                $this->asyncResponder->accept($request, $operation, [
+                    'xml_param_name' => $xmlParamName,
+                ]),
+                'Requisicao aceita para processamento assincrono.'
+            );
         }
 
         $xmlPath = $this->persistXmlForAcbr($this->resolveXmlContent($xmlSource));

@@ -64,14 +64,14 @@
         {% endfor %}
     </section>
 
-    <section class="layout">
+    <section id="test-workspace" class="layout">
         <aside class="panel">
             <div class="panel-header">
                 <h2>Cenários gravados</h2>
                 <p>Selecione um cenário já capturado no API Platform para inspecionar o payload e refazer a chamada.</p>
             </div>
 
-            <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">
+            <form class="search-form" method="get" action="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}" data-filter-storage="catalogo_testes_filtros" data-clear-storage-selector="[data-clear-test-catalog-filters]">
                 <input type="text" name="q" value="{{ search }}" placeholder="Buscar por nfe, cep, nfse, path...">
                 <select name="grupo">
                     <option value="">Todos os grupos</option>
@@ -80,53 +80,135 @@
                     {% endfor %}
                 </select>
                 <button class="button button-primary" type="submit">Filtrar</button>
+                <a class="button button-tertiary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?csv=1'
+                    ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                    ~ '&ordenar=' ~ sort
+                    ~ '&direcao=' ~ direction
+                }}">Exportar CSV</a>
+                <a class="button button-tertiary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?xlsx=1'
+                    ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                    ~ '&ordenar=' ~ sort
+                    ~ '&direcao=' ~ direction
+                }}">Exportar XLSX</a>
                 {% if search != '' or selectedGroupCode != '' %}
-                    <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">Limpar</a>
+                    <a class="button button-secondary" data-clear-test-catalog-filters href="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}">Limpar</a>
                 {% endif %}
             </form>
 
             {% if tests is empty %}
                 <div class="empty">Nenhum cenário gravado encontrado para os filtros atuais.</div>
             {% else %}
-                <div class="entity-list">
-                    {% for test in tests %}
-                        {% set lastRun = test.last_run %}
-                        <a
-                            class="entity-item{% if selectedTest and selectedTest.code == test.code %} is-active{% endif %}"
-                            href="{{ app.request.basePath ~ '/index.php/catalogo-testes?teste=' ~ test.code
+                <div class="catalog-list catalog-tests">
+                    <div class="catalog-list-head">
+                        <span><a class="sort-link{% if sort == 'method' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?ordenar=method&direcao=' ~ (sort == 'method' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1' ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '') ~ (search != '' ? '&q=' ~ search|url_encode : '') ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '') }}">Método</a></span>
+                        <span><a class="sort-link{% if sort == 'name' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?ordenar=name&direcao=' ~ (sort == 'name' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1' ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '') ~ (search != '' ? '&q=' ~ search|url_encode : '') ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '') }}">Cenário</a></span>
+                        <span><a class="sort-link{% if sort == 'group_name' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?ordenar=group_name&direcao=' ~ (sort == 'group_name' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1' ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '') ~ (search != '' ? '&q=' ~ search|url_encode : '') ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '') }}">Grupo</a></span>
+                        <span><a class="sort-link{% if sort == 'last_recorded_at' %} is-active{% endif %}" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?ordenar=last_recorded_at&direcao=' ~ (sort == 'last_recorded_at' and direction == 'asc' ? 'desc' : 'asc') ~ '&pagina=1' ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '') ~ (search != '' ? '&q=' ~ search|url_encode : '') ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '') }}">Último</a></span>
+                    </div>
+                    <div class="catalog-list-body" data-scroll-memory="test_list_scroll" data-keyboard-list data-test-list-body>
+                        {% for test in tests %}
+                            {% set lastRun = test.last_run %}
+                            <a
+                                data-keyboard-item
+                                data-test-link
+                                data-test-code="{{ test.code }}"
+                                data-remember-page-scroll="test_page_scroll"
+                                class="catalog-row{% if selectedTest and selectedTest.code == test.code %} is-active{% endif %}"
+                                href="{{ app.request.basePath ~ '/index.php/catalogo-testes?teste=' ~ test.code
+                                    ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                                    ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '')
+                                    ~ '&pagina=' ~ page
+                                }}#test-workspace"
+                            >
+                                <div class="catalog-cell">
+                                    <strong>{{ test.method }}</strong>
+                                    <span>{{ test.request_count }} uso(s)</span>
+                                </div>
+                                <div class="catalog-cell">
+                                    <strong>{{ test.name }}</strong>
+                                    <span>{{ test.description|slice(0, 140) }}{% if test.description|length > 140 %}...{% endif %}</span>
+                                </div>
+                                <div class="catalog-cell">
+                                    <strong>{{ test.group_name }}</strong>
+                                    <span class="mono">{{ test.code }}</span>
+                                </div>
+                                <div class="catalog-cell">
+                                    <strong>{{ test.last_recorded_at ? test.last_recorded_at|date('d/m H:i:s') : 'sem data' }}</strong>
+                                    {% if lastRun %}
+                                        <span>{{ lastRun.success ? 'último ok' : 'último erro' }}</span>
+                                    {% endif %}
+                                </div>
+                            </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="pagination">
+                    <div class="pagination-info">Página {{ page }} de {{ totalPages }}. Exibindo {{ tests|length }} de {{ totalTests }} cenários.</div>
+                    <div class="nav-actions">
+                        {% if page > 1 %}
+                            <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?pagina=' ~ (page - 1)
                                 ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
                                 ~ (search != '' ? '&q=' ~ search|url_encode : '')
                                 ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '')
-                            }}"
-                        >
-                            <strong>{{ test.name }}</strong>
-                            <p>{{ test.description }}</p>
-                            <div class="chips">
-                                <span class="chip">{{ test.group_name }}</span>
-                                <span class="chip">{{ test.method }}</span>
-                                <span class="chip">{{ test.request_count }} uso(s)</span>
-                                <span class="chip">{{ test.last_recorded_at ? test.last_recorded_at|date('d/m/Y H:i:s') : 'sem data' }}</span>
-                                {% if lastRun %}
-                                    <span class="chip{% if lastRun.success %} chip-success{% else %} chip-danger{% endif %}">
-                                        {{ lastRun.success ? 'último ok' : 'último erro' }}
-                                    </span>
-                                {% endif %}
-                            </div>
-                        </a>
-                    {% endfor %}
+                            }}">Página anterior</a>
+                        {% endif %}
+                        {% if page < totalPages %}
+                            <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?pagina=' ~ (page + 1)
+                                ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                                ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                                ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '')
+                            }}">Próxima página</a>
+                        {% endif %}
+                    </div>
                 </div>
             {% endif %}
         </aside>
 
-        <main class="panel">
+        <main class="panel" data-test-detail-panel>
             {% if selectedTest %}
                 <div class="panel-header">
                     <h2>{{ selectedTest.name }}</h2>
                     <p>{{ selectedTest.description }}</p>
                 </div>
 
-                <div class="details">
-                    <div class="meta">
+                <div class="details" data-scroll-memory="test_detail_scroll">
+                    <div class="detail-tools">
+                        <input type="text" class="detail-search-input" placeholder="Buscar dentro deste detalhe..." data-detail-search-input data-detail-search-target="#test-detail-content">
+                        <div class="detail-tools-actions">
+                            <button class="button button-secondary" type="button" data-fold-open-all>Abrir tudo</button>
+                            <button class="button button-tertiary" type="button" data-fold-close-all>Fechar tudo</button>
+                            <button class="button button-tertiary" type="button" data-export-detail-html="#test-detail-export" data-export-filename="teste-detalhe.html">Exportar HTML</button>
+                            <button class="button button-tertiary" type="button" data-export-detail-print="#test-detail-export">Imprimir detalhe</button>
+                        </div>
+                    </div>
+                    <div class="toolbar">
+                        <div class="toolbar-group">
+                            <button class="copy-button" type="button" data-copy-text="{{ selectedTest.code }}">Copiar código</button>
+                            <button class="copy-button" type="button" data-copy-text="{{ selectedTest.method }} {{ selectedTest.path }}{% if selectedTest.query_string %}?{{ selectedTest.query_string }}{% endif %}">Copiar chamada</button>
+                        </div>
+                        <div class="toolbar-group">
+                            {% if previousTestCode %}
+                                <a class="button button-secondary" data-test-link data-test-code="{{ previousTestCode }}" data-remember-page-scroll="test_page_scroll" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?teste=' ~ previousTestCode
+                                    ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                                    ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '')
+                                    ~ '&pagina=' ~ page
+                                }}#test-workspace">Anterior</a>
+                            {% endif %}
+                            {% if nextTestCode %}
+                                <a class="button button-secondary" data-test-link data-test-code="{{ nextTestCode }}" data-remember-page-scroll="test_page_scroll" href="{{ app.request.basePath ~ '/index.php/catalogo-testes?teste=' ~ nextTestCode
+                                    ~ (selectedGroupCode != '' ? '&grupo=' ~ selectedGroupCode : '')
+                                    ~ (search != '' ? '&q=' ~ search|url_encode : '')
+                                    ~ (selectedBatch ? '&lote=' ~ selectedBatch.id : '')
+                                    ~ '&pagina=' ~ page
+                                }}#test-workspace">Próximo</a>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="meta meta-strong">
                         <span>{{ selectedTest.code }}</span>
                         <span>{{ selectedTest.group_name }}</span>
                         <span>{{ selectedTest.method }}</span>
@@ -138,6 +220,7 @@
                             <input type="hidden" name="q" value="{{ search }}">
                             <input type="hidden" name="grupo" value="{{ selectedGroupCode != '' ? selectedGroupCode : selectedTest.group_code }}">
                             <input type="hidden" name="teste" value="{{ selectedTest.code }}">
+                            <input type="hidden" name="pagina" value="{{ page }}">
                             <button class="button button-primary" type="submit">Rerun do cenário</button>
                         </form>
 
@@ -145,72 +228,86 @@
                             <input type="hidden" name="q" value="{{ search }}">
                             <input type="hidden" name="grupo" value="{{ selectedTest.group_code }}">
                             <input type="hidden" name="teste" value="{{ selectedTest.code }}">
+                            <input type="hidden" name="pagina" value="{{ page }}">
                             <button class="button button-secondary" type="submit">Rerun do grupo {{ selectedTest.group_name }}</button>
                         </form>
                     </div>
 
-                    <div class="info-grid">
-                        <div class="block">
+                    <div id="test-detail-content" data-fold-scope data-fold-memory="test_detail_folds">
+                    <div id="test-detail-export">
+                    <div class="info-grid info-grid-tight">
+                        <div class="block block-card" data-detail-search-item>
                             <h4>Endpoint</h4>
                             <pre class="code-block"><code>{{ selectedTest.method }} {{ selectedTest.path }}{% if selectedTest.query_string %}?{{ selectedTest.query_string }}{% endif %}</code></pre>
                         </div>
 
-                        <div class="block">
+                        <div class="block block-card" data-detail-search-item>
                             <h4>Base resolvida</h4>
                             <pre class="code-block"><code>{{ baseUrl }}</code></pre>
                         </div>
+
+                        <div class="block block-card" data-detail-search-item>
+                            <h4>Captura</h4>
+                            <p>Primeira vez em {{ selectedTest.first_recorded_at ?? 'n/a' }} | Última captura em {{ selectedTest.last_recorded_at ?? 'n/a' }}</p>
+                            <p>{{ selectedTest.request_count }} uso(s) gravados para este cenário.</p>
+                        </div>
+
+                        {% if selectedTest.last_run %}
+                            <div class="block block-card" data-detail-search-item>
+                                <h4>Última execução</h4>
+                                <div class="chips">
+                                    <span class="chip{% if selectedTest.last_run.success %} chip-success{% else %} chip-danger{% endif %}">
+                                        {{ selectedTest.last_run.success ? 'Sucesso' : 'Falha' }}
+                                    </span>
+                                    <span class="chip">HTTP {{ selectedTest.last_run.response_status_code ?? 'n/a' }}</span>
+                                    <span class="chip">{{ selectedTest.last_run.duration_ms ?? 'n/a' }} ms</span>
+                                    <span class="chip">Lote {{ selectedTest.last_run.batch_id }}</span>
+                                </div>
+                                <p class="muted-text">Executado em {{ selectedTest.last_run.executed_at }}.</p>
+                            </div>
+                        {% endif %}
                     </div>
 
-                    <div class="block">
-                        <h4>Headers</h4>
-                        <pre class="code-block"><code>{% for header in selectedTest.headers %}{{ header }}
+                    <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="headers">
+                        <summary>Headers</summary>
+                        <div class="fold-body">
+                            <pre class="code-block"><code>{% for header in selectedTest.headers %}{{ header }}
 {% else %}Sem headers adicionais.
 {% endfor %}</code></pre>
-                    </div>
+                        </div>
+                    </details>
 
-                    <div class="block">
-                        <h4>Payload</h4>
-                        <pre class="code-block"><code>{{ selectedTest.request_body ?? 'Sem body. O teste usa apenas query string.' }}</code></pre>
-                    </div>
+                    <details class="fold-card" open data-detail-search-item data-fold-item data-fold-key="payload">
+                        <summary>Payload</summary>
+                        <div class="fold-body">
+                            <pre class="code-block"><code>{{ selectedTest.request_body ?? 'Sem body. O teste usa apenas query string.' }}</code></pre>
+                        </div>
+                    </details>
 
                     {% if selectedTest.query_string %}
-                        <div class="block">
-                            <h4>Query string</h4>
-                            <pre class="code-block"><code>{{ selectedTest.query_string }}</code></pre>
-                        </div>
-                    {% endif %}
-
-                    {% if selectedTest.last_run %}
-                        <div class="block">
-                            <h4>Última execução</h4>
-                            <div class="chips">
-                                <span class="chip{% if selectedTest.last_run.success %} chip-success{% else %} chip-danger{% endif %}">
-                                    {{ selectedTest.last_run.success ? 'Sucesso' : 'Falha' }}
-                                </span>
-                                <span class="chip">HTTP {{ selectedTest.last_run.response_status_code ?? 'n/a' }}</span>
-                                <span class="chip">{{ selectedTest.last_run.duration_ms ?? 'n/a' }} ms</span>
-                                <span class="chip">Lote {{ selectedTest.last_run.batch_id }}</span>
+                        <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="query_string">
+                            <summary>Query string</summary>
+                            <div class="fold-body">
+                                <pre class="code-block"><code>{{ selectedTest.query_string }}</code></pre>
                             </div>
-                            <p class="muted-text">Executado em {{ selectedTest.last_run.executed_at }}.</p>
-                        </div>
+                        </details>
                     {% endif %}
 
-                    <div class="block">
-                        <h4>Última resposta salva</h4>
-                        <pre class="code-block"><code>{{ selectedTest.last_response_body ?? 'Nenhuma resposta salva ainda.' }}</code></pre>
-                    </div>
+                    <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="ultima_resposta">
+                        <summary>Última resposta salva</summary>
+                        <div class="fold-body">
+                            <pre class="code-block"><code>{{ selectedTest.last_response_body ?? 'Nenhuma resposta salva ainda.' }}</code></pre>
+                        </div>
+                    </details>
 
-                    <div class="block">
-                        <h4>Últimos headers salvos</h4>
-                        <pre class="code-block"><code>{{ selectedTest.last_response_headers ?? 'Nenhum header salvo ainda.' }}</code></pre>
-                    </div>
+                    <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="ultimos_headers">
+                        <summary>Últimos headers salvos</summary>
+                        <div class="fold-body">
+                            <pre class="code-block"><code>{{ selectedTest.last_response_headers ?? 'Nenhum header salvo ainda.' }}</code></pre>
+                        </div>
+                    </details>
 
-                    <div class="block">
-                        <h4>Captura</h4>
-                        <p>Primeira vez em {{ selectedTest.first_recorded_at ?? 'n/a' }} | Última captura em {{ selectedTest.last_recorded_at ?? 'n/a' }}</p>
-                    </div>
-
-                    <div class="block">
+                    <div class="block block-card" data-detail-search-item>
                         <h4>Histórico recente do cenário</h4>
                         {% if selectedTestRuns is empty %}
                             <p>Nenhuma execução registrada ainda.</p>
@@ -245,6 +342,8 @@
                             </div>
                         {% endif %}
                     </div>
+                    </div>
+                    </div>
                 </div>
             {% else %}
                 <div class="empty">Faça um teste pelo API Platform e ele aparecerá aqui como cenário gravado.</div>
@@ -268,7 +367,7 @@
                         <span>{{ selectedBatch.started_at }}</span>
                     </div>
 
-                    <div class="table-wrap">
+                    <div class="table-wrap block-card">
                         <table class="results-table">
                             <thead>
                                 <tr>
@@ -301,7 +400,7 @@
 
                     {% if batchRuns is not empty %}
                         {% set firstRun = batchRuns[0] %}
-                        <div class="block">
+                        <div class="block block-card">
                             <h4>Primeira resposta do lote</h4>
                             <pre class="code-block"><code>{{ firstRun.response_body ?? firstRun.error_message ?? 'Sem retorno registrado.' }}</code></pre>
                         </div>
@@ -340,4 +439,33 @@
             {% endif %}
         </aside>
     </section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const detailConfig = {
+                detailScrollKey: 'test_detail_scroll',
+                foldStorageKey: 'test_detail_folds',
+                initMarkerPrefix: 'test'
+            };
+
+            function initTestDetail(scope) {
+                window.initCatalogDetailScope(scope, detailConfig);
+            }
+
+            initTestDetail(document);
+            window.initCatalogPartialNavigation({
+                rootMarker: 'testPartialNavigationInit',
+                linkSelector: '[data-test-link]',
+                detailPanelSelector: '[data-test-detail-panel]',
+                listBodySelector: '[data-test-list-body]',
+                activeRowSelector: '.catalog-row[data-test-code]',
+                activeValueAttribute: 'data-test-code',
+                queryParam: 'teste',
+                detailScrollKey: detailConfig.detailScrollKey,
+                initDetailScope: initTestDetail
+            });
+        });
+    </script>
 {% endblock %}

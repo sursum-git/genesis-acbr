@@ -3,11 +3,14 @@
 namespace App\OpenApi;
 
 use ApiPlatform\OpenApi\Factory\OpenApiFactoryInterface;
+use ApiPlatform\OpenApi\Model\Components;
 use ApiPlatform\OpenApi\Model\MediaType;
 use ApiPlatform\OpenApi\Model\Operation;
 use ApiPlatform\OpenApi\Model\PathItem;
 use ApiPlatform\OpenApi\Model\Paths;
+use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
+use ApiPlatform\OpenApi\Model\SecurityScheme;
 use ApiPlatform\OpenApi\OpenApi;
 
 final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInterface
@@ -19,6 +22,7 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
     public function __invoke(array $context = []): OpenApi
     {
         $openApi = ($this->decorated)($context);
+        $openApi = $this->applySecuritySchemes($openApi);
         $paths = new Paths();
 
         foreach ($openApi->getPaths()->getPaths() as $path => $pathItem) {
@@ -26,6 +30,35 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
         }
 
         return $openApi->withPaths($paths);
+    }
+
+    private function applySecuritySchemes(OpenApi $openApi): OpenApi
+    {
+        $components = $openApi->getComponents();
+        $securitySchemes = $components->getSecuritySchemes() ?? new \ArrayObject();
+        $securitySchemes['ApiTokenHeader'] = new SecurityScheme(
+            'apiKey',
+            'Informe o token no header X-Api-Token. Este e o metodo mais confiavel neste ambiente Apache.',
+            'X-Api-Token',
+            'header'
+        );
+        $securitySchemes['BearerToken'] = new SecurityScheme(
+            'http',
+            'Alternativa por Authorization: Bearer <token>. Alguns clientes HTTP ou proxies podem exigir esse formato.',
+            null,
+            null,
+            'bearer',
+            'Token'
+        );
+
+        $components = $components->withSecuritySchemes($securitySchemes);
+
+        return $openApi
+            ->withComponents($components)
+            ->withSecurity([
+                ['ApiTokenHeader' => []],
+                ['BearerToken' => []],
+            ]);
     }
 
     private function normalizePathItem(string $path, PathItem $pathItem, OpenApi $openApi): PathItem
@@ -44,7 +77,13 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
 
     private function normalizeOperation(string $path, ?Operation $operation, OpenApi $openApi): ?Operation
     {
-        if ($operation === null || $operation->getRequestBody() === null) {
+        if ($operation === null) {
+            return $operation;
+        }
+
+        $operation = $this->applyTokenRequirements($path, $operation);
+
+        if ($operation->getRequestBody() === null) {
             return $operation;
         }
 
@@ -81,6 +120,53 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
         }
 
         return $operation->withRequestBody($requestBody);
+    }
+
+    private function applyTokenRequirements(string $path, Operation $operation): Operation
+    {
+        if (!$this->isManagedApiPath($path)) {
+            return $operation;
+        }
+
+        $parameters = $operation->getParameters() ?? [];
+        if (!$this->hasParameter($parameters, 'X-Api-Token', 'header')) {
+            $parameters[] = new Parameter(
+                'X-Api-Token',
+                'header',
+                'Token do assinante. Preferido neste ambiente. Exemplo: tok_xxx',
+                false,
+                false,
+                null,
+                ['type' => 'string'],
+                null,
+                null,
+                null,
+                'tok_exemplo_substituir'
+            );
+        }
+
+        if (!$this->hasParameter($parameters, 'Authorization', 'header')) {
+            $parameters[] = new Parameter(
+                'Authorization',
+                'header',
+                'Alternativa via Bearer token. Exemplo: Bearer tok_xxx',
+                false,
+                false,
+                null,
+                ['type' => 'string'],
+                null,
+                null,
+                null,
+                'Bearer tok_exemplo_substituir'
+            );
+        }
+
+        return $operation
+            ->withParameters($parameters)
+            ->withSecurity([
+                ['ApiTokenHeader' => []],
+                ['BearerToken' => []],
+            ]);
     }
 
     private function legacyJsonExampleForPath(string $path): ?array
@@ -307,9 +393,30 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
         return str_starts_with($path, '/nfe/') || str_starts_with($path, '/nfse/');
     }
 
+    private function isManagedApiPath(string $path): bool
+    {
+        return $this->isLegacyPath($path)
+            || str_starts_with($path, '/acbr-cep/')
+            || str_starts_with($path, '/requests/');
+    }
+
     private function supportsXmlPath(string $path): bool
     {
         return $this->isLegacyPath($path) || str_starts_with($path, '/acbr-cep/');
+    }
+
+    /**
+     * @param list<Parameter> $parameters
+     */
+    private function hasParameter(array $parameters, string $name, string $in): bool
+    {
+        foreach ($parameters as $parameter) {
+            if ($parameter->getName() === $name && $parameter->getIn() === $in) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function addXmlMediaType(RequestBody $requestBody, OpenApi $openApi): RequestBody

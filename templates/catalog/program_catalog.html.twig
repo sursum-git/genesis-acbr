@@ -1,8 +1,17 @@
 {% extends 'catalog/base.html.twig' %}
 
 {% block title %}Catálogo de Programas{% endblock %}
+{% block page_title %}Catálogo de Programas{% endblock %}
+{% block page_subtitle %}Inventário técnico do repositório com detalhe e histórico local.{% endblock %}
+{% block page_heading %}Catálogo de Programas{% endblock %}
+{% block heading_text %}Consulta do inventário técnico persistido em SQLite, com busca, exportação e detalhe navegável sem recarregamento completo.{% endblock %}
 
-{% block body %}
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ app.request.basePath ~ '/index.php/' }}">Hub</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Catálogo de Programas</li>
+{% endblock %}
+
+{% block catalog_body %}
     <section class="hero">
         <div class="hero-copy">
             <h1>Catálogo de Programas</h1>
@@ -231,6 +240,7 @@
 {% endblock %}
 
 {% block page_scripts %}
+    {{ parent() }}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const detailConfig = {

@@ -1,8 +1,17 @@
 {% extends 'catalog/base.html.twig' %}
 
 {% block title %}Auditoria de Requisições{% endblock %}
+{% block page_title %}Auditoria de Requisições{% endblock %}
+{% block page_subtitle %}Monitoramento das chamadas gravadas com filtros, analytics e detalhe operacional.{% endblock %}
+{% block page_heading %}Auditoria de Requisições{% endblock %}
+{% block heading_text %}Painel operacional das chamadas gravadas no PostgreSQL, com análise executiva, lista navegável e inspeção completa do registro principal.{% endblock %}
 
-{% block body %}
+{% block breadcrumb %}
+    <li class="breadcrumb-item"><a href="{{ app.request.basePath ~ '/index.php/' }}">Hub</a></li>
+    <li class="breadcrumb-item active" aria-current="page">Auditoria</li>
+{% endblock %}
+
+{% block catalog_body %}
     <section class="hero">
         <div class="hero-copy">
             <h1>Auditoria de Requisições</h1>
@@ -742,6 +751,7 @@
 {% endblock %}
 
 {% block page_scripts %}
+    {{ parent() }}
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const detailConfig = {

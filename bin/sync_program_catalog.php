@@ -206,7 +206,7 @@ $programs = [
         'physical_path' => 'Boleto/ACBrBoletoBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para operacoes de boleto.',
-        'detailed_explanation' => 'Contem base, demos MT/ST e servicos do ACBr para emissao e manipulacao de boletos. E um modulo legado mantido no projeto para uso direto e como referencia para futuras integracoes via API.',
+        'detailed_explanation' => 'Contem base, demos MT/ST e servicos do ACBr para emissao e manipulacao de boletos. A base web foi repaginada com tema Bootstrap compartilhado para alinhar a experiencia visual das demos legadas do projeto. E um modulo legado mantido no projeto para uso direto e como referencia para futuras integracoes via API.',
     ],
     [
         'code' => 'cte',
@@ -215,7 +215,7 @@ $programs = [
         'physical_path' => 'CTe/ACBrCTeBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para Conhecimento de Transporte Eletronico.',
-        'detailed_explanation' => 'Agrupa os arquivos base, demos e servicos MT/ST para operacoes de CTe. Mantem o fluxo legado para configuracao, consulta e transmissao do documento fiscal de transporte dentro da estrutura tradicional do ACBr.',
+        'detailed_explanation' => 'Agrupa os arquivos base, demos e servicos MT/ST para operacoes de CTe. A interface base das demos usa agora o mesmo tema Bootstrap aplicado aos demais modulos legados, preservando o fluxo tradicional de configuracao, consulta e transmissao do documento fiscal de transporte.',
     ],
     [
         'code' => 'consulta_cep',
@@ -224,7 +224,7 @@ $programs = [
         'physical_path' => 'ConsultaCEP/ACBrCEPBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo de consulta de CEP com integracao legada e API moderna.',
-        'detailed_explanation' => 'E o modulo mais integrado a camada Symfony atual. Possui implementacao legada em ConsultaCEP/MT e ST, mas tambem uma camada de DTOs, providers, processors e servico dedicado em src/ para configuracoes e consultas por CEP ou logradouro.',
+        'detailed_explanation' => 'E o modulo mais integrado a camada Symfony atual. Possui implementacao legada em ConsultaCEP/MT e ST, mas tambem uma camada de DTOs, providers, processors e servico dedicado em src/ para configuracoes e consultas por CEP ou logradouro. Sua demo Bootstrap passou a servir de referencia visual para a repaginacao das demais demos ACBr do repositorio.',
     ],
     [
         'code' => 'consulta_cnpj',
@@ -233,7 +233,7 @@ $programs = [
         'physical_path' => 'ConsultaCNPJ/ACBrConsultaCNPJBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para consulta de dados de CNPJ.',
-        'detailed_explanation' => 'Reune demos e servicos ACBr para pesquisa de dados cadastrais via CNPJ. Atualmente permanece como modulo legado acessivel diretamente, sem uma camada nova de API equivalente a do modulo CEP.',
+        'detailed_explanation' => 'Reune demos e servicos ACBr para pesquisa de dados cadastrais via CNPJ. A base da demo foi modernizada com o tema Bootstrap compartilhado adotado nas demais telas ACBr, mantendo os fluxos legados de consulta e configuracao. Atualmente permanece como modulo legado acessivel diretamente, sem uma camada nova de API equivalente a do modulo CEP.',
     ],
     [
         'code' => 'extrato_api',
@@ -242,7 +242,7 @@ $programs = [
         'physical_path' => 'ExtratoAPI/ACBrExtratoAPIBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para operacoes ligadas a extrato via API.',
-        'detailed_explanation' => 'Mantem a implementacao ACBr de ExtratoAPI com demos e servicos MT/ST. Funciona como componente legado especializado, ainda separado da fachada moderna Symfony/API Platform.',
+        'detailed_explanation' => 'Mantem a implementacao ACBr de ExtratoAPI com demos e servicos MT/ST. A base visual das demos foi alinhada ao tema Bootstrap compartilhado dos modulos ACBr legados. Funciona como componente legado especializado, ainda separado da fachada moderna Symfony/API Platform.',
     ],
     [
         'code' => 'gtin',
@@ -251,7 +251,7 @@ $programs = [
         'physical_path' => 'GTIN/ACBrGTINBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para consultas e validacoes de GTIN.',
-        'detailed_explanation' => 'Contem os artefatos ACBr para operacoes relacionadas a GTIN, incluindo demos e servicos por variante MT/ST. O modulo permanece no formato legado e serve tanto para execucao direta quanto para referencia de integracoes futuras.',
+        'detailed_explanation' => 'Contem os artefatos ACBr para operacoes relacionadas a GTIN, incluindo demos e servicos por variante MT/ST. As telas base usam agora o tema Bootstrap compartilhado das demos ACBr. O modulo permanece no formato legado e serve tanto para execucao direta quanto para referencia de integracoes futuras.',
     ],
     [
         'code' => 'ibge',
@@ -260,7 +260,7 @@ $programs = [
         'physical_path' => 'IBGE/ACBrIBGEBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para consultas de dados do IBGE.',
-        'detailed_explanation' => 'Fornece a estrutura classica ACBr para consultas relacionadas ao IBGE. Inclui classes base, demos e servicos separados por variante operacional, mantendo o comportamento historico do projeto.',
+        'detailed_explanation' => 'Fornece a estrutura classica ACBr para consultas relacionadas ao IBGE. Inclui classes base, demos e servicos separados por variante operacional, agora com repaginacao Bootstrap compartilhada entre as demos legadas, mantendo o comportamento historico do projeto.',
     ],
     [
         'code' => 'mdfe',
@@ -269,7 +269,7 @@ $programs = [
         'physical_path' => 'MDFe/ACBrMDFeBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para Manifesto Eletronico de Documentos Fiscais.',
-        'detailed_explanation' => 'Reune demos, classes base e servicos do ACBr voltados ao MDFe. Continua como modulo legado autocontido, preparado para operacoes especificas do documento fiscal de transporte e manifestacao.',
+        'detailed_explanation' => 'Reune demos, classes base e servicos do ACBr voltados ao MDFe. A interface base das demos foi unificada visualmente com o tema Bootstrap comum aos modulos ACBr legados. Continua como modulo legado autocontido, preparado para operacoes especificas do documento fiscal de transporte e manifestacao.',
     ],
     [
         'code' => 'ncms',
@@ -278,7 +278,7 @@ $programs = [
         'physical_path' => 'NCMs/ACBrNCMsBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para consulta e manipulacao de NCMs.',
-        'detailed_explanation' => 'Centraliza os componentes ACBr usados para trabalhar com NCMs. O conteudo inclui demos e servicos nas variantes MT/ST, preservando a estrutura original do conjunto legado.',
+        'detailed_explanation' => 'Centraliza os componentes ACBr usados para trabalhar com NCMs. O conteudo inclui demos e servicos nas variantes MT/ST, agora com tema Bootstrap compartilhado nas telas base, preservando a estrutura original do conjunto legado.',
     ],
     [
         'code' => 'nfcom',
@@ -287,7 +287,7 @@ $programs = [
         'physical_path' => 'NFCom/ACBrNFComBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para Nota Fiscal de Comunicacao Eletronica.',
-        'detailed_explanation' => 'Mantem a implementacao ACBr para NFCom com demos e servicos dedicados. E um modulo especializado que permanece fora da camada atual de API moderna, mas faz parte do inventario funcional do projeto.',
+        'detailed_explanation' => 'Mantem a implementacao ACBr para NFCom com demos e servicos dedicados. As demos passaram a compartilhar o mesmo tema Bootstrap aplicado aos demais modulos ACBr legados. E um modulo especializado que permanece fora da camada atual de API moderna, mas faz parte do inventario funcional do projeto.',
     ],
     [
         'code' => 'nfse',
@@ -296,7 +296,7 @@ $programs = [
         'physical_path' => 'NFSe/ACBrNFSeBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado de Nota Fiscal de Servico Eletronica.',
-        'detailed_explanation' => 'Contem os scripts e servicos legados usados hoje pela camada Symfony/API Platform para expor endpoints de NFSe. A API moderna nao reimplementa a regra fiscal; ela delega a execucao para ACBrNFSeServicosMT.php e organiza a exposicao via recursos, processors e OpenAPI.',
+        'detailed_explanation' => 'Contem os scripts e servicos legados usados hoje pela camada Symfony/API Platform para expor endpoints de NFSe. A base da demo web foi alinhada ao tema Bootstrap compartilhado das demos ACBr, preservando os formularios e abas legadas. A API moderna nao reimplementa a regra fiscal; ela delega a execucao para ACBrNFSeServicosMT.php e organiza a exposicao via recursos, processors e OpenAPI.',
     ],
     [
         'code' => 'nfe',
@@ -305,7 +305,7 @@ $programs = [
         'physical_path' => 'NFe/ACBrNFeBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado de Nota Fiscal Eletronica.',
-        'detailed_explanation' => 'E um dos modulos centrais do projeto. A camada moderna exposta em Symfony/API Platform consome o legado de NFe por meio de um adaptador generico que aciona ACBrNFeServicosMT.php com metodos e payloads declarados em ApiResources. O diretorio tambem mantem demos, configuracoes e logs operacionais.',
+        'detailed_explanation' => 'E um dos modulos centrais do projeto. A camada moderna exposta em Symfony/API Platform consome o legado de NFe por meio de um adaptador generico que aciona ACBrNFeServicosMT.php com metodos e payloads declarados em ApiResources. O diretorio tambem mantem demos, configuracoes e logs operacionais, e sua base web agora compartilha o mesmo tema Bootstrap das demais demos ACBr.',
     ],
     [
         'code' => 'reinf',
@@ -314,7 +314,7 @@ $programs = [
         'physical_path' => 'Reinf/ACBrReinfBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado para eventos e operacoes da Reinf.',
-        'detailed_explanation' => 'Agrupa base, demos e servicos ACBr para Reinf. Atualmente permanece em formato legado, sem uma fachada equivalente a dos modulos NFe/NFSe/CEP na camada moderna.',
+        'detailed_explanation' => 'Agrupa base, demos e servicos ACBr para Reinf. A base visual das demos foi atualizada para o tema Bootstrap compartilhado entre os modulos ACBr legados. Atualmente permanece em formato legado, sem uma fachada equivalente a dos modulos NFe/NFSe/CEP na camada moderna.',
     ],
     [
         'code' => 'schemas',

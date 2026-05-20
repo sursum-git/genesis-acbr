@@ -50,8 +50,10 @@ $modo = isset($_GET['modo']) ? $_GET['modo'] : null;
             font-weight: 500;
         }
     </style>
+    <link href="../catalog-assets/acbr-demo-theme.css" rel="stylesheet">
 
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="../catalog-assets/acbr-demo-theme.js"></script>
 </head>
 
 <body>

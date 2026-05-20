@@ -71,7 +71,7 @@ $programs = [
         'physical_path' => 'src/Controller/ProgramCatalogController.php',
         'category' => 'src_module',
         'description' => 'Controllers web e paginas auxiliares do projeto.',
-        'detailed_explanation' => 'Contem os controllers Symfony responsaveis pelo shell administrativo, dashboard principal, paginas focadas de documentacao, demos, operacao por modulo, monitoramento e os catalogos HTML do projeto. Essa camada foi reorganizada para reduzir a sobrecarga do hub inicial e separar cada pagina por funcao operacional.',
+        'detailed_explanation' => 'Contem os controllers Symfony responsaveis pelo hub principal, atalhos de documentacao, navegação de demos e a pagina de consulta do catalogo de programas. E a camada mais simples de interface HTML do projeto.',
     ],
     [
         'code' => 'src_dto_cep',

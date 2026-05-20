@@ -7,6 +7,8 @@ Arquivos de contexto adicionados para descrever a arquitetura atualmente existen
 - `docs/FLUXO_INTEGRACAO_LEGADO.md`: como a camada Symfony/API Platform integra com o legado ACBr
 - `docs/CATALOGO_PROGRAMAS_SQLITE.md`: regras do catalogo local de programas em SQLite
 - `docs/CONTEXTO_ACUMULADO_PROJETO.md`: consolidacao do estado pratico do projeto e das decisoes acumuladas
+- `docs/CONTEXTO_SESSAO_ATUAL.md`: estado tecnico atual, pontos sensiveis e commit de referencia
+- `docs/GUIA_RETORNO_RAPIDO.md`: roteiro curto para retomar a operacao em nova sessao
 - `docs/HISTORICO_IMPLEMENTACOES_ACBR.md`: historico resumido das implementacoes por fase
 - `docs/OPERACAO_NFSE_SAO_PAULO.md`: situacao operacional especifica da NFSe Sao Paulo
 - `docs/CHANGELOG_OPERACIONAL.md`: historico cronologico operacional do projeto
@@ -14,12 +16,14 @@ Arquivos de contexto adicionados para descrever a arquitetura atualmente existen
 Leitura recomendada:
 
 1. `ARQUITETURA_ATUAL.md`
-2. `MAPA_MODULOS_API.md`
-3. `FLUXO_INTEGRACAO_LEGADO.md`
-4. `CONTEXTO_ACUMULADO_PROJETO.md`
-5. `HISTORICO_IMPLEMENTACOES_ACBR.md`
-6. `OPERACAO_NFSE_SAO_PAULO.md`
-7. `CHANGELOG_OPERACIONAL.md`
+2. `CONTEXTO_SESSAO_ATUAL.md`
+3. `GUIA_RETORNO_RAPIDO.md`
+4. `MAPA_MODULOS_API.md`
+5. `FLUXO_INTEGRACAO_LEGADO.md`
+6. `CONTEXTO_ACUMULADO_PROJETO.md`
+7. `HISTORICO_IMPLEMENTACOES_ACBR.md`
+8. `OPERACAO_NFSE_SAO_PAULO.md`
+9. `CHANGELOG_OPERACIONAL.md`
 
 ## Regra Operacional do Projeto
 

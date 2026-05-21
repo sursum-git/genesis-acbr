@@ -14,8 +14,6 @@
 {% block body %}
     <section class="portal-panel">
         <div class="portal-kicker">Navegação dedicada</div>
-        <h2>{{ title }}</h2>
-        <p>{{ subtitle }}</p>
         <div class="portal-card-list">
             {% for item in items %}
                 <a class="portal-action-card" href="{{ item.url }}">

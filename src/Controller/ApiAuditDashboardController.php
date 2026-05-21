@@ -20,27 +20,7 @@ final class ApiAuditDashboardController extends AbstractController
     #[Route('/auditoria-requisicoes', name: 'app_api_audit_dashboard', methods: ['GET'])]
     public function index(Request $request): Response
     {
-        $filters = [
-            'q' => trim((string) $request->query->get('q', '')),
-            'assinante' => trim((string) $request->query->get('assinante', '')),
-            'metodo' => trim((string) $request->query->get('metodo', '')),
-            'modo' => trim((string) $request->query->get('modo', '')),
-            'programa' => trim((string) $request->query->get('programa', '')),
-            'status_processamento' => trim((string) $request->query->get('status_processamento', '')),
-            'status_http' => trim((string) $request->query->get('status_http', '')),
-            'caminho' => trim((string) $request->query->get('caminho', '')),
-            'data_ini' => trim((string) $request->query->get('data_ini', '')),
-            'data_fim' => trim((string) $request->query->get('data_fim', '')),
-        ];
-
-        $limit = max(1, min((int) $request->query->get('limite', 80), 300));
-        $sort = trim((string) $request->query->get('ordenar', 'dt_hr_recebimento'));
-        $direction = trim((string) $request->query->get('direcao', 'desc'));
-        $page = max(1, (int) $request->query->get('pagina', 1));
-        $summary = $this->repository->getSummary($filters);
-        $advancedMetrics = $this->normalizeAdvancedMetrics($this->repository->getAdvancedMetrics($filters));
-        $comparison = $this->buildComparison($filters);
-        $alerts = $this->buildAlerts($summary, $advancedMetrics, $comparison);
+        [$filters, $limit, $sort, $direction, $page, $summary, $advancedMetrics, $comparison, $alerts] = $this->buildAuditViewState($request);
         $totalRequests = (int) $summary['total'];
         $totalPages = max(1, (int) ceil($totalRequests / $limit));
         $page = min($page, $totalPages);
@@ -101,6 +81,24 @@ final class ApiAuditDashboardController extends AbstractController
         ]);
     }
 
+    #[Route('/auditoria-requisicoes/visao-analitica', name: 'app_api_audit_overview', methods: ['GET'])]
+    public function overview(Request $request): Response
+    {
+        [$filters, $limit, $sort, $direction, $page, $summary, $advancedMetrics, $comparison, $alerts] = $this->buildAuditViewState($request);
+
+        return $this->render('catalog/api_audit_overview.html.twig', [
+            'filters' => $filters,
+            'limit' => $limit,
+            'summary' => $summary,
+            'advancedMetrics' => $advancedMetrics,
+            'comparison' => $comparison,
+            'alerts' => $alerts,
+            'page' => $page,
+            'sort' => $sort,
+            'direction' => $direction,
+        ]);
+    }
+
     /**
      * @param array<string, mixed> $row
      * @return array<string, mixed>
@@ -156,6 +154,36 @@ final class ApiAuditDashboardController extends AbstractController
             ['label' => 'NFe', 'query' => ['programa' => 'nfe']],
             ['label' => 'Infra auditoria', 'query' => ['programa' => 'src_api_auditoria']],
         ];
+    }
+
+    /**
+     * @return array{0: array<string, string>, 1: int, 2: string, 3: string, 4: int, 5: array<string, int>, 6: array<string, mixed>, 7: array<string, mixed>, 8: list<array<string, string>>}
+     */
+    private function buildAuditViewState(Request $request): array
+    {
+        $filters = [
+            'q' => trim((string) $request->query->get('q', '')),
+            'assinante' => trim((string) $request->query->get('assinante', '')),
+            'metodo' => trim((string) $request->query->get('metodo', '')),
+            'modo' => trim((string) $request->query->get('modo', '')),
+            'programa' => trim((string) $request->query->get('programa', '')),
+            'status_processamento' => trim((string) $request->query->get('status_processamento', '')),
+            'status_http' => trim((string) $request->query->get('status_http', '')),
+            'caminho' => trim((string) $request->query->get('caminho', '')),
+            'data_ini' => trim((string) $request->query->get('data_ini', '')),
+            'data_fim' => trim((string) $request->query->get('data_fim', '')),
+        ];
+
+        $limit = max(1, min((int) $request->query->get('limite', 80), 300));
+        $sort = trim((string) $request->query->get('ordenar', 'dt_hr_recebimento'));
+        $direction = trim((string) $request->query->get('direcao', 'desc'));
+        $page = max(1, (int) $request->query->get('pagina', 1));
+        $summary = $this->repository->getSummary($filters);
+        $advancedMetrics = $this->normalizeAdvancedMetrics($this->repository->getAdvancedMetrics($filters));
+        $comparison = $this->buildComparison($filters);
+        $alerts = $this->buildAlerts($summary, $advancedMetrics, $comparison);
+
+        return [$filters, $limit, $sort, $direction, $page, $summary, $advancedMetrics, $comparison, $alerts];
     }
 
     /**

@@ -1,6 +1,6 @@
 # Guia de Retorno Rápido
 
-Atualizado em `2026-05-20`.
+Atualizado em `2026-05-21`.
 
 ## Objetivo
 
@@ -37,13 +37,18 @@ Se a sessão for técnica e precisar retomar rápido:
 
 - `templates/catalog/base.html.twig`
 - `catalog-assets/catalog.css`
+- `templates/admin/base.html.twig`
+- `catalog-assets/adminlte-portal.css`
 
 ### Templates principais
 
+- `templates/admin/base.html.twig`
 - `templates/catalog/api_audit_dashboard.html.twig`
+- `templates/catalog/api_audit_overview.html.twig`
 - `templates/catalog/program_catalog.html.twig`
 - `templates/catalog/test_catalog.html.twig`
 - `templates/home/hub.html.twig`
+- `templates/home/section.html.twig`
 
 ## Comandos úteis de validação
 
@@ -51,7 +56,7 @@ Lint principal:
 
 ```bash
 php bin/console lint:container
-php bin/console lint:twig templates/catalog/base.html.twig templates/catalog/api_audit_dashboard.html.twig templates/catalog/program_catalog.html.twig templates/catalog/test_catalog.html.twig templates/home/hub.html.twig
+php bin/console lint:twig templates/admin/base.html.twig templates/home/hub.html.twig templates/home/section.html.twig templates/catalog/base.html.twig templates/catalog/api_audit_dashboard.html.twig templates/catalog/api_audit_overview.html.twig templates/catalog/program_catalog.html.twig templates/catalog/test_catalog.html.twig
 ```
 
 Teste operacional de auditoria:
@@ -86,6 +91,10 @@ Auditoria:
 
 - `http://157.173.110.195:8089/index.php/auditoria-requisicoes`
 
+Auditoria analítica:
+
+- `http://157.173.110.195:8089/index.php/auditoria-requisicoes/visao-analitica`
+
 Catálogo de programas:
 
 - `http://157.173.110.195:8089/index.php/catalogo-programas`
@@ -109,7 +118,8 @@ SQLite local:
 ## Boas práticas para continuidade
 
 1. Antes de editar, rode `git status --short`
-2. Se mexer em comportamento compartilhado, revise `templates/catalog/base.html.twig`
-3. Se mexer em auditoria, valide tanto backend quanto UI
-4. Se criar arquivos novos, já deixe documentados e versionados
-5. Se concluir um bloco relevante, faça commit explícito
+2. Se mexer em comportamento compartilhado dos catálogos, revise `templates/catalog/base.html.twig`
+3. Se mexer em layout, navegação lateral ou header, revise `templates/admin/base.html.twig` e `catalog-assets/adminlte-portal.css`
+4. Se mexer em auditoria, valide as duas telas: operacional e analítica
+5. Se criar arquivos novos, já deixe documentados e versionados
+6. Se concluir um bloco relevante, faça commit explícito

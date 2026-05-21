@@ -1,6 +1,6 @@
 # Changelog Operacional
 
-Atualizado em `2026-05-15`.
+Atualizado em `2026-05-21`.
 
 Este arquivo registra o historico do projeto em ordem cronologica, com foco operacional.
 
@@ -275,6 +275,57 @@ Esse dia concentrou muito do diagnostico de:
 - problemas de codificacao
 - falhas de leitura da demo
 
+## 2026-05-20 e 2026-05-21
+
+### Portal administrativo em `AdminLTE 4`
+
+O portal Symfony/Twig passou por uma troca visual relevante:
+
+- criacao de um shell compartilhado em `templates/admin/base.html.twig`
+- adicao de tema azul/branco em `catalog-assets/adminlte-portal.css`
+- migracao do hub e das paginas simples para o novo layout
+- migracao dos catalogos e da auditoria para o mesmo shell lateral
+
+Impacto:
+
+- o portal deixou de usar apenas layouts locais e passou a ter uma base visual unica
+- a navegacao lateral virou a entrada principal das paginas administrativas
+- o topo foi simplificado, removendo titulo e subtitulo redundantes
+
+### Separacao da auditoria em duas telas
+
+A auditoria deixou de concentrar tudo numa unica pagina.
+
+Entraram:
+
+- `/auditoria-requisicoes` como tela operacional
+- `/auditoria-requisicoes/visao-analitica` como tela analitica
+
+Tambem sairam:
+
+- bloco de “modos da auditoria”
+- toggle de modo compacto/expandido
+
+Impacto:
+
+- filtros, lista e detalhe ficaram mais focados na tela operacional
+- indicadores, comparativos e graficos passaram para uma tela propria
+- a navegacao entre as duas visoes foi movida para o menu lateral
+
+### Limpeza de redundancias visuais
+
+Foram removidos textos repetidos que poluiam a leitura:
+
+- subtitulo da barra superior
+- titulo da barra superior
+- bloco introdutorio extra no hub
+- descricao duplicada nas paginas simples
+
+Impacto:
+
+- a primeira dobra ficou mais objetiva
+- o cabecalho passou a competir menos com o conteudo principal
+
 ## 2026-05-14
 
 ### Empresa de teste `TECNO FLEX`
@@ -341,4 +392,3 @@ Impacto:
 
 - catalogo de programas funcional
 - catalogo de testes estruturado
-

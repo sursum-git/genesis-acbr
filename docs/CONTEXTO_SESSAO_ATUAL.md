@@ -1,10 +1,10 @@
 # Contexto da Sessao Atual
 
-Atualizado em `2026-05-20`.
+Atualizado em `2026-05-21`.
 
 Commit de referencia do estado atual:
 
-- `0cd4056` - `Implementa auditoria, dashboard e navegacao parcial dos catalogos`
+- `d28e833` - `Remove título da barra superior`
 
 ## Objetivo prático deste arquivo
 
@@ -27,7 +27,7 @@ Hoje existem quatro áreas centrais:
 1. APIs modernas para `CEP`, `NFe` e `NFSe`
 2. Auditoria completa de requisições em `PostgreSQL`
 3. Catálogos operacionais em `SQLite`
-4. Dashboard e páginas administrativas em `Twig`
+4. Portal administrativo em `Twig` com shell `AdminLTE 4`
 
 Além disso, a aplicação já suporta:
 
@@ -35,7 +35,8 @@ Além disso, a aplicação já suporta:
 - auditoria de request e response
 - execução síncrona ou assíncrona por endpoint
 - worker para fila assíncrona
-- dashboard operacional de auditoria
+- layout administrativo com menu lateral, header enxuto e paleta azul/branco
+- auditoria separada em visao operacional e visao analitica
 - navegação parcial sem reload completo nos catálogos
 
 ## Bancos de dados em uso
@@ -150,43 +151,44 @@ Esse serviço alimenta a auditoria com:
 
 ## Estado atual das interfaces web
 
-### Home administrativa
+### Hub administrativo
 
 Arquivo principal:
 
 - `templates/home/hub.html.twig`
+- `templates/admin/base.html.twig`
 
 Controller:
 
 - `src/Controller/HomeController.php`
 
-A home já oferece:
+O hub agora oferece:
 
-- links rápidos
-- seleção por APIs
-- seleção por docs por módulo
-- seleção por demos
-- seleção por testes por módulo
-- seleção por auditoria por módulo
-- falhas por módulo
-- métricas resumidas
+- cards de navegação por área
+- acesso direto a docs, demos, auditoria e catálogos
+- atalhos por módulo `CEP`, `NFe` e `NFSe`
+- blocos de acompanhamento com falhas e testes recentes
 
-### Dashboard de auditoria
+Shell visual compartilhado:
+
+- `templates/admin/base.html.twig`
+- `catalog-assets/adminlte-portal.css`
+
+### Auditoria operacional e analítica
 
 Arquivos principais:
 
 - `src/Controller/ApiAuditDashboardController.php`
 - `templates/catalog/api_audit_dashboard.html.twig`
+- `templates/catalog/api_audit_overview.html.twig`
 - `src/Repository/ApiAuditDashboardRepository.php`
 
 Já implementado:
 
-- filtros
-- métricas
-- gráficos
+- página operacional focada em filtros, lista e detalhe
+- página analítica focada em métricas, alertas e gráficos
 - exportação CSV/XLSX
 - filtros salvos
-- modo compacto
 - detalhe pesquisável
 - troca parcial do detalhe sem reload completo
 
@@ -236,9 +238,8 @@ Hoje ele concentra helpers reutilizáveis para:
 - memória de scroll
 - navegação parcial do painel direito
 - filtros salvos
-- toggles visuais persistidos
 
-Se for mexer em comportamento comum dos catálogos, o ponto principal agora é esse arquivo.
+Se for mexer em comportamento comum dos catálogos, o ponto principal agora é esse arquivo. Se for mexer no shell visual e na navegação lateral do portal, o ponto principal passa a ser `templates/admin/base.html.twig` junto de `catalog-assets/adminlte-portal.css`.
 
 ## Testes e validação já preparados
 
@@ -257,6 +258,9 @@ Arquivos relevantes:
 - `testes_api_platform/README.md`
 
 Os testes mais úteis para continuidade imediata são:
+
+- `php bin/console lint:container`
+- `php bin/console lint:twig templates/admin/base.html.twig templates/home/hub.html.twig templates/home/section.html.twig templates/catalog/base.html.twig templates/catalog/program_catalog.html.twig templates/catalog/test_catalog.html.twig templates/catalog/api_audit_dashboard.html.twig templates/catalog/api_audit_overview.html.twig`
 
 1. `bash testes_api_platform/auditoria_requisicoes.sh`
 2. `bash testes_api_platform/nfe_diagnostico.sh`

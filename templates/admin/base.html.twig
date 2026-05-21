@@ -86,7 +86,13 @@
                     <li class="nav-item">
                         <a href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}" class="nav-link{% if currentRoute == 'app_api_audit_dashboard' %} active{% endif %}">
                             <i class="nav-icon bi bi-shield-check"></i>
-                            <p>Auditoria de requisições</p>
+                            <p>Auditoria operacional</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes/visao-analitica' }}" class="nav-link{% if currentRoute == 'app_api_audit_overview' %} active{% endif %}">
+                            <i class="nav-icon bi bi-graph-up-arrow"></i>
+                            <p>Auditoria analítica</p>
                         </a>
                     </li>
                 </ul>

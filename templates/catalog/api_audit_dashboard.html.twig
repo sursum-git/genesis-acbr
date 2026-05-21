@@ -12,16 +12,10 @@
 {% endblock %}
 
 {% block catalog_body %}
-    <section class="panel compact-panel">
-        <div class="action-bar compact-bar">
-            <div class="compact-copy">
-                <strong>Modos da auditoria</strong>
-                <span>Esta tela ficou focada em filtros, consultas e detalhe das requisições. Os indicadores e gráficos agora estão em uma tela separada.</span>
-            </div>
-            <div class="portal-actions-inline">
-                <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes/visao-analitica' }}">Visão analítica</a>
-                <button class="button button-secondary" type="button" data-audit-compact-toggle>Modo compacto</button>
-            </div>
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Fluxo operacional</h2>
+            <p>Esta tela ficou dedicada à consulta operacional. Para indicadores, comparativos e gráficos, use a página de auditoria analítica no menu lateral.</p>
         </div>
     </section>
 
@@ -551,14 +545,6 @@
             function initAuditDetail(scope) {
                 window.initCatalogDetailScope(scope, detailConfig);
             }
-
-            window.initCatalogVisualToggle({
-                toggleSelector: '[data-audit-compact-toggle]',
-                storageKey: 'audit_compact_mode',
-                bodyClass: 'audit-compact-mode',
-                activeLabel: 'Modo expandido',
-                inactiveLabel: 'Modo compacto'
-            });
             initAuditDetail(document);
             window.initCatalogPartialNavigation({
                 rootMarker: 'auditPartialNavigationInit',

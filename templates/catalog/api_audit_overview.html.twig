@@ -38,16 +38,13 @@
         </div>
     </section>
 
-    <section class="panel compact-panel">
-        <div class="action-bar compact-bar">
-            <div class="compact-copy">
-                <strong>Modos da auditoria</strong>
-                <span>Use a tela operacional para filtrar e inspecionar requisições; use esta tela para leitura de indicadores.</span>
-            </div>
-            <div class="portal-actions-inline">
-                <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}">Tela operacional</a>
-                <button class="button button-secondary" type="button" data-audit-compact-toggle>Modo compacto</button>
-            </div>
+    <section class="panel">
+        <div class="panel-header">
+            <h2>Fluxo analítico</h2>
+            <p>Esta tela ficou dedicada a métricas e gráficos. Para filtros, consultas e detalhe de requisições, use a auditoria operacional no menu lateral.</p>
+        </div>
+        <div class="portal-actions-inline">
+            <a class="button button-secondary" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}">Ir para auditoria operacional</a>
         </div>
     </section>
 
@@ -233,15 +230,4 @@
 
 {% block page_scripts %}
     {{ parent() }}
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            window.initCatalogVisualToggle({
-                toggleSelector: '[data-audit-compact-toggle]',
-                storageKey: 'audit_compact_mode',
-                bodyClass: 'audit-compact-mode',
-                activeLabel: 'Modo expandido',
-                inactiveLabel: 'Modo compacto'
-            });
-        });
-    </script>
 {% endblock %}

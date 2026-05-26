@@ -1,6 +1,6 @@
 # Guia de Retorno Rápido
 
-Atualizado em `2026-05-21`.
+Atualizado em `2026-05-26`.
 
 ## Objetivo
 
@@ -87,9 +87,9 @@ Docs:
 
 - `http://157.173.110.195:8089/index.php/docs`
 
-Auditoria:
+Consulta de requisições:
 
-- `http://157.173.110.195:8089/index.php/auditoria-requisicoes`
+- `http://157.173.110.195:8089/index.php/consulta-requisicoes`
 
 Auditoria analítica:
 
@@ -120,6 +120,6 @@ SQLite local:
 1. Antes de editar, rode `git status --short`
 2. Se mexer em comportamento compartilhado dos catálogos, revise `templates/catalog/base.html.twig`
 3. Se mexer em layout, navegação lateral ou header, revise `templates/admin/base.html.twig` e `catalog-assets/adminlte-portal.css`
-4. Se mexer em auditoria, valide as duas telas: operacional e analítica
+4. Se mexer em auditoria, valide as duas telas: consulta e analítica
 5. Se criar arquivos novos, já deixe documentados e versionados
 6. Se concluir um bloco relevante, faça commit explícito

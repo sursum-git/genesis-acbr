@@ -1,10 +1,10 @@
 # Contexto da Sessao Atual
 
-Atualizado em `2026-05-21`.
+Atualizado em `2026-05-26`.
 
 Commit de referencia do estado atual:
 
-- `d28e833` - `Remove título da barra superior`
+- `fa4d607` - `Remove catalog hero descriptions`
 
 ## Objetivo prático deste arquivo
 
@@ -36,7 +36,8 @@ Além disso, a aplicação já suporta:
 - execução síncrona ou assíncrona por endpoint
 - worker para fila assíncrona
 - layout administrativo com menu lateral, header enxuto e paleta azul/branco
-- auditoria separada em visao operacional e visao analitica
+- consulta de requisições como tela operacional única
+- auditoria analítica separada da consulta
 - navegação parcial sem reload completo nos catálogos
 
 ## Bancos de dados em uso
@@ -174,7 +175,7 @@ Shell visual compartilhado:
 - `templates/admin/base.html.twig`
 - `catalog-assets/adminlte-portal.css`
 
-### Auditoria operacional e analítica
+### Consulta de requisições e auditoria analítica
 
 Arquivos principais:
 
@@ -185,12 +186,21 @@ Arquivos principais:
 
 Já implementado:
 
-- página operacional focada em filtros, lista e detalhe
+- página de consulta focada em filtros, datagrid e detalhe lateral
 - página analítica focada em métricas, alertas e gráficos
 - exportação CSV/XLSX
 - filtros salvos
 - detalhe pesquisável
 - troca parcial do detalhe sem reload completo
+- abertura do detalhe apenas quando houver `requisicao=` explícita na URL
+
+Estado atual importante:
+
+- a rota operacional única é `/consulta-requisicoes`
+- a rota `/auditoria-requisicoes` foi removida
+- a visão analítica permanece em `/auditoria-requisicoes/visao-analitica`
+- o menu lateral expõe apenas `Consulta de requisições` e `Auditoria analítica`
+- a consulta abre com a janela lateral fechada por padrão
 
 ### Catálogo de programas
 

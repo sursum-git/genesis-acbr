@@ -298,7 +298,7 @@ A auditoria deixou de concentrar tudo numa unica pagina.
 
 Entraram:
 
-- `/auditoria-requisicoes` como tela operacional
+- `/consulta-requisicoes` como tela operacional
 - `/auditoria-requisicoes/visao-analitica` como tela analitica
 
 Tambem sairam:
@@ -308,7 +308,7 @@ Tambem sairam:
 
 Impacto:
 
-- filtros, lista e detalhe ficaram mais focados na tela operacional
+- filtros, datagrid e detalhe lateral ficaram concentrados na consulta de requisições
 - indicadores, comparativos e graficos passaram para uma tela propria
 - a navegacao entre as duas visoes foi movida para o menu lateral
 

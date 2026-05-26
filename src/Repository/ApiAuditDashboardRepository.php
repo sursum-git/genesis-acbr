@@ -136,12 +136,14 @@ final class ApiAuditDashboardRepository
      */
     public function findSelectedRequest(array $filters, ?string $requestId): ?array
     {
-        [$whereSql, $params] = $this->buildWhereSql($filters);
-        if ($requestId !== null && $requestId !== '') {
-            $params['request_id'] = $requestId;
-            $whereSql .= $whereSql === '' ? ' WHERE ' : ' AND ';
-            $whereSql .= 't.u_c_request_id = :request_id';
+        if ($requestId === null || $requestId === '') {
+            return null;
         }
+
+        [$whereSql, $params] = $this->buildWhereSql($filters);
+        $params['request_id'] = $requestId;
+        $whereSql .= $whereSql === '' ? ' WHERE ' : ' AND ';
+        $whereSql .= 't.u_c_request_id = :request_id';
 
         $sql = <<<SQL
             SELECT

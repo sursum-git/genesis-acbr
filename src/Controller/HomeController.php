@@ -30,7 +30,7 @@ final class HomeController extends AbstractController
             'demosUrl' => '/index.php/demos',
             'catalogUrl' => '/index.php/catalogo-programas',
             'testCatalogUrl' => '/index.php/catalogo-testes',
-            'auditDashboardUrl' => '/index.php/auditoria-requisicoes',
+            'auditDashboardUrl' => '/index.php/consulta-requisicoes',
             'apiOptions' => [
                 ['label' => 'API Platform: Tudo', 'url' => '/index.php/docs/todos/', 'description' => 'Documentação completa de todas as APIs.'],
                 ['label' => 'API Platform: CEP', 'url' => '/index.php/docs/cep/', 'description' => 'Endpoints e exemplos do módulo CEP.'],
@@ -52,16 +52,16 @@ final class HomeController extends AbstractController
                 ['label' => 'Testes NFSe', 'url' => '/index.php/catalogo-testes?grupo=nfse', 'description' => 'Filtrar cenários do módulo NFSe.'],
             ],
             'auditModuleOptions' => [
-                ['label' => 'Auditoria geral', 'url' => '/index.php/auditoria-requisicoes', 'description' => 'Abrir o dashboard completo sem filtro de módulo.'],
-                ['label' => 'Auditoria CEP', 'url' => '/index.php/auditoria-requisicoes?programa=cep', 'description' => 'Abrir a auditoria filtrada no módulo CEP.'],
-                ['label' => 'Auditoria NFe', 'url' => '/index.php/auditoria-requisicoes?programa=nfe', 'description' => 'Abrir a auditoria filtrada no módulo NFe.'],
-                ['label' => 'Auditoria NFSe', 'url' => '/index.php/auditoria-requisicoes?programa=nfse', 'description' => 'Abrir a auditoria filtrada no módulo NFSe.'],
+                ['label' => 'Consulta geral', 'url' => '/index.php/consulta-requisicoes', 'description' => 'Abrir a consulta completa sem filtro de módulo.'],
+                ['label' => 'Consulta CEP', 'url' => '/index.php/consulta-requisicoes?programa=cep', 'description' => 'Abrir a consulta filtrada no módulo CEP.'],
+                ['label' => 'Consulta NFe', 'url' => '/index.php/consulta-requisicoes?programa=nfe', 'description' => 'Abrir a consulta filtrada no módulo NFe.'],
+                ['label' => 'Consulta NFSe', 'url' => '/index.php/consulta-requisicoes?programa=nfse', 'description' => 'Abrir a consulta filtrada no módulo NFSe.'],
             ],
             'failureModuleOptions' => [
-                ['label' => 'Todas as falhas', 'url' => '/index.php/auditoria-requisicoes?status_processamento=4', 'description' => 'Ver a fila completa de falhas recentes.'],
-                ['label' => 'Falhas CEP', 'url' => '/index.php/auditoria-requisicoes?programa=cep&status_processamento=4', 'description' => 'Ver falhas recentes do módulo CEP.'],
-                ['label' => 'Falhas NFe', 'url' => '/index.php/auditoria-requisicoes?programa=nfe&status_processamento=4', 'description' => 'Ver falhas recentes do módulo NFe.'],
-                ['label' => 'Falhas NFSe', 'url' => '/index.php/auditoria-requisicoes?programa=nfse&status_processamento=4', 'description' => 'Ver falhas recentes do módulo NFSe.'],
+                ['label' => 'Todas as falhas', 'url' => '/index.php/consulta-requisicoes?status_processamento=4', 'description' => 'Ver a fila completa de falhas recentes.'],
+                ['label' => 'Falhas CEP', 'url' => '/index.php/consulta-requisicoes?programa=cep&status_processamento=4', 'description' => 'Ver falhas recentes do módulo CEP.'],
+                ['label' => 'Falhas NFe', 'url' => '/index.php/consulta-requisicoes?programa=nfe&status_processamento=4', 'description' => 'Ver falhas recentes do módulo NFe.'],
+                ['label' => 'Falhas NFSe', 'url' => '/index.php/consulta-requisicoes?programa=nfse&status_processamento=4', 'description' => 'Ver falhas recentes do módulo NFSe.'],
             ],
             'moduleStacks' => [
                 [
@@ -70,7 +70,7 @@ final class HomeController extends AbstractController
                     'links' => [
                         ['label' => 'Docs', 'url' => '/index.php/docs/cep/'],
                         ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=cep'],
-                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=cep'],
+                        ['label' => 'Consulta', 'url' => '/index.php/consulta-requisicoes?programa=cep'],
                     ],
                 ],
                 [
@@ -79,7 +79,7 @@ final class HomeController extends AbstractController
                     'links' => [
                         ['label' => 'Docs', 'url' => '/index.php/docs/nfe/'],
                         ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=nfe'],
-                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=nfe'],
+                        ['label' => 'Consulta', 'url' => '/index.php/consulta-requisicoes?programa=nfe'],
                     ],
                 ],
                 [
@@ -88,7 +88,7 @@ final class HomeController extends AbstractController
                     'links' => [
                         ['label' => 'Docs', 'url' => '/index.php/docs/nfse/'],
                         ['label' => 'Testes', 'url' => '/index.php/catalogo-testes?grupo=nfse'],
-                        ['label' => 'Auditoria', 'url' => '/index.php/auditoria-requisicoes?programa=nfse'],
+                        ['label' => 'Consulta', 'url' => '/index.php/consulta-requisicoes?programa=nfse'],
                     ],
                 ],
             ],

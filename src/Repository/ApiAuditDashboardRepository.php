@@ -180,25 +180,19 @@ final class ApiAuditDashboardRepository
         return $rows;
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function findMethodOptions(): array
     {
         return $this->findDistinctTextValues('c_metodo');
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function findModeOptions(): array
     {
         return $this->findDistinctTextValues('c_modo_execucao');
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     public function findProgramOptions(): array
     {
         return $this->findDistinctTextValues('c_cod_programa');
@@ -382,9 +376,7 @@ final class ApiAuditDashboardRepository
         return [' WHERE ' . implode(' AND ', $where), $params];
     }
 
-    /**
-     * @return list<string>
-     */
+    /** @return list<string> */
     private function findDistinctTextValues(string $column): array
     {
         $sql = sprintf(
@@ -398,10 +390,7 @@ final class ApiAuditDashboardRepository
         return array_values(array_filter($rows, static fn (mixed $value): bool => is_string($value) && $value !== ''));
     }
 
-    /**
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     private function findTopEndpoints(array $filters): array
     {
         [$whereSql, $params] = $this->buildWhereSql($filters);
@@ -422,10 +411,7 @@ final class ApiAuditDashboardRepository
         return $rows;
     }
 
-    /**
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     private function findTopAssinantes(array $filters): array
     {
         [$whereSql, $params] = $this->buildWhereSql($filters);
@@ -449,10 +435,7 @@ final class ApiAuditDashboardRepository
         return $rows;
     }
 
-    /**
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     private function findHttpStatusBreakdown(array $filters): array
     {
         [$whereSql, $params] = $this->buildWhereSql($filters);
@@ -473,10 +456,7 @@ final class ApiAuditDashboardRepository
         return $rows;
     }
 
-    /**
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     private function findRequestsPerDay(array $filters): array
     {
         [$whereSql, $params] = $this->buildWhereSql($filters);
@@ -497,10 +477,7 @@ final class ApiAuditDashboardRepository
         return array_reverse($rows);
     }
 
-    /**
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     private function findErrorsPerDay(array $filters): array
     {
         [$whereSql, $params] = $this->buildWhereSql($filters);
@@ -523,10 +500,7 @@ final class ApiAuditDashboardRepository
         return array_reverse($rows);
     }
 
-    /**
-     * @param array<string, mixed> $filters
-     * @return list<array<string, mixed>>
-     */
+    /** @return list<array<string, mixed>> */
     private function findAverageTimeByEndpoint(array $filters): array
     {
         [$whereSql, $params] = $this->buildWhereSql($filters);
@@ -534,15 +508,12 @@ final class ApiAuditDashboardRepository
         /** @var list<array<string, mixed>> $rows */
         $rows = $this->auditConnection->fetchAllAssociative(
             <<<SQL
-            SELECT
-                t.c_caminho,
-                COALESCE(ROUND(AVG(NULLIF(t.i_tempo_processamento_ms, 0))), 0)::int AS tempo_medio_ms,
-                COUNT(*)::int AS total
+            SELECT t.c_caminho, COALESCE(ROUND(AVG(NULLIF(t.i_tempo_processamento_ms, 0))), 0)::int AS tempo_medio_ms
             FROM t99001 t
             {$whereSql}
             GROUP BY t.c_caminho
             HAVING COUNT(*) > 0
-            ORDER BY tempo_medio_ms DESC, total DESC
+            ORDER BY tempo_medio_ms DESC, t.c_caminho ASC
             LIMIT 5
             SQL,
             $params
@@ -551,37 +522,23 @@ final class ApiAuditDashboardRepository
         return $rows;
     }
 
-    private function assinanteIdentificadorExpr(): string
-    {
-        return sprintf(
-            "COALESCE(%s ->> 'c_identificador', %s ->> 'id', '')",
-            self::ASSINANTE_JSON_EXPR,
-            self::ASSINANTE_JSON_EXPR
-        );
-    }
-
-    private function assinanteNomeExpr(): string
-    {
-        return sprintf(
-            "COALESCE(%s ->> 'c_nome', %s ->> 'c_razao_social', %s ->> 'c_fantasia', %s ->> 'nome', '')",
-            self::ASSINANTE_JSON_EXPR,
-            self::ASSINANTE_JSON_EXPR,
-            self::ASSINANTE_JSON_EXPR,
-            self::ASSINANTE_JSON_EXPR
-        );
-    }
-
     private function resolveSortColumn(string $sort): string
     {
         return match ($sort) {
             'assinante' => $this->assinanteIdentificadorExpr(),
-            'metodo' => 't.c_metodo',
             'caminho' => 't.c_caminho',
             'status' => 't.si_status_processamento',
-            'http' => 't.si_status_http',
-            'programa' => 't.c_cod_programa',
-            'dt_hr_recebimento' => 't.dt_hr_recebimento',
             default => 't.dt_hr_recebimento',
         };
+    }
+
+    private function assinanteIdentificadorExpr(): string
+    {
+        return "COALESCE(" . self::ASSINANTE_JSON_EXPR . " ->> 'c_identificador', '')";
+    }
+
+    private function assinanteNomeExpr(): string
+    {
+        return "COALESCE(" . self::ASSINANTE_JSON_EXPR . " ->> 'c_nome', '')";
     }
 }

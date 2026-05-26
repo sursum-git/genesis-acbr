@@ -15,7 +15,7 @@
         <article class="portal-panel">
             <div class="portal-kicker">Entrada principal</div>
             <h2>Comece pela área que resolve sua tarefa</h2>
-            <p>O hub agora prioriza fluxos de navegação e acompanhamento operacional. As páginas de trabalho detalhado continuam nos catálogos e na auditoria.</p>
+            <p>O hub agora prioriza fluxos de navegação e acompanhamento operacional. As páginas de trabalho detalhado continuam nos catálogos e na consulta de requisições.</p>
             <div class="portal-card-list">
                 <a class="portal-action-card" href="{{ app.request.basePath ~ '/index.php/apis' }}">
                     <strong>Documentação das APIs</strong>
@@ -34,9 +34,9 @@
                         <span class="portal-chip">NFe/NFSe</span>
                     </div>
                 </a>
-                <a class="portal-action-card" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}">
-                    <strong>Auditoria operacional</strong>
-                    <span>Revisão de requisições, filtros avançados, tentativas e detalhes de processamento.</span>
+                <a class="portal-action-card" href="{{ auditDashboardUrl }}">
+                    <strong>Consulta de requisições</strong>
+                    <span>Pesquisa completa de request, response, erros, tentativas e detalhes de processamento.</span>
                     <div class="portal-chip-row">
                         <span class="portal-chip">Filtros</span>
                         <span class="portal-chip">Detalhe completo</span>
@@ -119,10 +119,10 @@
         <article class="portal-panel">
             <div class="portal-kicker">Acompanhamento</div>
             <h2>Falhas recentes</h2>
-            <p>Últimos registros com problema para entrar direto no detalhe da auditoria.</p>
+            <p>Últimos registros com problema para entrar direto no detalhe completo da requisição.</p>
             <div class="portal-activity-list">
                 {% for item in recentFailures %}
-                    <a class="portal-activity-card" href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes?requisicao=' ~ item.u_c_request_id }}">
+                    <a class="portal-activity-card" href="{{ auditDashboardUrl ~ '?requisicao=' ~ item.u_c_request_id }}">
                         <strong>{{ item.c_metodo }} {{ item.c_caminho }}</strong>
                         <div class="portal-chip-row">
                             <span class="portal-chip chip-danger">{{ item.si_status_http ?: 'falha' }}</span>

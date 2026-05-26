@@ -4,20 +4,16 @@
 {% block page_title %}Visão Analítica da Auditoria{% endblock %}
 {% block page_subtitle %}Métricas, comparativos e tendências da auditoria de requisições.{% endblock %}
 {% block page_heading %}Visão Analítica da Auditoria{% endblock %}
-{% block heading_text %}Esta tela concentra o recorte de dashboard da auditoria para deixar a página operacional focada em filtros, consultas e detalhe das requisições.{% endblock %}
+{% block heading_text %}Esta tela concentra o recorte de dashboard da auditoria para deixar a consulta focada em filtros, pesquisa e detalhe das requisições.{% endblock %}
 
 {% block breadcrumb %}
     <li class="breadcrumb-item"><a href="{{ app.request.basePath ~ '/index.php/' }}">Hub</a></li>
-    <li class="breadcrumb-item"><a href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes' }}">Auditoria</a></li>
+    <li class="breadcrumb-item"><a href="{{ app.request.basePath ~ '/index.php/consulta-requisicoes' }}">Consulta de requisições</a></li>
     <li class="breadcrumb-item active" aria-current="page">Visão analítica</li>
 {% endblock %}
 
 {% block catalog_body %}
     <section class="hero">
-        <div class="hero-copy">
-            <h1>Visão Analítica</h1>
-            <p>Métricas executivas e séries históricas separadas da consulta operacional para facilitar leitura e acompanhamento do comportamento da API.</p>
-        </div>
         <div class="hero-stats">
             <article class="stat-card">
                 <strong>Total filtrado</strong>

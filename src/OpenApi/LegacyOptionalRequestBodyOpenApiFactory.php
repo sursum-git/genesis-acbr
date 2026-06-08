@@ -10,6 +10,7 @@ use ApiPlatform\OpenApi\Model\PathItem;
 use ApiPlatform\OpenApi\Model\Paths;
 use ApiPlatform\OpenApi\Model\Parameter;
 use ApiPlatform\OpenApi\Model\RequestBody;
+use ApiPlatform\OpenApi\Model\Response;
 use ApiPlatform\OpenApi\Model\SecurityScheme;
 use ApiPlatform\OpenApi\OpenApi;
 
@@ -29,7 +30,93 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
             $paths->addPath($path, $this->normalizePathItem($path, $pathItem, $openApi));
         }
 
+        $this->addRequestStatusPath($paths);
+
         return $openApi->withPaths($paths);
+    }
+
+    private function addRequestStatusPath(Paths $paths): void
+    {
+        $operation = new Operation(
+            operationId: 'get_api_request_status',
+            tags: ['Retorno assincrono'],
+            responses: [
+                '200' => new Response(
+                    'Status e retorno da requisicao registrada.',
+                    new \ArrayObject([
+                        'application/json' => new MediaType(
+                            new \ArrayObject([
+                                'type' => 'object',
+                                'properties' => new \ArrayObject([
+                                    'u_c_request_id' => new \ArrayObject(['type' => 'string', 'format' => 'uuid']),
+                                    'c_metodo' => new \ArrayObject(['type' => 'string', 'example' => 'POST']),
+                                    'c_caminho' => new \ArrayObject(['type' => 'string', 'example' => '/nfe/consultas/status-servico']),
+                                    'c_nome_operacao' => new \ArrayObject(['type' => 'string', 'example' => 'post_nfe_status_servico']),
+                                    'c_modo_execucao' => new \ArrayObject(['type' => 'string', 'enum' => ['sincrono', 'assincrono']]),
+                                    'c_cod_programa' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'c_nome_programa' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'c_versao_programa' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'dt_hr_ult_atu_programa' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'c_revisao_programa' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'c_fonte_versao' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'c_caminho_fisico_programa' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'si_status_processamento' => new \ArrayObject([
+                                        'type' => 'integer',
+                                        'description' => '0 recebida, 1 enfileirada, 2 processando, 3 concluida, 4 falha, 5 nao autorizada.',
+                                    ]),
+                                    'si_status_http' => new \ArrayObject(['type' => 'integer', 'nullable' => true]),
+                                    't_corpo_resposta' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    't_erro' => new \ArrayObject(['type' => 'string', 'nullable' => true]),
+                                    'dt_hr_recebimento' => new \ArrayObject(['type' => 'string', 'format' => 'date-time']),
+                                    'dt_hr_ini_processamento' => new \ArrayObject(['type' => 'string', 'format' => 'date-time', 'nullable' => true]),
+                                    'dt_hr_fim_processamento' => new \ArrayObject(['type' => 'string', 'format' => 'date-time', 'nullable' => true]),
+                                    'i_tempo_processamento_ms' => new \ArrayObject(['type' => 'integer', 'nullable' => true]),
+                                ]),
+                            ]),
+                            [
+                                'u_c_request_id' => '9f0d3656-33bb-4ef5-9a36-9bb174d4fd93',
+                                'c_metodo' => 'POST',
+                                'c_caminho' => '/nfe/consultas/status-servico',
+                                'c_nome_operacao' => 'post_nfe_status_servico',
+                                'c_modo_execucao' => 'assincrono',
+                                'si_status_processamento' => 3,
+                                'si_status_http' => 200,
+                                't_corpo_resposta' => '{"resultado":"ok"}',
+                                't_erro' => null,
+                                'dt_hr_recebimento' => '2026-05-28T10:00:00+00:00',
+                                'dt_hr_ini_processamento' => '2026-05-28T10:00:01+00:00',
+                                'dt_hr_fim_processamento' => '2026-05-28T10:00:02+00:00',
+                                'i_tempo_processamento_ms' => 1000,
+                            ]
+                        ),
+                    ])
+                ),
+                '401' => new Response('Token nao identificado ou invalido.'),
+                '404' => new Response('Requisicao nao encontrada para este token.'),
+            ],
+            summary: 'Consultar retorno por request_id',
+            description: 'Use esta rota para consultar o status e o retorno de uma requisicao assincrona. O request_id e retornado na resposta inicial das APIs quando o processamento entra na fila de workers.',
+            parameters: [
+                new Parameter(
+                    'requestId',
+                    'path',
+                    'Identificador retornado no campo request_id/u_c_request_id.',
+                    true,
+                    false,
+                    null,
+                    ['type' => 'string', 'format' => 'uuid'],
+                    null,
+                    null,
+                    null,
+                    '9f0d3656-33bb-4ef5-9a36-9bb174d4fd93'
+                ),
+            ],
+            extensionProperties: [
+                'x-apiplatform-tag' => ['cep', 'nfe', 'nfse'],
+            ]
+        );
+
+        $paths->addPath('/requests/{requestId}', new PathItem(get: $this->applyTokenRequirements('/requests/{requestId}', $operation)));
     }
 
     private function applySecuritySchemes(OpenApi $openApi): OpenApi

@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Repository\ApiAuditDashboardRepository;
+use App\Support\ApiExtractionStatus;
 use App\Support\ApiRequestStatus;
 use App\Support\XlsxResponseFactory;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -90,6 +91,18 @@ final class ApiAuditDashboardController extends AbstractController
         ];
     }
 
+    /** @return array<int,string> */
+    private function getExtractionStatusOptions(): array
+    {
+        return [
+            ApiExtractionStatus::NAO_SE_APLICA => 'Não se aplica',
+            ApiExtractionStatus::PENDENTE => 'Pendente',
+            ApiExtractionStatus::PROCESSANDO => 'Processando',
+            ApiExtractionStatus::CONCLUIDO => 'Concluída',
+            ApiExtractionStatus::FALHA => 'Falha',
+        ];
+    }
+
     /** @return list<array<string,mixed>> */
     private function getPresets(): array
     {
@@ -124,9 +137,13 @@ final class ApiAuditDashboardController extends AbstractController
 
         $attempts = [];
         $events = [];
+        $extractedNfe = [];
+        $extractedNsu = [];
         if ($selectedRequest !== null) {
             $attempts = $this->repository->findAttempts((int) $selectedRequest['id_t99001']);
             $events = $this->repository->findEvents((int) $selectedRequest['id_t99001']);
+            $extractedNfe = $this->repository->findExtractedNfe((int) $selectedRequest['id_t99001']);
+            $extractedNsu = $this->repository->findExtractedNsu((int) $selectedRequest['id_t99001']);
             $selectedRequest = $this->normalizeRequest($selectedRequest);
         }
 
@@ -148,6 +165,7 @@ final class ApiAuditDashboardController extends AbstractController
             'modes' => $this->repository->findModeOptions(),
             'programs' => $this->repository->findProgramOptions(),
             'statusOptions' => $this->getStatusOptions(),
+            'extractionStatusOptions' => $this->getExtractionStatusOptions(),
             'page' => $page,
             'totalPages' => $totalPages,
             'totalRequests' => $totalRequests,
@@ -164,6 +182,8 @@ final class ApiAuditDashboardController extends AbstractController
             'auditBreadcrumbLabel' => $pageConfig['breadcrumb_label'],
             'auditStoragePrefix' => $pageConfig['storage_prefix'],
             'auditExportFilenamePrefix' => $pageConfig['export_filename_prefix'],
+            'extractedNfe' => $extractedNfe,
+            'extractedNsu' => $extractedNsu,
         ]);
     }
 
@@ -373,9 +393,9 @@ final class ApiAuditDashboardController extends AbstractController
         $response = new StreamedResponse(function () use ($rows): void {
             $handle = fopen('php://output', 'wb');
             if ($handle === false) { return; }
-            fputcsv($handle, ['request_id', 'metodo', 'caminho', 'assinante', 'programa', 'versao_programa', 'status_processamento', 'status_http', 'modo', 'recebimento', 'fim_processamento']);
+            fputcsv($handle, ['request_id', 'metodo', 'caminho', 'assinante', 'programa', 'versao_programa', 'status_processamento', 'status_extracao', 'status_http', 'modo', 'recebimento', 'fim_processamento', 'fim_extracao']);
             foreach ($rows as $row) {
-                fputcsv($handle, [$row['u_c_request_id'] ?? '', $row['c_metodo'] ?? '', $row['c_caminho'] ?? '', trim((string) (($row['c_assinante_identificador'] ?? '') . ' ' . ($row['c_assinante_nome'] ?? ''))), $row['c_cod_programa'] ?? '', $row['c_versao_programa'] ?? '', $row['si_status_processamento'] ?? '', $row['si_status_http'] ?? '', $row['c_modo_execucao'] ?? '', $row['dt_hr_recebimento'] ?? '', $row['dt_hr_fim_processamento'] ?? '']);
+                fputcsv($handle, [$row['u_c_request_id'] ?? '', $row['c_metodo'] ?? '', $row['c_caminho'] ?? '', trim((string) (($row['c_assinante_identificador'] ?? '') . ' ' . ($row['c_assinante_nome'] ?? ''))), $row['c_cod_programa'] ?? '', $row['c_versao_programa'] ?? '', $row['si_status_processamento'] ?? '', $row['si_status_extracao'] ?? '', $row['si_status_http'] ?? '', $row['c_modo_execucao'] ?? '', $row['dt_hr_recebimento'] ?? '', $row['dt_hr_fim_processamento'] ?? '', $row['dt_hr_fim_extracao'] ?? '']);
             }
             fclose($handle);
         });
@@ -389,9 +409,9 @@ final class ApiAuditDashboardController extends AbstractController
     {
         $sheetRows = [];
         foreach ($rows as $row) {
-            $sheetRows[] = [$row['u_c_request_id'] ?? '', $row['c_metodo'] ?? '', $row['c_caminho'] ?? '', trim((string) (($row['c_assinante_identificador'] ?? '') . ' ' . ($row['c_assinante_nome'] ?? ''))), $row['c_cod_programa'] ?? '', $row['c_versao_programa'] ?? '', $row['si_status_processamento'] ?? '', $row['si_status_http'] ?? '', $row['c_modo_execucao'] ?? '', $row['dt_hr_recebimento'] ?? '', $row['dt_hr_fim_processamento'] ?? ''];
+            $sheetRows[] = [$row['u_c_request_id'] ?? '', $row['c_metodo'] ?? '', $row['c_caminho'] ?? '', trim((string) (($row['c_assinante_identificador'] ?? '') . ' ' . ($row['c_assinante_nome'] ?? ''))), $row['c_cod_programa'] ?? '', $row['c_versao_programa'] ?? '', $row['si_status_processamento'] ?? '', $row['si_status_extracao'] ?? '', $row['si_status_http'] ?? '', $row['c_modo_execucao'] ?? '', $row['dt_hr_recebimento'] ?? '', $row['dt_hr_fim_processamento'] ?? '', $row['dt_hr_fim_extracao'] ?? ''];
         }
-        return XlsxResponseFactory::create($filename, ['request_id', 'metodo', 'caminho', 'assinante', 'programa', 'versao_programa', 'status_processamento', 'status_http', 'modo', 'recebimento', 'fim_processamento'], $sheetRows);
+        return XlsxResponseFactory::create($filename, ['request_id', 'metodo', 'caminho', 'assinante', 'programa', 'versao_programa', 'status_processamento', 'status_extracao', 'status_http', 'modo', 'recebimento', 'fim_processamento', 'fim_extracao'], $sheetRows);
     }
 
     /** @param list<array<string,mixed>> $requests @return array{0:?string,1:?string} */

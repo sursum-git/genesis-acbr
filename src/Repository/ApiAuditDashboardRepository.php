@@ -8,6 +8,7 @@ use Doctrine\DBAL\ParameterType;
 final class ApiAuditDashboardRepository
 {
     private const ASSINANTE_JSON_EXPR = "(CASE WHEN t.t_assinante_json IS NULL OR btrim(t.t_assinante_json) = '' THEN NULL ELSE t.t_assinante_json::jsonb END)";
+    private bool $extractionColumnsEnsured = false;
 
     public function __construct(private readonly Connection $auditConnection)
     {
@@ -19,6 +20,7 @@ final class ApiAuditDashboardRepository
      */
     public function getSummary(array $filters): array
     {
+        $this->ensureExtractionColumns();
         [$whereSql, $params] = $this->buildWhereSql($filters);
 
         $sql = <<<SQL
@@ -59,6 +61,7 @@ final class ApiAuditDashboardRepository
      */
     public function getAdvancedMetrics(array $filters): array
     {
+        $this->ensureExtractionColumns();
         [$whereSql, $params] = $this->buildWhereSql($filters);
 
         $aggregate = $this->auditConnection->fetchAssociative(
@@ -92,6 +95,7 @@ final class ApiAuditDashboardRepository
      */
     public function findRequests(array $filters, int $limit = 80, int $offset = 0, string $sort = 'dt_hr_recebimento', string $direction = 'desc'): array
     {
+        $this->ensureExtractionColumns();
         [$whereSql, $params] = $this->buildWhereSql($filters);
         $params['limit'] = min(max($limit, 1), 300);
         $params['offset'] = max($offset, 0);
@@ -111,9 +115,12 @@ final class ApiAuditDashboardRepository
                 t.c_versao_programa,
                 t.si_status_processamento,
                 t.si_status_http,
+                t.si_status_extracao,
+                t.t_erro_extracao,
                 t.i_tempo_processamento_ms,
                 t.dt_hr_recebimento,
                 t.dt_hr_fim_processamento,
+                t.dt_hr_fim_extracao,
                 {$this->assinanteIdentificadorExpr()} AS c_assinante_identificador,
                 {$this->assinanteNomeExpr()} AS c_assinante_nome,
                 LEFT(COALESCE(NULLIF(t.t_erro, ''), NULLIF(t.t_corpo_resposta, ''), NULLIF(t.t_corpo_requisicao, ''), ''), 260) AS t_resumo
@@ -136,6 +143,7 @@ final class ApiAuditDashboardRepository
      */
     public function findSelectedRequest(array $filters, ?string $requestId): ?array
     {
+        $this->ensureExtractionColumns();
         if ($requestId === null || $requestId === '') {
             return null;
         }
@@ -166,6 +174,7 @@ final class ApiAuditDashboardRepository
      */
     public function findAssinanteOptions(): array
     {
+        $this->ensureExtractionColumns();
         $sql = <<<SQL
             SELECT DISTINCT
                 {$this->assinanteIdentificadorExpr()} AS identificador,
@@ -185,18 +194,21 @@ final class ApiAuditDashboardRepository
     /** @return list<string> */
     public function findMethodOptions(): array
     {
+        $this->ensureExtractionColumns();
         return $this->findDistinctTextValues('c_metodo');
     }
 
     /** @return list<string> */
     public function findModeOptions(): array
     {
+        $this->ensureExtractionColumns();
         return $this->findDistinctTextValues('c_modo_execucao');
     }
 
     /** @return list<string> */
     public function findProgramOptions(): array
     {
+        $this->ensureExtractionColumns();
         return $this->findDistinctTextValues('c_cod_programa');
     }
 
@@ -206,6 +218,7 @@ final class ApiAuditDashboardRepository
      */
     public function findAttempts(int $requestInternalId): array
     {
+        $this->ensureExtractionColumns();
         /** @var list<array<string, mixed>> $rows */
         $rows = $this->auditConnection->fetchAllAssociative(
             <<<'SQL'
@@ -214,6 +227,8 @@ final class ApiAuditDashboardRepository
                 si_num_tentativa,
                 si_status_processamento,
                 si_status_http,
+                c_worker_id,
+                i_worker_pid,
                 c_versao_programa,
                 c_revisao_programa,
                 dt_hr_ini_processamento,
@@ -236,6 +251,7 @@ final class ApiAuditDashboardRepository
      */
     public function findEvents(int $requestInternalId): array
     {
+        $this->ensureExtractionColumns();
         /** @var list<array<string, mixed>> $rows */
         $rows = $this->auditConnection->fetchAllAssociative(
             <<<'SQL'
@@ -249,6 +265,48 @@ final class ApiAuditDashboardRepository
             ORDER BY dt_hr_evento DESC, id_t99004 DESC
             SQL,
             ['t99001_id' => $requestInternalId]
+        );
+
+        return $rows;
+    }
+
+    /**
+     * @param int $requestInternalId
+     * @return list<array<string, mixed>>
+     */
+    public function findExtractedNfe(int $requestInternalId): array
+    {
+        $this->ensureExtractionColumns();
+
+        if (!$this->auditConnection->createSchemaManager()->tablesExist(['t99007'])) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            'SELECT * FROM t99007 WHERE t99001_id = :id ORDER BY id_t99007 DESC',
+            ['id' => $requestInternalId]
+        );
+
+        return $rows;
+    }
+
+    /**
+     * @param int $requestInternalId
+     * @return list<array<string, mixed>>
+     */
+    public function findExtractedNsu(int $requestInternalId): array
+    {
+        $this->ensureExtractionColumns();
+
+        if (!$this->auditConnection->createSchemaManager()->tablesExist(['t99008'])) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            'SELECT * FROM t99008 WHERE t99001_id = :id ORDER BY id_t99008 DESC',
+            ['id' => $requestInternalId]
         );
 
         return $rows;
@@ -542,5 +600,26 @@ final class ApiAuditDashboardRepository
     private function assinanteNomeExpr(): string
     {
         return "COALESCE(" . self::ASSINANTE_JSON_EXPR . " ->> 'c_nome', '')";
+    }
+
+    private function ensureExtractionColumns(): void
+    {
+        if ($this->extractionColumnsEnsured || !$this->auditConnection->createSchemaManager()->tablesExist(['t99001'])) {
+            return;
+        }
+
+        $statements = [
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS si_status_extracao smallint NOT NULL DEFAULT 0",
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS dt_hr_ini_extracao timestamp",
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS dt_hr_fim_extracao timestamp",
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS t_erro_extracao text",
+            "CREATE INDEX IF NOT EXISTS t99001_si_status_extracao_idx ON t99001 (si_status_extracao, dt_hr_recebimento)",
+        ];
+
+        foreach ($statements as $statement) {
+            $this->auditConnection->executeStatement($statement);
+        }
+
+        $this->extractionColumnsEnsured = true;
     }
 }

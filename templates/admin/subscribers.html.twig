@@ -1,0 +1,239 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Assinantes{% endblock %}
+{% block page_heading %}Assinantes{% endblock %}
+{% block heading_text %}Administra os registros de `t00002`; o token de autenticação é gerado automaticamente no cadastro.{% endblock %}
+
+{% macro field_label(name) %}
+    {% set normalized = name|replace({
+        'u_c_': '',
+        'dt_hr_': '',
+        'c_': '',
+        't_': '',
+        'si_': '',
+        'id_': '',
+        'i_': '',
+        'dt_': '',
+        'log_': ''
+    }) %}
+    {{ normalized|replace({'_': ' '})|title }}
+{% endmacro %}
+
+{% import _self as subscriberUi %}
+
+{% block page_styles %}
+<style>
+    .subscriber-list-card {
+        min-height: calc(100vh - 260px);
+    }
+
+    .subscriber-list-card .table-responsive {
+        max-height: calc(100vh - 380px);
+        overflow: auto;
+    }
+
+    .subscriber-drawer .audit-detail-shell {
+        width: min(620px, 96vw);
+    }
+
+    .subscriber-drawer .audit-detail-panel {
+        padding: 22px;
+    }
+
+    .subscriber-list-title {
+        min-width: 0;
+    }
+
+    .subscriber-list-title .text-muted {
+        line-height: 1.35;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+{% if loadError %}
+    <div class="alert alert-warning">Não foi possível carregar a base de assinantes agora: {{ loadError }}</div>
+{% endif %}
+<div class="row g-4">
+    <div class="col-12">
+        <section class="card subscriber-list-card">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div class="subscriber-list-title">
+                    <h3 class="card-title mb-0">Registros em `t00002`</h3>
+                </div>
+                <button class="btn btn-primary" type="button" data-open-subscriber-drawer>
+                    Novo assinante
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                        <tr>
+                            <th>{{ primaryKey ?: 'id' }}</th>
+                            <th>Identificador</th>
+                            <th>Nome</th>
+                            <th>Ativo</th>
+                            <th>Token</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in subscribers %}
+                            <tr>
+                                <td>
+                                    {% set pkValue = primaryKey ? attribute(item, primaryKey) : loop.index %}
+                                    <a href="{{ app.request.basePath ~ '/index.php/assinantes?id=' ~ pkValue }}">{{ pkValue }}</a>
+                                </td>
+                                <td>{{ item.c_identificador ?? '-' }}</td>
+                                <td>{{ item.c_nome ?? '-' }}</td>
+                                <td>{{ item.log_ativo is defined ? (item.log_ativo ? 'sim' : 'não') : 'n/d' }}</td>
+                                <td>
+                                    {% if item.c_token is defined and item.c_token %}
+                                        <div class="d-flex align-items-center gap-2">
+                                            <code>{{ item.c_token|slice(0, 12) ~ '...' }}</code>
+                                            <button
+                                                class="btn btn-outline-secondary btn-sm"
+                                                type="button"
+                                                data-copy-token="{{ item.c_token }}"
+                                            >
+                                                Copiar
+                                            </button>
+                                        </div>
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="5">Nenhum assinante encontrado.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<aside class="audit-detail-drawer subscriber-drawer{% if selectedSubscriber %} is-open{% endif %}" data-subscriber-drawer>
+    <button class="audit-detail-backdrop" type="button" aria-label="Fechar cadastro de assinante" data-close-subscriber-drawer></button>
+    <div class="audit-detail-shell">
+        <section class="panel audit-detail-frame">
+            <div class="panel-header audit-detail-header-row">
+                <div>
+                    <h2>{{ selectedSubscriber ? 'Editar assinante' : 'Novo assinante' }}</h2>
+                    <p>O token é gerado automaticamente no cadastro.</p>
+                </div>
+                <button class="button button-tertiary" type="button" data-close-subscriber-drawer>Fechar</button>
+            </div>
+            <div class="details audit-detail-panel">
+                <form method="post" action="{{ app.request.basePath ~ '/index.php/assinantes/salvar' }}" class="d-grid gap-3">
+                    {% for column in metadata.columns %}
+                        {% set value = selectedSubscriber ? attribute(selectedSubscriber, column.name) : '' %}
+                        {% if column.name == 'c_token' %}
+                            {# Token e gerado pelo backend no cadastro e nao e editavel pela tela. #}
+                        {% elseif not column.editable and primaryKey == column.name %}
+                            <input type="hidden" name="{{ column.name }}" value="{{ value }}">
+                        {% elseif column.editable %}
+                            <div>
+                                <label class="form-label" for="subscriber_{{ column.name }}">{{ subscriberUi.field_label(column.name) }}</label>
+                                {% if column.type == 'boolean' %}
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="{{ column.name }}" id="subscriber_{{ column.name }}"{% if selectedSubscriber ? value : column.default %} checked{% endif %}>
+                                        <label class="form-check-label" for="subscriber_{{ column.name }}">Ativo</label>
+                                    </div>
+                                {% elseif column.type in ['text', 'blob'] %}
+                                    <textarea class="form-control" id="subscriber_{{ column.name }}" rows="3" name="{{ column.name }}" {% if column.required %}required{% endif %}>{{ value }}</textarea>
+                                {% else %}
+                                    <input
+                                        class="form-control"
+                                        id="subscriber_{{ column.name }}"
+                                        type="{{ column.type in ['smallint', 'integer', 'bigint', 'float', 'decimal'] ? 'number' : (column.type starts with 'date' ? 'datetime-local' : 'text') }}"
+                                        name="{{ column.name }}"
+                                        value="{{ value }}"
+                                        {% if column.max_length %}maxlength="{{ column.max_length }}"{% endif %}
+                                        {% if column.required %}required{% endif %}
+                                    >
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endfor %}
+
+                    <div class="d-flex flex-wrap gap-2 pt-2">
+                        <button class="btn btn-primary" type="submit">Salvar</button>
+                        <button class="btn btn-outline-secondary" type="button" data-close-subscriber-drawer>Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</aside>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+document.addEventListener('click', async function (event) {
+    const button = event.target.closest('[data-copy-token]');
+    if (!button) {
+        return;
+    }
+
+    const token = button.getAttribute('data-copy-token') || '';
+    if (!token) {
+        return;
+    }
+
+    const originalText = button.textContent;
+
+    try {
+        await navigator.clipboard.writeText(token);
+        button.textContent = 'Copiado';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+    } catch (error) {
+        const temporaryInput = document.createElement('textarea');
+        temporaryInput.value = token;
+        temporaryInput.setAttribute('readonly', 'readonly');
+        temporaryInput.style.position = 'fixed';
+        temporaryInput.style.opacity = '0';
+        document.body.appendChild(temporaryInput);
+        temporaryInput.select();
+        document.execCommand('copy');
+        document.body.removeChild(temporaryInput);
+        button.textContent = 'Copiado';
+        button.classList.remove('btn-outline-secondary');
+        button.classList.add('btn-success');
+    }
+
+    window.setTimeout(function () {
+        button.textContent = originalText;
+        button.classList.remove('btn-success');
+        button.classList.add('btn-outline-secondary');
+    }, 1800);
+});
+
+document.addEventListener('DOMContentLoaded', function () {
+    const drawer = document.querySelector('[data-subscriber-drawer]');
+    if (!drawer) {
+        return;
+    }
+
+    document.querySelectorAll('[data-open-subscriber-drawer]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            drawer.classList.add('is-open');
+        });
+    });
+
+    document.querySelectorAll('[data-close-subscriber-drawer]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            drawer.classList.remove('is-open');
+            {% if selectedSubscriber %}
+                window.setTimeout(function () {
+                    window.location.href = '{{ app.request.basePath ~ '/index.php/assinantes' }}';
+                }, 180);
+            {% endif %}
+        });
+    });
+});
+</script>
+{% endblock %}

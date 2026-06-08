@@ -8,6 +8,10 @@ framework:
     enabled: true
   router:
     utf8: true
+  session:
+    enabled: true
+    cookie_secure: auto
+    cookie_samesite: lax
 
 when@test:
   framework:

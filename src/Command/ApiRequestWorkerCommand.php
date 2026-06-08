@@ -4,6 +4,7 @@ namespace App\Command;
 
 use App\Repository\ApiAuditRepository;
 use App\Service\Api\InternalApiRequestRunner;
+use App\Service\Api\ApiWebhookScheduler;
 use App\Support\ApiRequestStatus;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -17,6 +18,7 @@ final class ApiRequestWorkerCommand extends Command
     public function __construct(
         private readonly ApiAuditRepository $auditRepository,
         private readonly InternalApiRequestRunner $requestRunner,
+        private readonly ApiWebhookScheduler $webhookScheduler,
     ) {
         parent::__construct();
     }
@@ -26,6 +28,7 @@ final class ApiRequestWorkerCommand extends Command
         $this
             ->addOption('limit', null, InputOption::VALUE_REQUIRED, 'Quantidade maxima de requisicoes a processar.', '10')
             ->addOption('sleep', null, InputOption::VALUE_REQUIRED, 'Intervalo entre ciclos no modo continuo, em segundos.', '2')
+            ->addOption('worker-id', null, InputOption::VALUE_REQUIRED, 'Identificador logico deste worker. Se omitido, usa hostname:pid.')
             ->addOption('once', null, InputOption::VALUE_NONE, 'Executa apenas um ciclo.');
     }
 
@@ -34,6 +37,11 @@ final class ApiRequestWorkerCommand extends Command
         $limit = max(1, (int) $input->getOption('limit'));
         $sleepSeconds = max(1, (int) $input->getOption('sleep'));
         $runOnce = (bool) $input->getOption('once');
+        $pid = getmypid() ?: null;
+        $workerId = trim((string) ($input->getOption('worker-id') ?? ''));
+        if ($workerId === '') {
+            $workerId = sprintf('%s:%s', gethostname() ?: 'worker', $pid ?? 'sem-pid');
+        }
 
         do {
             $processed = 0;
@@ -45,7 +53,12 @@ final class ApiRequestWorkerCommand extends Command
                 }
 
                 $processed++;
-                $attemptId = $this->auditRepository->createAttempt((int) $requestRow['id_t99001']);
+                $this->auditRepository->createEvent(
+                    (int) $requestRow['id_t99001'],
+                    'worker.started',
+                    sprintf('Worker %s iniciou o processamento da requisição. PID %s.', $workerId, $pid ?? 'n/d')
+                );
+                $attemptId = $this->auditRepository->createAttempt((int) $requestRow['id_t99001'], $workerId, $pid);
 
                 try {
                     $response = $this->requestRunner->run($requestRow);
@@ -70,6 +83,12 @@ final class ApiRequestWorkerCommand extends Command
                         $statusProcessamento,
                         null
                     );
+                    $this->auditRepository->createEvent(
+                        (int) $requestRow['id_t99001'],
+                        'worker.finished',
+                        sprintf('Worker concluiu a requisição com HTTP %d.', $response->getStatusCode())
+                    );
+                    $this->webhookScheduler->scheduleForRequestId((string) $requestRow['u_c_request_id']);
                 } catch (\Throwable $throwable) {
                     $this->auditRepository->finalizeAttempt(
                         $attemptId,
@@ -88,6 +107,12 @@ final class ApiRequestWorkerCommand extends Command
                         ApiRequestStatus::FALHA,
                         null
                     );
+                    $this->auditRepository->createEvent(
+                        (int) $requestRow['id_t99001'],
+                        'worker.failed',
+                        $throwable->getMessage()
+                    );
+                    $this->webhookScheduler->scheduleForRequestId((string) $requestRow['u_c_request_id']);
                 }
             }
 

@@ -1,6 +1,6 @@
 # Contexto Acumulado do Projeto
 
-Atualizado em `2026-05-15`.
+Atualizado em `2026-06-08`.
 
 Este arquivo consolida o estado pratico do projeto depois da serie de ajustes feitos na integracao `ACBr`, na exposicao via `API Platform` e na instrumentacao local de catalogos e testes.
 
@@ -155,6 +155,127 @@ Pontos importantes:
 - houve correcoes de permissao em `var/db`
 - houve varias iteracoes para ajustar captura de cenarios reais
 
+## Evolucao operacional recente
+
+Depois do estado inicial de fachada HTTP e auditoria basica, o projeto passou a operar com mais camadas de orquestracao.
+
+### 1. Execucao assincrona consolidada
+
+O sistema hoje diferencia claramente:
+
+- requisicao sincronica
+- requisicao assincrona com `request_id`
+- processamento posterior via worker
+
+Isso deixou de ser apenas uma resposta `202` e passou a ter suporte operacional com:
+
+- consulta por `request_id`
+- auditoria detalhada
+- configuracao de execucao por rota
+- monitoramento de workers
+
+### 2. Portal administrativo operacional
+
+Foi criado e padronizado um conjunto de telas administrativas em `Twig` para operacao do ambiente:
+
+- assinantes
+- webhooks
+- capacidade de workers
+- configuracao de execucao
+- consulta de requisicoes
+- auditoria analitica
+- catalogo de programas
+- catalogo de testes
+
+As telas mais novas passaram a usar:
+
+- layout em largura total
+- drawers laterais para formularios e detalhes
+- remocao de breadcrumb duplicado
+- paleta azul/branco consistente
+
+### 3. Camada de webhooks
+
+O projeto passou a ter uma camada completa de webhooks com:
+
+- cadastro de endpoint
+- vinculo com assinantes
+- execucao separada por worker proprio
+- criterios configuraveis de sucesso
+- avaliacao opcional de payload
+- reprocessamento manual
+- retentativa com backoff exponencial
+- assinatura HMAC com timestamp
+- `Idempotency-Key`
+- protecoes contra `SSRF`
+
+### 4. Camada de extracao posterior
+
+Foi introduzida uma segunda esteira apos a execucao principal da API, focada em extrair dados estruturados de `NFe` e `NSU`.
+
+Novos componentes:
+
+- campos de extracao em `t99001`
+- `t99007` para dados extraidos de NFe
+- `t99008` para dados extraidos de NSU
+- worker dedicado `app:api-extraction-worker`
+
+Essa camada existe para separar:
+
+- sucesso da requisicao principal
+- sucesso da persistencia estruturada posterior
+
+### 5. Correcao critica do worker de extracao
+
+Durante a evolucao da camada de extracao, foi identificado um erro importante:
+
+- `ApiExtractionRepository` nao estava amarrado a `app.audit_connection`
+
+Efeito pratico:
+
+- o worker de extracao rodava, mas consultava a conexao errada
+- as linhas em `t99001` permaneciam pendentes
+
+Correcao aplicada:
+
+- injecao explicita de `app.audit_connection` em `config/services.yaml`
+
+### 6. Conectividade TLS com a SVRS
+
+Foi corrigido no host o problema de conectividade SSL/TLS com a SVRS de homologacao para NFe.
+
+Foram instaladas as ACs:
+
+- `ICP-Brasil v10`
+- `Autoridade Certificadora do SERPRO SSLv1`
+
+Resultado:
+
+- parou de ocorrer `Network subsystem is unusable`
+- as consultas de NFe por chave voltaram a responder normalmente
+
+### 7. Limitacoes atuais da extracao textual
+
+No endpoint `GET /nfe/consultas/consultar-com-chave`, o retorno pode vir em formato textual `[Consulta]`, sem XML completo da nota.
+
+Nesse caso, o parser atual consegue salvar principalmente:
+
+- chave de acesso
+- status
+- motivo
+- data/hora de autorizacao
+
+Mas campos como:
+
+- numero
+- serie
+- modelo
+- emitente
+- destinatario
+- interessado
+
+dependem de XML mais rico ou precisam ser derivados da chave de acesso em melhoria posterior.
+
 ## Testes fora do repositorio
 
 Existe uma area externa ao git do projeto, usada para exemplos e transmissao:
@@ -223,4 +344,3 @@ O certificado foi usado para extrair:
 3. `docs/MAPA_MODULOS_API.md`
 4. `docs/HISTORICO_IMPLEMENTACOES_ACBR.md`
 5. `docs/OPERACAO_NFSE_SAO_PAULO.md`
-

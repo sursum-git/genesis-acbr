@@ -1,334 +1,264 @@
 # Contexto da Sessao Atual
 
-Atualizado em `2026-05-26`.
+Atualizado em `2026-06-08`.
 
-Commit de referencia do estado atual:
+## Objetivo deste arquivo
 
-- `fa4d607` - `Remove catalog hero descriptions`
+Permitir que uma nova sessao retome o projeto sem depender do historico do chat.
 
-## Objetivo prático deste arquivo
+Este arquivo deve responder rapidamente:
 
-Este arquivo existe para permitir que uma nova sessão de trabalho retome o projeto sem depender da memória da conversa anterior.
-
-Ele responde rapidamente:
-
-- qual é o estado atual do sistema
-- quais módulos importam mais
-- onde ficam os pontos principais de código
-- quais mudanças recentes já foram feitas
-- quais riscos e pendências merecem atenção
+- qual e o estado atual do sistema
+- quais fluxos operacionais estao ativos
+- quais tabelas e workers existem
+- quais pontos recentes exigem continuidade ou cuidado
 
 ## Resumo executivo
 
-O projeto é uma fachada moderna em `Symfony 7 + API Platform 4.2` sobre módulos legados do `ACBr`.
+O projeto e uma fachada moderna em `Symfony 7 + API Platform 4.2` sobre modulos legados do `ACBr`.
 
-Hoje existem quatro áreas centrais:
+Hoje o sistema esta organizado em seis blocos principais:
 
-1. APIs modernas para `CEP`, `NFe` e `NFSe`
-2. Auditoria completa de requisições em `PostgreSQL`
-3. Catálogos operacionais em `SQLite`
-4. Portal administrativo em `Twig` com shell `AdminLTE 4`
-
-Além disso, a aplicação já suporta:
-
-- autenticação por token
-- auditoria de request e response
-- execução síncrona ou assíncrona por endpoint
-- worker para fila assíncrona
-- layout administrativo com menu lateral, header enxuto e paleta azul/branco
-- consulta de requisições como tela operacional única
-- auditoria analítica separada da consulta
-- navegação parcial sem reload completo nos catálogos
+1. APIs publicas para `NFe`, `NFSe`, `CEP` e outros modulos legados
+2. Auditoria operacional em `PostgreSQL`
+3. Catalogos auxiliares em `SQLite`
+4. Portal administrativo em `Twig/AdminLTE`
+5. Processamento assincrono por workers separados
+6. Extracao posterior de dados de `NFe` e `NSU`
 
 ## Bancos de dados em uso
 
-### 1. PostgreSQL externo
+### PostgreSQL externo
 
-Banco de auditoria e operação:
+Banco operacional e de auditoria:
 
+- host: `157.173.110.195`
 - database: `dfe`
-- função: assinantes, tokens, requisições auditadas, tentativas do worker, configuração de execução
+
+Conexao Symfony:
+
+- `config/services/audit_connection.xml`
+- service id: `app.audit_connection`
 
 Tabelas mais importantes:
 
-- `t00002`: assinantes com `c_token`
-- `t99001`: requisição principal
-- `t99002`: tentativas/processamento
-- `t99003`: configuração de execução
+- `t00002`: assinantes e tokens
+- `t00003`: webhooks
+- `t00004`: vinculos assinante x webhook
+- `t99001`: requisicoes auditadas
+- `t99002`: tentativas/processamento principal
+- `t99003`: configuracao de execucao
 - `t99004`: eventos operacionais
+- `t99005`: capacidade de workers
+- `t99006`: fila/tentativas de entrega de webhook
+- `t99007`: dados extraidos de NFe
+- `t99008`: dados extraidos de NSU/distribuicao
 
-Conexão Symfony:
+Campos recentes adicionados em `t99001`:
 
-- `config/services/audit_connection.xml`
+- `si_status_extracao`
+- `dt_hr_ini_extracao`
+- `dt_hr_fim_extracao`
+- `t_erro_extracao`
 
-Camada principal:
+### SQLite local
 
-- `src/Repository/ApiAssinanteRepository.php`
-- `src/Repository/ApiAuditRepository.php`
-- `src/Repository/ApiExecutionModeRepository.php`
-- `src/Repository/ApiAuditDashboardRepository.php`
-
-### 2. SQLite local
-
-Banco local versionado no projeto:
+Banco local versionado:
 
 - `var/db/program_catalog.sqlite`
 
-Funções:
+Funcoes:
 
-- catálogo de programas
-- catálogo de testes
-- histórico e observabilidade auxiliar local
+- catalogo de programas
+- catalogo de testes
+- historico auxiliar local
 
-## Fluxos principais do backend
+## Workers atuais
 
-### Autenticação
+Os workers sao separados e nao compartilham a mesma responsabilidade:
 
-Headers aceitos:
+### 1. Worker da API
 
-- `Authorization: Bearer ...`
-- `X-Api-Token: ...`
+Comando:
 
-Classe principal:
+- `php bin/console app:api-request-worker`
 
-- `src/EventSubscriber/ApiTokenAuthSubscriber.php`
+Funcao:
 
-Lookup de assinante/token:
+- consome requisicoes assincronas
+- executa a chamada interna da API
+- grava status e resposta em `t99001`
 
-- `src/Repository/ApiAssinanteRepository.php`
+### 2. Worker de webhook
 
-### Auditoria de requisições
+Comando:
 
-Subscribers principais:
+- `php bin/console app:webhook-delivery-worker`
 
-- `src/EventSubscriber/ApiAuditRequestSubscriber.php`
-- `src/EventSubscriber/ApiAuditResponseSubscriber.php`
+Funcao:
 
-Serviço central:
+- entrega webhooks para endpoints externos
+- usa retentativa, avaliacao de payload e criterios de sucesso
 
-- `src/Service/Api/ApiAuditManager.php`
+### 3. Worker de extracao
 
-Status e atributos:
+Comando:
 
-- `src/Support/ApiRequestStatus.php`
-- `src/Support/ApiRequestAttributes.php`
+- `php bin/console app:api-extraction-worker`
 
-### Execução síncrona e assíncrona
+Funcao:
 
-Resolver de modo:
+- processa apenas requisicoes concluidas e elegiveis para extracao
+- le `t99001`
+- salva dados em `t99007` e `t99008`
 
-- `src/Service/Api/ApiExecutionModeResolver.php`
+Observacao critica:
 
-Resposta assíncrona:
+- esse worker ja foi corrigido para usar `app.audit_connection`
+- antes disso ele estava ligado na conexao errada e nao encontrava itens pendentes
 
-- `src/Service/Api/ApiAsyncResponder.php`
+## Fluxo operacional atual da API
 
-Execução interna da requisição:
+### Requisicao sincronica
 
-- `src/Service/Api/InternalApiRequestRunner.php`
+1. a API autentica o assinante
+2. grava a entrada em `t99001`
+3. executa a operacao
+4. salva status, resposta e eventos
+5. se a rota for elegivel para extracao, marca `si_status_extracao = pendente`
+6. o worker de extracao processa depois
+7. se houver webhook vinculado, a entrega entra no fluxo proprio
 
-Worker:
+### Requisicao assincrona
 
-- `src/Command/ApiRequestWorkerCommand.php`
+1. a API autentica o assinante
+2. grava a entrada em `t99001`
+3. retorna `request_id`
+4. o worker da API executa depois
+5. ao concluir, a requisicao pode seguir para extracao
+6. webhooks seguem em fila separada
 
-Consulta de status:
+## Extracao de NFe e NSU
 
-- `src/Controller/ApiRequestStatusController.php`
+### Rotas elegiveis
 
-### Versionamento de programa atendente
+- `/nfe/consultas/consultar-com-chave`
+- `/nfe/consultas/consultar-com-chave-xml`
+- `/nfe/distribuicao-dfe/por-chave`
+- `/nfe/distribuicao-dfe/por-nsu`
+- `/nfe/distribuicao-dfe/por-ult-nsu`
 
-Resolver:
+### Rotas fora da extracao
 
-- `src/Service/Api/ApiProgramVersionResolver.php`
+- inutilizacao
+- qualquer rota fora da whitelist acima
 
-Esse serviço alimenta a auditoria com:
+### Status de extracao
 
-- código do programa
-- nome
-- versão
-- revisão
-- última atualização
-- fonte da versão
+- `0`: nao se aplica
+- `1`: pendente
+- `2`: processando
+- `3`: concluido
+- `4`: falha
 
-## Estado atual das interfaces web
+### Estado funcional atual
 
-### Hub administrativo
+- a extracao ja esta salvando `NFe` em `t99007`
+- a extracao de resposta textual `[Consulta]` foi implementada
+- campos salvos nesse caso:
+  - `c_chave_acesso`
+  - `c_stat`
+  - `x_motivo`
+  - `dt_autorizacao`
 
-Arquivo principal:
+Limitacao atual:
 
-- `templates/home/hub.html.twig`
-- `templates/admin/base.html.twig`
+- no retorno textual de `consultar-com-chave`, campos como `numero`, `serie`, `modelo`, `emitente_documento`, `destinatario_documento` e `interessado_documento` nao vem completos no payload
+- hoje eles so serao preenchidos totalmente quando houver XML mais rico ou item de distribuicao
+- melhoria futura possivel: derivar `numero`, `serie`, `modelo` e `emitente_documento` da chave de acesso
 
-Controller:
+## Webhooks
 
-- `src/Controller/HomeController.php`
+Estado atual do modulo:
 
-O hub agora oferece:
+- suporte a variaveis para `querystring`, `headers` e `path params`
+- configuracao de sucesso por codigos HTTP e por combinacao de `HTTP + payload`
+- operadores de payload:
+  - `equals`
+  - `contains`
+  - `in`
+- configuracao de tentativas e intervalo
+- `secret` mascarado
+- geracao automatica de token/secret
+- regeneracao de secret
+- `Idempotency-Key`
+- `X-Webhook-Timestamp`
+- assinatura com `timestamp.payload`
+- backoff exponencial com jitter
+- bloqueio de URLs locais/privadas para reduzir risco de `SSRF`
+- reprocessamento manual de falhas
 
-- cards de navegação por área
-- acesso direto a docs, demos, auditoria e catálogos
-- atalhos por módulo `CEP`, `NFe` e `NFSe`
-- blocos de acompanhamento com falhas e testes recentes
+## Assinantes
 
-Shell visual compartilhado:
+Estado atual:
 
-- `templates/admin/base.html.twig`
-- `catalog-assets/adminlte-portal.css`
+- token nao e mais digitado manualmente no cadastro
+- token e gerado automaticamente ao criar o assinante
+- existe botao para copiar token por registro
+- correcoes aplicadas para checkboxes booleanos desmarcados salvarem como `false`
 
-### Consulta de requisições e auditoria analítica
+## Portal administrativo
 
-Arquivos principais:
+Padrao visual consolidado:
 
-- `src/Controller/ApiAuditDashboardController.php`
-- `templates/catalog/api_audit_dashboard.html.twig`
-- `templates/catalog/api_audit_overview.html.twig`
-- `src/Repository/ApiAuditDashboardRepository.php`
+- remover breadcrumb duplicado
+- remover fundos amarelo/bege antigos
+- usar layout consistente com as telas novas
+- formularios principais em drawer lateral, nao em coluna fixa
 
-Já implementado:
+Telas recentes padronizadas:
 
-- página de consulta focada em filtros, datagrid e detalhe lateral
-- página analítica focada em métricas, alertas e gráficos
-- exportação CSV/XLSX
-- filtros salvos
-- detalhe pesquisável
-- troca parcial do detalhe sem reload completo
-- abertura do detalhe apenas quando houver `requisicao=` explícita na URL
+- assinantes
+- webhooks
+- capacidade de workers
+- configuracao de execucao
+- consulta de requisicoes
 
-Estado atual importante:
+## Consulta de requisicoes
 
-- a rota operacional única é `/consulta-requisicoes`
-- a rota `/auditoria-requisicoes` foi removida
-- a visão analítica permanece em `/auditoria-requisicoes/visao-analitica`
-- o menu lateral expõe apenas `Consulta de requisições` e `Auditoria analítica`
-- a consulta abre com a janela lateral fechada por padrão
+Estado atual:
 
-### Catálogo de programas
+- drawer lateral mais largo
+- sem breadcrumb
+- mostra detalhes da requisicao, resposta e extracao
+- mostra informacao de worker e PID quando aplicavel
+- deve continuar sendo a tela operacional principal para suporte
 
-Arquivos principais:
+## Conectividade externa NFe
 
-- `src/Controller/ProgramCatalogController.php`
-- `src/Repository/ProgramCatalogRepository.php`
-- `templates/catalog/program_catalog.html.twig`
+Foi corrigida a validacao TLS com a SVRS de homologacao no host.
 
-Já implementado:
+Certificados instalados no trust store do host:
 
-- filtro
-- exportação CSV/XLSX
-- detalhe pesquisável
-- troca parcial do detalhe sem reload completo
+- `ICP-Brasil v10`
+- `Autoridade Certificadora do SERPRO SSLv1`
 
-### Catálogo de testes
+Resultado pratico:
 
-Arquivos principais:
+- deixou de ocorrer `Network subsystem is unusable`
+- `consultar-com-chave` voltou a responder normalmente contra a SVRS
 
-- `src/Controller/TestCatalogController.php`
-- `src/Repository/ApiTestCatalogRepository.php`
-- `templates/catalog/test_catalog.html.twig`
+## Arquivos principais para retomar rapidamente
 
-Já implementado:
+- `docs/README_CONTEXTO.md`
+- `docs/ARQUITETURA_ATUAL.md`
+- `docs/CONTEXTO_ACUMULADO_PROJETO.md`
+- `docs/GUIA_RETORNO_RAPIDO.md`
+- `docs/roteiro-teste-telas-workers-webhooks.md`
 
-- filtro
-- rerun geral, por grupo e por teste
-- histórico de execuções
-- exportação CSV/XLSX
-- troca parcial do detalhe sem reload completo
+## Pontos de atencao
 
-## Helpers globais de frontend
-
-O arquivo central para comportamento das telas de catálogo é:
-
-- `templates/catalog/base.html.twig`
-
-Hoje ele concentra helpers reutilizáveis para:
-
-- persistência de filtros
-- destaque de busca interna
-- exportação de detalhe
-- impressão
-- memória de scroll
-- navegação parcial do painel direito
-- filtros salvos
-
-Se for mexer em comportamento comum dos catálogos, o ponto principal agora é esse arquivo. Se for mexer no shell visual e na navegação lateral do portal, o ponto principal passa a ser `templates/admin/base.html.twig` junto de `catalog-assets/adminlte-portal.css`.
-
-## Testes e validação já preparados
-
-Pasta principal:
-
-- `testes_api_platform/`
-
-Arquivos relevantes:
-
-- `testes_api_platform/auditoria_requisicoes.sh`
-- `testes_api_platform/nfe_diagnostico.sh`
-- `testes_api_platform/nfe_rede_externa.sh`
-- `testes_api_platform/cep.sh`
-- `testes_api_platform/nfe.sh`
-- `testes_api_platform/nfse.sh`
-- `testes_api_platform/README.md`
-
-Os testes mais úteis para continuidade imediata são:
-
-- `php bin/console lint:container`
-- `php bin/console lint:twig templates/admin/base.html.twig templates/home/hub.html.twig templates/home/section.html.twig templates/catalog/base.html.twig templates/catalog/program_catalog.html.twig templates/catalog/test_catalog.html.twig templates/catalog/api_audit_dashboard.html.twig templates/catalog/api_audit_overview.html.twig`
-
-1. `bash testes_api_platform/auditoria_requisicoes.sh`
-2. `bash testes_api_platform/nfe_diagnostico.sh`
-3. `bash testes_api_platform/nfe_rede_externa.sh`
-
-## Restrições e pontos de atenção atuais
-
-### 1. O projeto convive com muito legado ACBr
-
-Grande parte da lógica ainda depende dos diretórios legados como:
-
-- `NFe/`
-- `NFSe/`
-- `ConsultaCEP/`
-
-Mudanças nesses pontos devem sempre considerar compatibilidade com o fluxo legado.
-
-### 2. Existem muitos arquivos alterados de demos e artefatos
-
-O commit `0cd4056` registrou também uma grande quantidade de mudanças de ambiente e arquivos auxiliares. Em sessões futuras, é importante validar se novos ajustes devem continuar nesse mesmo histórico ou ser isolados em commits menores.
-
-### 3. O `base.html.twig` virou infraestrutura compartilhada
-
-Ele é hoje um arquivo sensível. Pequenos bugs nele afetam:
-
-- auditoria
-- catálogo de programas
-- catálogo de testes
-
-### 4. O PostgreSQL fica fora do container
-
-Isso impacta:
-
-- configuração
-- testes
-- diagnóstico de conexão
-- reprodutibilidade em novos ambientes
-
-Arquivos SQL/bootstrapping importantes:
-
-- `sql/dfe_schema.sql`
-- `sql/dfe_bootstrap.sh`
-- `sql/configure_postgres_host_access.sh`
-
-## Próximos passos naturais
-
-Se outra sessão precisar continuar, os caminhos mais naturais são:
-
-1. revisar o dashboard de auditoria com dados reais e ajustar UX fina
-2. revisar os scripts de teste NFe/NFSe conforme ambiente externo
-3. separar commits futuros em lotes menores
-4. limpar ou organizar melhor artefatos operacionais hoje versionados
-5. consolidar mais documentação de operação do PostgreSQL externo
-
-## Ordem mínima de leitura para retomada
-
-1. `docs/README_CONTEXTO.md`
-2. `docs/CONTEXTO_SESSAO_ATUAL.md`
-3. `docs/GUIA_RETORNO_RAPIDO.md`
-4. `docs/ARQUITETURA_ATUAL.md`
-5. `docs/FLUXO_INTEGRACAO_LEGADO.md`
+1. O worker de extracao precisa permanecer rodando no host para consumir `si_status_extracao = pendente`.
+2. Nem todo retorno de NFe traz XML completo; em alguns casos a extracao sera parcial.
+3. Se aparecer fila parada em extracao, verificar primeiro se o worker esta ativo e se usa a conexao `app.audit_connection`.
+4. Se houver testes com webhook local, a protecao `SSRF` vai bloquear destinos privados como `127.0.0.1`.

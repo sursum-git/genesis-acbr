@@ -1,0 +1,143 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Capacidade de Workers{% endblock %}
+{% block page_heading %}Capacidade de Workers{% endblock %}
+{% block heading_text %}Mantém a referência administrativa da quantidade de workers por vigência para testes de custo-benefício e operação async.{% endblock %}
+
+{% block page_styles %}
+<style>
+    .admin-list-card {
+        min-height: calc(100vh - 260px);
+    }
+
+    .admin-list-card .table-responsive {
+        max-height: calc(100vh - 380px);
+        overflow: auto;
+    }
+
+    .admin-form-drawer .audit-detail-shell {
+        width: min(620px, 96vw);
+    }
+
+    .admin-form-drawer .audit-detail-panel {
+        padding: 22px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+{% if loadError %}
+    <div class="alert alert-warning">Não foi possível carregar a base operacional agora: {{ loadError }}</div>
+{% endif %}
+<div class="row g-4">
+    <div class="col-12">
+        <section class="card admin-list-card">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h3 class="card-title mb-0">Faixas de capacidade</h3>
+                <div class="d-flex flex-wrap gap-2">
+                    <span class="badge text-bg-info align-self-center">Atual: {{ currentConfig.qtd_workers ?? 'n/d' }} worker(s)</span>
+                    <button class="btn btn-primary" type="button" data-open-admin-drawer>Nova capacidade</button>
+                </div>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                        <th>Workers</th>
+                        <th>Início</th>
+                        <th>Fim</th>
+                        <th>Ativo</th>
+                        <th>Observação</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in configs %}
+                        <tr>
+                            <td><a href="{{ app.request.basePath ~ '/index.php/capacidade-workers?id=' ~ item.id_t99005 }}">{{ item.qtd_workers }}</a></td>
+                            <td>{{ item.dt_inicio_vigencia }}</td>
+                            <td>{{ item.dt_fim_vigencia ?: '-' }}</td>
+                            <td>{{ item.log_ativo ? 'sim' : 'não' }}</td>
+                            <td>{{ item.t_observacao ?: '-' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5">Nenhuma configuração cadastrada.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+<aside class="audit-detail-drawer admin-form-drawer{% if selectedConfig %} is-open{% endif %}" data-admin-drawer>
+    <button class="audit-detail-backdrop" type="button" aria-label="Fechar cadastro de capacidade" data-close-admin-drawer></button>
+    <div class="audit-detail-shell">
+        <section class="panel audit-detail-frame">
+            <div class="panel-header audit-detail-header-row">
+                <div>
+                    <h2>{{ selectedConfig ? 'Editar capacidade' : 'Nova capacidade' }}</h2>
+                    <p>Defina a quantidade de workers por período de vigência.</p>
+                </div>
+                <button class="button button-tertiary" type="button" data-close-admin-drawer>Fechar</button>
+            </div>
+            <div class="details audit-detail-panel">
+                <form method="post" action="{{ app.request.basePath ~ '/index.php/capacidade-workers/salvar' }}" class="d-grid gap-3">
+                    <input type="hidden" name="id" value="{{ selectedConfig.id_t99005 ?? '' }}">
+                    <div>
+                        <label class="form-label">Quantidade de workers</label>
+                        <input class="form-control" type="number" min="1" name="qtd_workers" value="{{ selectedConfig.qtd_workers ?? 2 }}">
+                    </div>
+                    <div>
+                        <label class="form-label">Início da vigência</label>
+                        <input class="form-control" type="datetime-local" name="dt_inicio_vigencia" value="{{ selectedConfig.dt_inicio_vigencia is defined and selectedConfig.dt_inicio_vigencia ? selectedConfig.dt_inicio_vigencia|date('Y-m-d\\TH:i') : '' }}">
+                    </div>
+                    <div>
+                        <label class="form-label">Fim da vigência</label>
+                        <input class="form-control" type="datetime-local" name="dt_fim_vigencia" value="{{ selectedConfig.dt_fim_vigencia is defined and selectedConfig.dt_fim_vigencia ? selectedConfig.dt_fim_vigencia|date('Y-m-d\\TH:i') : '' }}">
+                    </div>
+                    <div>
+                        <label class="form-label">Observação</label>
+                        <textarea class="form-control" rows="4" name="t_observacao">{{ selectedConfig.t_observacao ?? '' }}</textarea>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="log_ativo" id="log_ativo_capacity"{% if selectedConfig is null or selectedConfig.log_ativo %} checked{% endif %}>
+                        <label class="form-check-label" for="log_ativo_capacity">Faixa ativa</label>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-primary" type="submit">Salvar</button>
+                        <button class="btn btn-outline-secondary" type="button" data-close-admin-drawer>Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</aside>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const drawer = document.querySelector('[data-admin-drawer]');
+    if (!drawer) {
+        return;
+    }
+
+    document.querySelectorAll('[data-open-admin-drawer]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            drawer.classList.add('is-open');
+        });
+    });
+
+    document.querySelectorAll('[data-close-admin-drawer]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            drawer.classList.remove('is-open');
+            {% if selectedConfig %}
+                window.setTimeout(function () {
+                    window.location.href = '{{ app.request.basePath ~ '/index.php/capacidade-workers' }}';
+                }, 180);
+            {% endif %}
+        });
+    });
+});
+</script>
+{% endblock %}

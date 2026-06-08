@@ -1,0 +1,372 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Webhooks{% endblock %}
+{% block page_heading %}Webhooks{% endblock %}
+{% block heading_text %}Cadastro de endpoints, vínculo por assinante/API com troca `sync/async` e histórico recente das entregas enfileiradas.{% endblock %}
+
+{% block page_styles %}
+<style>
+    .admin-list-card .table-responsive {
+        max-height: calc(100vh - 420px);
+        overflow: auto;
+    }
+
+    .admin-form-drawer .audit-detail-shell {
+        width: min(720px, 96vw);
+    }
+
+    .admin-form-drawer .audit-detail-panel {
+        padding: 22px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+{% if loadError %}
+    <div class="alert alert-warning">Não foi possível carregar a base de webhooks agora: {{ loadError }}</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-12">
+        <section class="card admin-list-card">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h3 class="card-title mb-0">Endpoints</h3>
+                <button class="btn btn-primary" type="button" data-open-webhook-drawer>Novo endpoint</button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                        <tr>
+                            <th>Nome</th>
+                            <th>URL</th>
+                            <th>Método</th>
+                            <th>Sucesso</th>
+                            <th>Retry</th>
+                            <th>Ativo</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in webhooks %}
+                            <tr>
+                                <td><a href="{{ app.request.basePath ~ '/index.php/webhooks?webhook=' ~ item.id_t00003 }}">{{ item.c_nome }}</a></td>
+                                <td><code>{{ item.c_url }}</code></td>
+                                <td>{{ item.c_metodo_http }}</td>
+                                <td>
+                                    <span class="badge text-bg-info">{{ item.c_success_status_codes ?? '200,201,202,204' }}</span>
+                                    <div class="small text-muted">{{ (item.c_success_mode ?? 'status_only') == 'status_and_payload' ? 'HTTP + payload' : 'somente HTTP' }}</div>
+                                </td>
+                                <td>{{ item.si_max_tentativas ?? 3 }}x / {{ item.si_intervalo_tentativas_segundos ?? 300 }}s</td>
+                                <td>{{ item.log_ativo ? 'sim' : 'não' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="6">Nenhum webhook cadastrado.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12">
+        <section class="card admin-list-card">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h3 class="card-title mb-0">Vínculos</h3>
+                <button class="btn btn-primary" type="button" data-open-binding-drawer>Novo vínculo</button>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                        <th>Assinante</th>
+                        <th>Webhook</th>
+                        <th>Programa</th>
+                        <th>Evento</th>
+                        <th>Modo</th>
+                        <th>Ativo</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in bindings %}
+                        <tr>
+                            <td><a href="{{ app.request.basePath ~ '/index.php/webhooks?binding=' ~ item.id_t00004 }}">{{ item.c_assinante_identificador }}</a></td>
+                            <td>{{ item.c_webhook_nome }}</td>
+                            <td>{{ item.c_programa }}</td>
+                            <td>{{ item.c_evento }}</td>
+                            <td><span class="badge text-bg-{{ item.c_modo_execucao == 'async' ? 'info' : 'primary' }}">{{ item.c_modo_execucao }}</span></td>
+                            <td>{{ item.log_ativo ? 'sim' : 'não' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6">Nenhum vínculo cadastrado.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12">
+        <section class="card">
+            <div class="card-header"><h3 class="card-title">Entregas recentes</h3></div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Webhook</th>
+                        <th>Assinante</th>
+                        <th>Evento</th>
+                        <th>Status</th>
+                        <th>HTTP</th>
+                        <th>Tentativas</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in deliveries %}
+                        <tr>
+                            <td>{{ item.id_t99006 }}</td>
+                            <td>{{ item.c_webhook_nome }}</td>
+                            <td>{{ item.c_assinante_identificador }}</td>
+                            <td>{{ item.c_evento }}</td>
+                            <td>{{ item.c_status_entrega }}</td>
+                            <td>{{ item.si_status_http ?: '-' }}</td>
+                            <td>{{ item.si_num_tentativa }}</td>
+                            <td class="text-end">
+                                {% if item.c_status_entrega in ['failed', 'failed_final'] %}
+                                    <form method="post" action="{{ app.request.basePath ~ '/index.php/webhooks/entregas/' ~ item.id_t99006 ~ '/reprocessar' }}">
+                                        <button class="btn btn-sm btn-outline-primary" type="submit">Reprocessar</button>
+                                    </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="8">Sem entregas registradas.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+
+<aside class="audit-detail-drawer admin-form-drawer{% if selectedWebhook %} is-open{% endif %}" data-webhook-drawer>
+    <button class="audit-detail-backdrop" type="button" aria-label="Fechar endpoint" data-close-webhook-drawer></button>
+    <div class="audit-detail-shell">
+        <section class="panel audit-detail-frame">
+            <div class="panel-header audit-detail-header-row">
+                <div>
+                    <h2>{{ selectedWebhook ? 'Editar endpoint' : 'Novo endpoint' }}</h2>
+                    <p>Configure URL, assinatura, variáveis, critérios de sucesso e retry.</p>
+                </div>
+                <button class="button button-tertiary" type="button" data-close-webhook-drawer>Fechar</button>
+            </div>
+            <div class="details audit-detail-panel">
+                <form method="post" action="{{ app.request.basePath ~ '/index.php/webhooks/salvar' }}" class="d-grid gap-3">
+                    <input type="hidden" name="id_t00003" value="{{ selectedWebhook.id_t00003 ?? '' }}">
+                    <div>
+                        <label class="form-label">Nome</label>
+                        <input class="form-control" type="text" name="c_nome" value="{{ selectedWebhook.c_nome ?? '' }}" required>
+                    </div>
+                    <div>
+                        <label class="form-label">URL</label>
+                        <input class="form-control" type="text" name="c_url" value="{{ selectedWebhook.c_url ?? '' }}" required>
+                        <div class="form-text">Use path params como <code>{request_id}</code> ou <code>:request_id</code> quando configurar variáveis de path.</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Método HTTP</label>
+                        {% set selectedMethod = selectedWebhook.c_metodo_http ?? 'POST' %}
+                        <select class="form-select" name="c_metodo_http">
+                            {% for method in ['POST', 'PUT', 'PATCH'] %}
+                                <option value="{{ method }}"{% if selectedMethod == method %} selected{% endif %}>{{ method }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Headers extras em JSON</label>
+                        <textarea class="form-control" rows="3" name="t_headers_json">{{ selectedWebhook.t_headers_json ?? '' }}</textarea>
+                    </div>
+                    <div>
+                        <label class="form-label">Variáveis para querystring, headers e path params</label>
+                        <textarea class="form-control font-monospace" rows="7" name="t_variaveis_json" placeholder='{"query":{"request_id":"request_id"},"headers":{"X-Request-Id":"request_id"},"path":{"request_id":"request_id"}}'>{{ selectedWebhook.t_variaveis_json ?? '' }}</textarea>
+                        <div class="form-text">Informe caminhos do payload do webhook, por exemplo <code>request_id</code>, <code>subscriber.cnpj</code> ou <code>literal:valor-fixo</code>.</div>
+                    </div>
+                    <div>
+                        <label class="form-label">Secret</label>
+                        {% if selectedWebhook %}
+                            {% set currentSecret = selectedWebhook.t_secret ?? '' %}
+                            <div class="input-group">
+                                <input class="form-control" type="text" value="{{ currentSecret ? ('••••••••••••' ~ currentSecret|slice(-6)) : 'sem secret' }}" disabled>
+                                <button class="btn btn-outline-secondary" type="submit" form="regenerate-secret-form">Regenerar</button>
+                            </div>
+                            <div class="form-text">O secret não é exibido por segurança. Ao regenerar, entregas futuras passam a assinar com o novo valor.</div>
+                        {% else %}
+                            <input class="form-control" type="text" name="t_secret" value="{{ generatedSecret ?: '' }}" placeholder="Gerado automaticamente ao salvar se ficar vazio">
+                            <div class="form-text">Para novo webhook, deixe vazio para gerar automaticamente.</div>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <label class="form-label">Timeout (segundos)</label>
+                        <input class="form-control" type="number" min="1" max="120" name="si_timeout_segundos" value="{{ selectedWebhook.si_timeout_segundos ?? 10 }}">
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Códigos HTTP de sucesso</label>
+                            <input class="form-control" type="text" name="c_success_status_codes" value="{{ selectedWebhook.c_success_status_codes ?? '200,201,202,204' }}" placeholder="200,201,202,204 ou 2xx">
+                            <div class="form-text">Aceita códigos exatos e grupos como <code>2xx</code>.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Critério de sucesso</label>
+                            {% set selectedSuccessMode = selectedWebhook.c_success_mode ?? 'status_only' %}
+                            <select class="form-select" name="c_success_mode">
+                                <option value="status_only"{% if selectedSuccessMode == 'status_only' %} selected{% endif %}>Somente código HTTP</option>
+                                <option value="status_and_payload"{% if selectedSuccessMode == 'status_and_payload' %} selected{% endif %}>Código HTTP + payload</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Condições do payload de retorno para sucesso</label>
+                        <textarea class="form-control font-monospace" rows="7" name="t_success_payload_rules_json" placeholder='[{"path":"status","operator":"equals","value":"ok"},{"path":"message","operator":"contains","value":"recebido"},{"path":"code","operator":"in","value":["A1","A2"]}]'>{{ selectedWebhook.t_success_payload_rules_json ?? '' }}</textarea>
+                        <div class="form-text">Operadores suportados: <code>equals</code> igualdade, <code>contains</code> contém e <code>in</code> lista.</div>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Máximo de tentativas</label>
+                            <input class="form-control" type="number" min="1" max="20" name="si_max_tentativas" value="{{ selectedWebhook.si_max_tentativas ?? 3 }}">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Intervalo entre tentativas (segundos)</label>
+                            <input class="form-control" type="number" min="1" max="86400" name="si_intervalo_tentativas_segundos" value="{{ selectedWebhook.si_intervalo_tentativas_segundos ?? 300 }}">
+                        </div>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="log_ativo" id="webhook_active"{% if selectedWebhook is null or selectedWebhook.log_ativo %} checked{% endif %}>
+                        <label class="form-check-label" for="webhook_active">Webhook ativo</label>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-primary" type="submit">Salvar endpoint</button>
+                        <button class="btn btn-outline-secondary" type="button" data-close-webhook-drawer>Cancelar</button>
+                    </div>
+                </form>
+                {% if selectedWebhook %}
+                    <form id="regenerate-secret-form" method="post" action="{{ app.request.basePath ~ '/index.php/webhooks/' ~ selectedWebhook.id_t00003 ~ '/regenerar-secret' }}"></form>
+                {% endif %}
+            </div>
+        </section>
+    </div>
+</aside>
+
+<aside class="audit-detail-drawer admin-form-drawer{% if selectedBinding %} is-open{% endif %}" data-binding-drawer>
+    <button class="audit-detail-backdrop" type="button" aria-label="Fechar vínculo" data-close-binding-drawer></button>
+    <div class="audit-detail-shell">
+        <section class="panel audit-detail-frame">
+            <div class="panel-header audit-detail-header-row">
+                <div>
+                    <h2>{{ selectedBinding ? 'Editar vínculo' : 'Novo vínculo' }}</h2>
+                    <p>Associe um assinante a um endpoint, programa, evento e modo de execução.</p>
+                </div>
+                <button class="button button-tertiary" type="button" data-close-binding-drawer>Fechar</button>
+            </div>
+            <div class="details audit-detail-panel">
+                <form method="post" action="{{ app.request.basePath ~ '/index.php/webhooks/vinculos/salvar' }}" class="d-grid gap-3">
+                    <input type="hidden" name="id_t00004" value="{{ selectedBinding.id_t00004 ?? '' }}">
+                    <div>
+                        <label class="form-label">Assinante</label>
+                        {% set selectedSubscriber = selectedBinding.c_assinante_identificador ?? '' %}
+                        <select class="form-select" name="c_assinante_identificador" required>
+                            <option value="">Selecione</option>
+                            {% for identifier in subscriberOptions %}
+                                <option value="{{ identifier }}"{% if selectedSubscriber == identifier %} selected{% endif %}>{{ identifier }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div>
+                        <label class="form-label">Webhook</label>
+                        {% set selectedWebhookId = selectedBinding.t00003_id ?? 0 %}
+                        <select class="form-select" name="t00003_id" required>
+                            <option value="">Selecione</option>
+                            {% for item in webhooks %}
+                                <option value="{{ item.id_t00003 }}"{% if selectedWebhookId == item.id_t00003 %} selected{% endif %}>{{ item.c_nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Programa</label>
+                            {% set selectedProgram = selectedBinding.c_programa ?? '*' %}
+                            <select class="form-select" name="c_programa">
+                                {% for item in ['*', 'nfe', 'nfse', 'consulta_cep', 'src_api_auditoria'] %}
+                                    <option value="{{ item }}"{% if selectedProgram == item %} selected{% endif %}>{{ item }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Evento</label>
+                            {% set selectedEvent = selectedBinding.c_evento ?? 'request.completed' %}
+                            <select class="form-select" name="c_evento">
+                                {% for item in ['request.completed', 'request.failed'] %}
+                                    <option value="{{ item }}"{% if selectedEvent == item %} selected{% endif %}>{{ item }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="form-label">Caminho opcional</label>
+                        <input class="form-control" type="text" name="c_caminho" value="{{ selectedBinding.c_caminho ?? '' }}" placeholder="/nfe/ferramentas/openssl-info">
+                    </div>
+                    <div>
+                        <label class="form-label">Modo de execução no vínculo</label>
+                        {% set selectedMode = selectedBinding.c_modo_execucao ?? 'sync' %}
+                        <select class="form-select" name="c_modo_execucao">
+                            <option value="sync"{% if selectedMode == 'sync' %} selected{% endif %}>sync</option>
+                            <option value="async"{% if selectedMode == 'async' %} selected{% endif %}>async</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="log_ativo" id="binding_active"{% if selectedBinding is null or selectedBinding.log_ativo %} checked{% endif %}>
+                        <label class="form-check-label" for="binding_active">Vínculo ativo</label>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-primary" type="submit">Salvar vínculo</button>
+                        <button class="btn btn-outline-secondary" type="button" data-close-binding-drawer>Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</aside>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    function setupDrawer(openSelector, drawerSelector, closeSelector, resetUrl, shouldReset) {
+        const drawer = document.querySelector(drawerSelector);
+        if (!drawer) {
+            return;
+        }
+
+        document.querySelectorAll(openSelector).forEach(function (button) {
+            button.addEventListener('click', function () {
+                drawer.classList.add('is-open');
+            });
+        });
+
+        document.querySelectorAll(closeSelector).forEach(function (button) {
+            button.addEventListener('click', function () {
+                drawer.classList.remove('is-open');
+                if (shouldReset) {
+                    window.setTimeout(function () {
+                        window.location.href = resetUrl;
+                    }, 180);
+                }
+            });
+        });
+    }
+
+    setupDrawer('[data-open-webhook-drawer]', '[data-webhook-drawer]', '[data-close-webhook-drawer]', '{{ app.request.basePath ~ '/index.php/webhooks' }}', {{ selectedWebhook ? 'true' : 'false' }});
+    setupDrawer('[data-open-binding-drawer]', '[data-binding-drawer]', '[data-close-binding-drawer]', '{{ app.request.basePath ~ '/index.php/webhooks' }}', {{ selectedBinding ? 'true' : 'false' }});
+});
+</script>
+{% endblock %}

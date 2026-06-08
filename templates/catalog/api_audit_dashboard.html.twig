@@ -164,6 +164,10 @@
                                         <strong>
                                             <span class="chip{% if item.si_status_processamento == 3 %} chip-success{% elseif item.si_status_processamento in [4, 5] %} chip-danger{% endif %}">{{ statusOptions[item.si_status_processamento] ?? item.si_status_processamento }}</span>
                                         </strong>
+                                        <span>
+                                            Extração:
+                                            <span class="chip{% if item.si_status_extracao == 3 %} chip-success{% elseif item.si_status_extracao == 4 %} chip-danger{% elseif item.si_status_extracao == 2 %} chip-warning{% endif %}">{{ extractionStatusOptions[item.si_status_extracao] ?? item.si_status_extracao }}</span>
+                                        </span>
                                         {% if item.t_resumo %}
                                             <span>{{ item.t_resumo|slice(0, 180) }}{% if item.t_resumo|length > 180 %}...{% endif %}</span>
                                         {% else %}
@@ -252,6 +256,9 @@
                                 {% if selectedRequest.c_modo_execucao %}
                                     <span>{{ selectedRequest.c_modo_execucao }}</span>
                                 {% endif %}
+                                {% if selectedRequest.si_status_extracao is defined %}
+                                    <span class="{% if selectedRequest.si_status_extracao == 4 %}chip-danger{% elseif selectedRequest.si_status_extracao == 3 %}chip-success{% else %}chip-warning{% endif %}">Extração {{ extractionStatusOptions[selectedRequest.si_status_extracao] ?? selectedRequest.si_status_extracao }}</span>
+                                {% endif %}
                                 {% if selectedRequest.i_tempo_processamento_ms %}
                                     <span class="{% if selectedRequest.i_tempo_processamento_ms >= 3000 %}chip-danger{% elseif selectedRequest.i_tempo_processamento_ms >= 1200 %}chip-warning{% endif %}">{{ selectedRequest.i_tempo_processamento_ms }} ms</span>
                                 {% endif %}
@@ -291,6 +298,14 @@
                                             <div class="audit-summary-row">
                                                 <dt>Processamento</dt>
                                                 <dd>Início {{ selectedRequest.dt_hr_ini_processamento ?: 'n/d' }} | Fim {{ selectedRequest.dt_hr_fim_processamento ?: 'n/d' }}</dd>
+                                            </div>
+                                            <div class="audit-summary-row">
+                                                <dt>Extração</dt>
+                                                <dd>
+                                                    {{ extractionStatusOptions[selectedRequest.si_status_extracao] ?? selectedRequest.si_status_extracao ?? 'n/d' }}
+                                                    | Início {{ selectedRequest.dt_hr_ini_extracao ?: 'n/d' }}
+                                                    | Fim {{ selectedRequest.dt_hr_fim_extracao ?: 'n/d' }}
+                                                </dd>
                                             </div>
                                             <div class="audit-summary-row">
                                                 <dt>Origem</dt>
@@ -352,10 +367,41 @@
                                     </details>
                                 {% endif %}
 
+                                {% if selectedRequest.t_erro_extracao %}
+                                    <details class="fold-card is-danger" open data-detail-search-item data-fold-item data-fold-key="erro_extracao">
+                                        <summary>Erro de extração</summary>
+                                        <div class="fold-body">
+                                            <pre class="code-block"><code>{{ selectedRequest.t_erro_extracao }}</code></pre>
+                                        </div>
+                                    </details>
+                                {% endif %}
+
                                 <details class="fold-card" data-detail-search-item data-fold-item data-fold-key="snapshot_assinante">
                                     <summary>Snapshot do assinante</summary>
                                     <div class="fold-body">
                                         <pre class="code-block"><code>{{ selectedRequest.t_assinante_json_pretty ?? selectedRequest.t_assinante_json ?? 'Sem snapshot salvo.' }}</code></pre>
+                                    </div>
+                                </details>
+
+                                <details class="fold-card" open data-detail-search-item data-fold-item data-fold-key="nfe_extraidas">
+                                    <summary>NFe extraídas ({{ extractedNfe|length }})</summary>
+                                    <div class="fold-body">
+                                        {% if extractedNfe is empty %}
+                                            <p>Nenhuma NFe extraída para esta requisição.</p>
+                                        {% else %}
+                                            <pre class="code-block"><code>{{ extractedNfe|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES')) }}</code></pre>
+                                        {% endif %}
+                                    </div>
+                                </details>
+
+                                <details class="fold-card" open data-detail-search-item data-fold-item data-fold-key="nsu_extraidos">
+                                    <summary>Itens NSU extraídos ({{ extractedNsu|length }})</summary>
+                                    <div class="fold-body">
+                                        {% if extractedNsu is empty %}
+                                            <p>Nenhum item NSU extraído para esta requisição.</p>
+                                        {% else %}
+                                            <pre class="code-block"><code>{{ extractedNsu|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES')) }}</code></pre>
+                                        {% endif %}
                                     </div>
                                 </details>
 
@@ -369,6 +415,8 @@
                                                 <thead>
                                                     <tr>
                                                         <th>Tentativa</th>
+                                                        <th>Worker</th>
+                                                        <th>PID</th>
                                                         <th>Status</th>
                                                         <th>HTTP</th>
                                                         <th>Versão</th>
@@ -380,6 +428,8 @@
                                                     {% for attempt in attempts %}
                                                         <tr>
                                                             <td>{{ attempt.si_num_tentativa }}</td>
+                                                            <td>{{ attempt.c_worker_id ?: 'n/d' }}</td>
+                                                            <td>{{ attempt.i_worker_pid ?: 'n/d' }}</td>
                                                             <td>{{ statusOptions[attempt.si_status_processamento] ?? attempt.si_status_processamento }}</td>
                                                             <td>{{ attempt.si_status_http ?: 'n/d' }}</td>
                                                             <td>{{ attempt.c_versao_programa ?: 'n/d' }}</td>

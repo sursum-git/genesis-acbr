@@ -36,6 +36,30 @@ services:
     arguments:
       $auditConnection: '@app.audit_connection'
 
+  App\Repository\ApiExtractionRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\ExecutionConfigRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\WorkerCapacityRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\SubscriberAdminRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\WebhookRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
+  App\Repository\WorkerMonitorRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
   App\Service\Api\ApiExecutionModeResolver:
     arguments:
       $defaultMode: '%env(string:API_EXECUTION_MODE_DEFAULT)%'

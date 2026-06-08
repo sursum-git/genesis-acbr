@@ -1,0 +1,321 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Monitor de Workers{% endblock %}
+{% block page_heading %}Monitor de Workers{% endblock %}
+{% block heading_text %}Visão operacional da fila async, dos processos realmente em execução e da saúde das entregas de webhook.{% endblock %}
+
+{% block body %}
+{% if loadError %}
+    <div class="alert alert-warning">Não foi possível carregar toda a telemetria operacional agora: {{ loadError }}</div>
+{% endif %}
+
+{% set queueMetrics = queueMetrics ?: {
+    queued: 0,
+    processing: 0,
+    failed_last_hour: 0,
+    completed_last_hour: 0,
+    avg_async_ms_last_day: 0,
+    oldest_queued_at: null,
+    oldest_processing_at: null
+} %}
+{% set webhookMetrics = webhookMetrics ?: {
+    pending: 0,
+    processing: 0,
+    failed: 0,
+    failed_final: 0,
+    success_last_day: 0
+} %}
+{% set workerAvailability = workerAvailability ?: {
+    configured: 0,
+    effective_capacity: 0,
+    runtime_count: 0,
+    processing: 0,
+    available_slots: 0,
+    missing_processes: 0,
+    status_label: 'n/d',
+    status_class: 'secondary',
+    last_activity_at: null,
+    last_finished_at: null,
+    last_started_at: null,
+    last_worker_id: null,
+    last_worker_pid: null,
+    last_http_status: null
+} %}
+{% set workerExecutionSummary = workerExecutionSummary ?: {
+    api: {},
+    webhook: {}
+} %}
+
+<div class="row g-4">
+    <div class="col-12">
+        <section class="card border-0 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex flex-column flex-xl-row gap-4 justify-content-between">
+                    <div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <h2 class="h4 mb-0">Disponibilidade dos workers da API</h2>
+                            <span class="badge text-bg-{{ workerAvailability.status_class }}">{{ workerAvailability.status_label }}</span>
+                        </div>
+                        <p class="text-muted mb-0">
+                            Capacidade efetiva considera somente workers configurados que também têm processo ativo no sistema operacional.
+                        </p>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <span class="badge text-bg-primary fs-6 px-3 py-2">{{ workerAvailability.available_slots }} disponível(is)</span>
+                        <span class="badge text-bg-secondary fs-6 px-3 py-2">{{ workerAvailability.processing }} ocupado(s)</span>
+                        <span class="badge text-bg-info fs-6 px-3 py-2">{{ workerAvailability.runtime_count }} processo(s) ativo(s)</span>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="p-3 rounded-3 bg-light h-100">
+                            <div class="text-muted small">Workers configurados</div>
+                            <div class="h2 mb-1">{{ workerAvailability.configured }}</div>
+                            <div class="small text-muted">Capacidade vigente cadastrada.</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="p-3 rounded-3 bg-light h-100">
+                            <div class="text-muted small">Slots disponíveis</div>
+                            <div class="h2 mb-1 text-{{ workerAvailability.available_slots > 0 ? 'success' : 'danger' }}">{{ workerAvailability.available_slots }}</div>
+                            <div class="small text-muted">
+                                Capacidade efetiva: {{ workerAvailability.effective_capacity ?? 0 }}.
+                                {{ workerAvailability.processing }} requisição(ões) em processamento.
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="p-3 rounded-3 bg-light h-100">
+                            <div class="text-muted small">Processos ativos no SO</div>
+                            <div class="h2 mb-1 text-{{ workerAvailability.runtime_count > 0 ? 'success' : 'danger' }}">{{ workerAvailability.runtime_count }}</div>
+                            <div class="small text-muted">
+                                {% if workerAvailability.missing_processes > 0 %}
+                                    Faltam {{ workerAvailability.missing_processes }} processo(s) para cobrir a capacidade.
+                                {% else %}
+                                    Processos suficientes para a capacidade atual.
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-6 col-xl-3">
+                        <div class="p-3 rounded-3 bg-light h-100">
+                            <div class="text-muted small">Última execução</div>
+                            <div class="h5 mb-1">{{ workerAvailability.last_activity_at ?: 'Sem execução registrada' }}</div>
+                            <div class="small text-muted">
+                                Worker {{ workerAvailability.last_worker_id ?: 'n/d' }}
+                                · PID {{ workerAvailability.last_worker_pid ?: 'n/d' }}
+                                {% if workerAvailability.last_http_status %} · HTTP {{ workerAvailability.last_http_status }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12">
+        <div class="row g-3">
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Workers configurados agora</div>
+                        <div class="display-6 fw-semibold">{{ currentCapacity.qtd_workers ?? 'n/d' }}</div>
+                        <div class="small text-muted mt-2">Vigência: {{ currentCapacity.dt_inicio_vigencia ?? '-' }} até {{ currentCapacity.dt_fim_vigencia ?? 'aberto' }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Fila async</div>
+                        <div class="display-6 fw-semibold">{{ queueMetrics.queued }}</div>
+                        <div class="small text-muted mt-2">Processando agora: {{ queueMetrics.processing }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Webhook pendente</div>
+                        <div class="display-6 fw-semibold">{{ webhookMetrics.pending }}</div>
+                        <div class="small text-muted mt-2">Em processamento: {{ webhookMetrics.processing }}</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-md-6 col-xl-3">
+                <div class="card h-100">
+                    <div class="card-body">
+                        <div class="text-muted small">Tempo médio async 24h</div>
+                        <div class="display-6 fw-semibold">{{ queueMetrics.avg_async_ms_last_day }}<small class="fs-6">ms</small></div>
+                        <div class="small text-muted mt-2">Concluídas na última hora: {{ queueMetrics.completed_last_hour }}</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-12 col-xxl-6">
+        <section class="card">
+            <div class="card-header"><h3 class="card-title">Processos em execução</h3></div>
+            <div class="card-body">
+                <div class="row g-4">
+                    {% for key, group in runtime %}
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <strong>{{ key == 'api_request_worker' ? 'Workers da API' : 'Workers de webhook' }}</strong>
+                                <span class="badge text-bg-{{ group.count > 0 ? 'success' : 'secondary' }}">{{ group.count }} ativo(s)</span>
+                            </div>
+                            {% if key == 'api_request_worker' %}
+                                <div class="small text-muted mb-2">
+                                    Última execução:
+                                    {{ workerExecutionSummary.api.last_activity_at ?? 'sem registro' }}
+                                    {% if workerExecutionSummary.api.last_worker_id ?? null %}
+                                        · Worker {{ workerExecutionSummary.api.last_worker_id }}
+                                    {% endif %}
+                                    {% if workerExecutionSummary.api.last_worker_pid ?? null %}
+                                        · PID {{ workerExecutionSummary.api.last_worker_pid }}
+                                    {% endif %}
+                                </div>
+                            {% elseif key == 'webhook_delivery_worker' %}
+                                <div class="small text-muted mb-2">
+                                    Última execução:
+                                    {{ workerExecutionSummary.webhook.last_activity_at ?? 'sem registro' }}
+                                    {% if workerExecutionSummary.webhook.last_status ?? null %}
+                                        · Status {{ workerExecutionSummary.webhook.last_status }}
+                                    {% endif %}
+                                    {% if workerExecutionSummary.webhook.last_http_status ?? null %}
+                                        · HTTP {{ workerExecutionSummary.webhook.last_http_status }}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                            {% if group.error %}
+                                <div class="alert alert-secondary py-2 mb-0">{{ group.error }}</div>
+                            {% elseif group.processes %}
+                                <div class="table-responsive">
+                                    <table class="table table-sm align-middle">
+                                        <thead>
+                                        <tr>
+                                            <th>PID</th>
+                                            <th>Tempo ativo</th>
+                                            <th>Comando</th>
+                                        </tr>
+                                        </thead>
+                                        <tbody>
+                                        {% for process in group.processes %}
+                                            <tr>
+                                                <td>{{ process.pid }}</td>
+                                                <td>{{ process.elapsed_human }}</td>
+                                                <td><code>{{ process.command }}</code></td>
+                                            </tr>
+                                        {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            {% else %}
+                                <p class="mb-0 text-muted">Nenhum processo ativo detectado para este worker.</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+
+        <section class="card mt-4">
+            <div class="card-header"><h3 class="card-title">Fila da API</h3></div>
+            <div class="card-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-6 col-md-3"><strong>{{ queueMetrics.queued }}</strong><div class="small text-muted">Enfileiradas</div></div>
+                    <div class="col-6 col-md-3"><strong>{{ queueMetrics.processing }}</strong><div class="small text-muted">Processando</div></div>
+                    <div class="col-6 col-md-3"><strong>{{ queueMetrics.failed_last_hour }}</strong><div class="small text-muted">Falhas 1h</div></div>
+                    <div class="col-6 col-md-3"><strong>{{ queueMetrics.completed_last_hour }}</strong><div class="small text-muted">Concluídas 1h</div></div>
+                </div>
+                <p class="small text-muted">Mais antiga na fila: {{ queueMetrics.oldest_queued_at ?: '-' }}. Mais antiga em processamento: {{ queueMetrics.oldest_processing_at ?: '-' }}.</p>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                        <tr>
+                            <th>Request ID</th>
+                            <th>Caminho</th>
+                            <th>Status</th>
+                            <th>Recebida/Início</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for item in queueHighlights %}
+                            <tr>
+                                <td><a href="{{ app.request.basePath ~ '/index.php/consulta-requisicoes?requisicao=' ~ item.u_c_request_id }}">{{ item.u_c_request_id }}</a></td>
+                                <td><code>{{ item.c_caminho }}</code></td>
+                                <td>
+                                    {% if item.si_status_processamento == 2 %}
+                                        <span class="badge text-bg-warning">processando</span>
+                                    {% elseif item.si_status_processamento == 1 %}
+                                        <span class="badge text-bg-info">enfileirada</span>
+                                    {% else %}
+                                        <span class="badge text-bg-danger">falha</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.dt_hr_ini_processamento ?: item.dt_hr_recebimento }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4">Sem itens relevantes na fila agora.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-12 col-xxl-6">
+        <section class="card">
+            <div class="card-header"><h3 class="card-title">Saúde dos webhooks</h3></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-6 col-md-4"><strong>{{ webhookMetrics.pending }}</strong><div class="small text-muted">Pendentes</div></div>
+                    <div class="col-6 col-md-4"><strong>{{ webhookMetrics.processing }}</strong><div class="small text-muted">Processando</div></div>
+                    <div class="col-6 col-md-4"><strong>{{ webhookMetrics.success_last_day }}</strong><div class="small text-muted">Sucesso 24h</div></div>
+                    <div class="col-6 col-md-4"><strong>{{ webhookMetrics.failed }}</strong><div class="small text-muted">Falha com retry</div></div>
+                    <div class="col-6 col-md-4"><strong>{{ webhookMetrics.failed_final }}</strong><div class="small text-muted">Falha final</div></div>
+                </div>
+            </div>
+        </section>
+
+        <section class="card mt-4">
+            <div class="card-header"><h3 class="card-title">Reenfileirar webhooks com falha</h3></div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Webhook</th>
+                        <th>Assinante</th>
+                        <th>Status</th>
+                        <th>Erro</th>
+                        <th></th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in failedDeliveries %}
+                        <tr>
+                            <td>{{ item.id_t99006 }}</td>
+                            <td>{{ item.c_webhook_nome }}</td>
+                            <td>{{ item.c_assinante_identificador }}</td>
+                            <td>{{ item.c_status_entrega }}</td>
+                            <td>{{ item.t_erro ?: ('HTTP ' ~ item.si_status_http) }}</td>
+                            <td class="text-end">
+                                <form method="post" action="{{ app.request.basePath ~ '/index.php/monitor-workers/reenfileirar-webhook/' ~ item.id_t99006 }}">
+                                    <button class="btn btn-sm btn-outline-primary" type="submit">Reenfileirar</button>
+                                </form>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="6">Sem webhooks falhos no momento.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

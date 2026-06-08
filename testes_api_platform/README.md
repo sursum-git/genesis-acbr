@@ -33,6 +33,8 @@ Arquivos desta pasta:
 - [cep.sh](/dados_containers/www/testes_api_platform/cep.sh)
 - [nfse.sh](/dados_containers/www/testes_api_platform/nfse.sh)
 - [auditoria_requisicoes.sh](/dados_containers/www/testes_api_platform/auditoria_requisicoes.sh)
+- [admin_pages_seed_and_check.sh](/dados_containers/www/testes_api_platform/admin_pages_seed_and_check.sh)
+- [async_multi_endpoint_flow.sh](/dados_containers/www/testes_api_platform/async_multi_endpoint_flow.sh)
 - [_common.sh](/dados_containers/www/testes_api_platform/_common.sh)
 - [payloads.md](/dados_containers/www/testes_api_platform/payloads.md)
 
@@ -44,6 +46,8 @@ Scripts shell:
 - `bash testes_api_platform/cep.sh`
 - `bash testes_api_platform/nfse.sh`
 - `bash testes_api_platform/auditoria_requisicoes.sh`
+- `bash testes_api_platform/admin_pages_seed_and_check.sh`
+- `bash testes_api_platform/async_multi_endpoint_flow.sh`
 
 Teste repetivel de auditoria/gravação no PostgreSQL:
 
@@ -52,6 +56,21 @@ Teste repetivel de auditoria/gravação no PostgreSQL:
 - valida retorno `202`
 - roda `php bin/console app:api-request-worker --once --limit=1`
 - confirma a gravação final em `t99001`, a tentativa em `t99002` e a leitura por `/requests/{requestId}`
+
+Teste repetivel das telas administrativas:
+
+- aplica `sql/dfe_schema.sql`
+- alimenta `t99005`, `t99003`, `t00003`, `t00004`, `t99001`, `t99002`, `t99004` e `t99006`
+- valida por HTTP as telas `/configuracao-execucao`, `/capacidade-workers`, `/assinantes`, `/webhooks`, `/monitor-workers` e uma consulta por `request_id`
+- usa a marca `admin_pages_seed` para limpar e recriar somente os dados gerados pelo proprio teste
+
+Teste de multiplos endpoints async:
+
+- força um conjunto de endpoints para `async` via `t99003`
+- dispara varias chamadas e captura o `request_id` retornado no `202`
+- executa `app:api-request-worker`
+- consulta cada resultado em `/requests/{requestId}` usando o mesmo `X-Api-Token`
+- valida que o retorno final ficou disponivel por `request_id`
 
 Variáveis úteis para repetir sem editar o arquivo:
 

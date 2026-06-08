@@ -1,0 +1,160 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Configuração de Execução{% endblock %}
+{% block page_heading %}Configuração de Execução{% endblock %}
+{% block heading_text %}Administra as regras de modo síncrono/assíncrono e resume o papel das tabelas de auditoria operacional.{% endblock %}
+
+{% block page_styles %}
+<style>
+    .admin-list-card {
+        min-height: calc(100vh - 360px);
+    }
+
+    .admin-list-card .table-responsive {
+        max-height: calc(100vh - 480px);
+        overflow: auto;
+    }
+
+    .admin-form-drawer .audit-detail-shell {
+        width: min(620px, 96vw);
+    }
+
+    .admin-form-drawer .audit-detail-panel {
+        padding: 22px;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+{% if loadError %}
+    <div class="alert alert-warning">Não foi possível carregar a base operacional agora: {{ loadError }}</div>
+{% endif %}
+<div class="row g-4">
+    <div class="col-12">
+        <section class="card admin-list-card">
+            <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <h3 class="card-title mb-0">Regras de execução</h3>
+                <button class="btn btn-primary" type="button" data-open-admin-drawer>Nova regra</button>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm align-middle">
+                    <thead>
+                    <tr>
+                        <th>Chave</th>
+                        <th>Caminho</th>
+                        <th>Operação</th>
+                        <th>Modo</th>
+                        <th>Ativo</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    {% for item in configs %}
+                        <tr>
+                            <td><a href="{{ app.request.basePath ~ '/index.php/configuracao-execucao?id=' ~ item.id_t99003 }}">{{ item.c_chave_configuracao }}</a></td>
+                            <td><code>{{ item.c_caminho ?: '-' }}</code></td>
+                            <td>{{ item.c_nome_operacao ?: '-' }}</td>
+                            <td><span class="badge text-bg-{{ item.c_modo_execucao == 'async' ? 'warning' : 'primary' }}">{{ item.c_modo_execucao }}</span></td>
+                            <td>{{ item.log_ativo ? 'sim' : 'não' }}</td>
+                        </tr>
+                    {% else %}
+                        <tr><td colspan="5">Nenhuma regra cadastrada.</td></tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="card mt-4">
+            <div class="card-header"><h3 class="card-title">Guia rápido das tabelas</h3></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    {% for item in tableGuide %}
+                        <div class="col-12 col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <strong>{{ item.table }}</strong>
+                                <p class="mb-0 mt-2">{{ item.description }}</p>
+                            </div>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<aside class="audit-detail-drawer admin-form-drawer{% if selectedConfig %} is-open{% endif %}" data-admin-drawer>
+    <button class="audit-detail-backdrop" type="button" aria-label="Fechar regra de execução" data-close-admin-drawer></button>
+    <div class="audit-detail-shell">
+        <section class="panel audit-detail-frame">
+            <div class="panel-header audit-detail-header-row">
+                <div>
+                    <h2>{{ selectedConfig ? 'Editar regra' : 'Nova regra' }}</h2>
+                    <p>Defina se uma operação deve executar em modo síncrono ou assíncrono.</p>
+                </div>
+                <button class="button button-tertiary" type="button" data-close-admin-drawer>Fechar</button>
+            </div>
+            <div class="details audit-detail-panel">
+                <form method="post" action="{{ app.request.basePath ~ '/index.php/configuracao-execucao/salvar' }}" class="d-grid gap-3">
+                    <input type="hidden" name="id" value="{{ selectedConfig.id_t99003 ?? '' }}">
+                    <div>
+                        <label class="form-label">Chave de configuração</label>
+                        <input class="form-control" type="text" name="c_chave_configuracao" value="{{ selectedConfig.c_chave_configuracao ?? '' }}" placeholder="global ou chave técnica">
+                    </div>
+                    <div>
+                        <label class="form-label">Caminho</label>
+                        <input class="form-control" type="text" name="c_caminho" value="{{ selectedConfig.c_caminho ?? '' }}" placeholder="/nfe/ferramentas/openssl-info">
+                    </div>
+                    <div>
+                        <label class="form-label">Operação</label>
+                        <input class="form-control" type="text" name="c_nome_operacao" value="{{ selectedConfig.c_nome_operacao ?? '' }}" placeholder="api_nfe_status_servico">
+                    </div>
+                    <div>
+                        <label class="form-label">Modo</label>
+                        <select class="form-select" name="c_modo_execucao">
+                            {% set selectedMode = selectedConfig.c_modo_execucao ?? 'sync' %}
+                            <option value="sync"{% if selectedMode == 'sync' %} selected{% endif %}>sync</option>
+                            <option value="async"{% if selectedMode == 'async' %} selected{% endif %}>async</option>
+                        </select>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="log_ativo" id="log_ativo_execution"{% if selectedConfig is null or selectedConfig.log_ativo %} checked{% endif %}>
+                        <label class="form-check-label" for="log_ativo_execution">Regra ativa</label>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button class="btn btn-primary" type="submit">Salvar</button>
+                        <button class="btn btn-outline-secondary" type="button" data-close-admin-drawer>Cancelar</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</aside>
+{% endblock %}
+
+{% block page_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const drawer = document.querySelector('[data-admin-drawer]');
+    if (!drawer) {
+        return;
+    }
+
+    document.querySelectorAll('[data-open-admin-drawer]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            drawer.classList.add('is-open');
+        });
+    });
+
+    document.querySelectorAll('[data-close-admin-drawer]').forEach(function (button) {
+        button.addEventListener('click', function () {
+            drawer.classList.remove('is-open');
+            {% if selectedConfig %}
+                window.setTimeout(function () {
+                    window.location.href = '{{ app.request.basePath ~ '/index.php/configuracao-execucao' }}';
+                }, 180);
+            {% endif %}
+        });
+    });
+});
+</script>
+{% endblock %}

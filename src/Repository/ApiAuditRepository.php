@@ -2,18 +2,22 @@
 
 namespace App\Repository;
 
+use App\Support\ApiExtractionStatus;
 use App\Support\ApiRequestStatus;
 use Doctrine\DBAL\Connection;
 use Symfony\Component\Uid\Uuid;
 
 final class ApiAuditRepository
 {
+    private bool $extractionColumnsEnsured = false;
+
     public function __construct(private readonly Connection $auditConnection)
     {
     }
 
     public function createRequest(array $payload): string
     {
+        $this->ensureExtractionColumns();
         $requestId = Uuid::v4()->toRfc4122();
         $now = date('c');
 
@@ -38,6 +42,7 @@ final class ApiAuditRepository
             't_assinante_json' => $payload['t_assinante_json'] ?? null,
             'c_ip_origem' => $payload['c_ip_origem'] ?? null,
             'si_status_processamento' => ApiRequestStatus::RECEBIDA,
+            'si_status_extracao' => (int) ($payload['si_status_extracao'] ?? ApiExtractionStatus::NAO_SE_APLICA),
             'dt_hr_recebimento' => $now,
             'dt_hr_atu' => $now,
         ]);
@@ -47,6 +52,7 @@ final class ApiAuditRepository
 
     public function updateAuthenticationContext(string $requestId, ?string $tokenHash, ?array $assinante): void
     {
+        $this->ensureExtractionColumns();
         $this->auditConnection->update('t99001', [
             'c_token_hash' => $tokenHash,
             't_assinante_json' => $assinante === null ? null : json_encode($assinante, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
@@ -58,6 +64,7 @@ final class ApiAuditRepository
 
     public function updateOperationContext(string $requestId, ?string $routeName, ?string $operationName, ?string $mode): void
     {
+        $this->ensureExtractionColumns();
         $this->auditConnection->update('t99001', [
             'c_rota' => $routeName,
             'c_nome_operacao' => $operationName,
@@ -70,6 +77,7 @@ final class ApiAuditRepository
 
     public function markQueued(string $requestId, ?string $routeName, ?string $operationName): void
     {
+        $this->ensureExtractionColumns();
         $this->auditConnection->update('t99001', [
             'si_status_processamento' => ApiRequestStatus::ENFILEIRADA,
             'c_modo_execucao' => 'async',
@@ -83,6 +91,7 @@ final class ApiAuditRepository
 
     public function markUnauthorized(string $requestId): void
     {
+        $this->ensureExtractionColumns();
         $this->auditConnection->update('t99001', [
             'si_status_processamento' => ApiRequestStatus::NAO_AUTORIZADA,
             'dt_hr_atu' => date('c'),
@@ -101,6 +110,7 @@ final class ApiAuditRepository
         ?int $durationMs
     ): void
     {
+        $this->ensureExtractionColumns();
         $payload = [
             'si_status_http' => $statusCode,
             't_corpo_resposta' => $responseBody,
@@ -122,6 +132,7 @@ final class ApiAuditRepository
 
     public function claimNextQueuedRequest(): ?array
     {
+        $this->ensureExtractionColumns();
         $this->auditConnection->beginTransaction();
 
         try {
@@ -129,13 +140,21 @@ final class ApiAuditRepository
                 <<<'SQL'
                 SELECT *
                 FROM t99001
-                WHERE si_status_processamento = :si_status_processamento
-                ORDER BY id_t99001 ASC
+                WHERE si_status_processamento = :queued
+                   OR (
+                       si_status_processamento = :processing
+                       AND dt_hr_ini_processamento < now() - interval '15 minutes'
+                       AND dt_hr_fim_processamento IS NULL
+                   )
+                ORDER BY
+                    CASE WHEN si_status_processamento = :queued THEN 1 ELSE 2 END,
+                    id_t99001 ASC
                 FOR UPDATE SKIP LOCKED
                 LIMIT 1
                 SQL,
                 [
-                    'si_status_processamento' => ApiRequestStatus::ENFILEIRADA,
+                    'queued' => ApiRequestStatus::ENFILEIRADA,
+                    'processing' => ApiRequestStatus::PROCESSANDO,
                 ]
             );
 
@@ -162,8 +181,9 @@ final class ApiAuditRepository
         }
     }
 
-    public function createAttempt(int $requestInternalId): int
+    public function createAttempt(int $requestInternalId, ?string $workerId = null, ?int $workerPid = null): int
     {
+        $this->ensureExtractionColumns();
         $attemptNumber = (int) $this->auditConnection->fetchOne(
             'SELECT COUNT(*) FROM t99002 WHERE t99001_id = :t99001_id',
             ['t99001_id' => $requestInternalId]
@@ -178,6 +198,8 @@ final class ApiAuditRepository
             't99001_id' => $requestInternalId,
             'si_num_tentativa' => $attemptNumber,
             'si_status_processamento' => ApiRequestStatus::PROCESSANDO,
+            'c_worker_id' => $workerId,
+            'i_worker_pid' => $workerPid,
             'c_cod_programa' => $programSnapshot['c_cod_programa'] ?? null,
             'c_nome_programa' => $programSnapshot['c_nome_programa'] ?? null,
             'c_versao_programa' => $programSnapshot['c_versao_programa'] ?? null,
@@ -194,6 +216,7 @@ final class ApiAuditRepository
 
     public function finalizeAttempt(int $attemptId, int $statusCode, ?string $responseBody, ?string $errorMessage, int $statusProcessamento): void
     {
+        $this->ensureExtractionColumns();
         $this->auditConnection->update('t99002', [
             'si_status_http' => $statusCode,
             't_corpo_resposta' => $responseBody,
@@ -206,11 +229,47 @@ final class ApiAuditRepository
         ]);
     }
 
+    public function createEvent(int $requestInternalId, string $event, ?string $detail = null): void
+    {
+        $this->ensureExtractionColumns();
+        $this->auditConnection->insert('t99004', [
+            't99001_id' => $requestInternalId,
+            'c_evento' => $event,
+            't_detalhe' => $detail,
+            'dt_hr_evento' => date('c'),
+        ]);
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findRequestByPublicId(string $requestId): ?array
+    {
+        $this->ensureExtractionColumns();
+        $row = $this->auditConnection->fetchAssociative(
+            <<<'SQL'
+            SELECT
+                t.*,
+                CASE
+                    WHEN t.t_assinante_json IS NULL OR btrim(t.t_assinante_json) = '' THEN ''
+                    ELSE COALESCE((t.t_assinante_json::jsonb ->> 'c_identificador'), '')
+                END AS c_assinante_identificador
+            FROM t99001 t
+            WHERE u_c_request_id = :request_id
+            LIMIT 1
+            SQL,
+            ['request_id' => $requestId]
+        );
+
+        return $row === false ? null : $row;
+    }
+
     /**
      * @return array<string, mixed>|null
      */
     public function findRequestStatus(string $requestId, string $tokenHash): ?array
     {
+        $this->ensureExtractionColumns();
         $row = $this->auditConnection->fetchAssociative(
             <<<'SQL'
             SELECT
@@ -228,11 +287,15 @@ final class ApiAuditRepository
                 c_caminho_fisico_programa,
                 si_status_processamento,
                 si_status_http,
+                si_status_extracao,
                 t_corpo_resposta,
                 t_erro,
+                t_erro_extracao,
                 dt_hr_recebimento,
                 dt_hr_ini_processamento,
                 dt_hr_fim_processamento,
+                dt_hr_ini_extracao,
+                dt_hr_fim_extracao,
                 i_tempo_processamento_ms
             FROM t99001
             WHERE u_c_request_id = :u_c_request_id
@@ -245,6 +308,118 @@ final class ApiAuditRepository
             ]
         );
 
-        return $row === false ? null : $row;
+        if ($row === false) {
+            return null;
+        }
+
+        return $this->enrichRequestStatus($row);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     *
+     * @return array<string, mixed>
+     */
+    private function enrichRequestStatus(array $row): array
+    {
+        $decoded = $this->decodeJsonObject($row['t_corpo_resposta'] ?? null);
+        if ($decoded === null) {
+            return $row;
+        }
+
+        $row['resposta_json'] = $decoded;
+        $row['mensagem_legivel'] = is_string($decoded['mensagem'] ?? null) ? $decoded['mensagem'] : null;
+        $row['resultado_legivel'] = $this->extractReadableResult($decoded);
+
+        return $row;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function decodeJsonObject(mixed $value): ?array
+    {
+        if (!is_string($value) || trim($value) === '') {
+            return null;
+        }
+
+        $decoded = json_decode($value, true);
+
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private function extractReadableResult(array $decoded): mixed
+    {
+        $result = $decoded['resultado'] ?? null;
+        if (!is_array($result)) {
+            return $result;
+        }
+
+        if (array_key_exists('member', $result)) {
+            return $this->normalizeHydraMember($result['member']);
+        }
+
+        return $result;
+    }
+
+    private function normalizeHydraMember(mixed $member): mixed
+    {
+        if (!is_array($member)) {
+            return $member;
+        }
+
+        if (count($member) === 1 && is_string($member[0] ?? null)) {
+            return $this->parseDelimitedText((string) $member[0]);
+        }
+
+        return $member;
+    }
+
+    private function parseDelimitedText(string $value): array|string
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '' || !str_contains($trimmed, '|')) {
+            return $value;
+        }
+
+        $parts = array_map('trim', explode('|', $trimmed));
+        if (count($parts) === 7) {
+            return [
+                'serial' => $parts[0],
+                'razao_social' => $parts[1],
+                'cnpj' => $parts[2],
+                'validade' => $parts[3],
+                'autoridade_certificadora' => $parts[4],
+                'titular' => $parts[5],
+                'emissor' => $parts[6],
+                'linha_original' => $value,
+            ];
+        }
+
+        return [
+            'campos' => $parts,
+            'linha_original' => $value,
+        ];
+    }
+
+    private function ensureExtractionColumns(): void
+    {
+        if ($this->extractionColumnsEnsured || !$this->auditConnection->createSchemaManager()->tablesExist(['t99001'])) {
+            return;
+        }
+
+        $statements = [
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS si_status_extracao smallint NOT NULL DEFAULT 0",
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS dt_hr_ini_extracao timestamp",
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS dt_hr_fim_extracao timestamp",
+            "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS t_erro_extracao text",
+            "CREATE INDEX IF NOT EXISTS t99001_si_status_extracao_idx ON t99001 (si_status_extracao, dt_hr_recebimento)",
+        ];
+
+        foreach ($statements as $statement) {
+            $this->auditConnection->executeStatement($statement);
+        }
+
+        $this->extractionColumnsEnsured = true;
     }
 }

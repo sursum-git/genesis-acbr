@@ -14,6 +14,8 @@ final class ApiAuditManager
         private readonly ApiAuditRepository $repository,
         private readonly ApiTokenHasher $tokenHasher,
         private readonly ApiProgramVersionResolver $programVersionResolver,
+        private readonly ApiWebhookScheduler $webhookScheduler,
+        private readonly ApiExtractionPlanResolver $extractionPlanResolver,
     ) {
     }
 
@@ -40,6 +42,7 @@ final class ApiAuditManager
             'c_modo_execucao' => null,
             'c_token_hash' => $tokenHash,
             'c_ip_origem' => $request->getClientIp(),
+            'si_status_extracao' => $this->extractionPlanResolver->resolveInitialStatus($request->getPathInfo() !== '' ? $request->getPathInfo() : '/'),
         ]);
 
         $request->attributes->set(ApiRequestAttributes::REQUEST_ID, $requestId);
@@ -89,6 +92,14 @@ final class ApiAuditManager
             is_string($request->attributes->get('_route')) ? $request->attributes->get('_route') : null,
             $operationName !== '' ? $operationName : null
         );
+        $requestRow = $this->repository->findRequestByPublicId($requestId);
+        if ($requestRow !== null) {
+            $this->repository->createEvent(
+                (int) $requestRow['id_t99001'],
+                'request.queued',
+                sprintf('Requisicao aceita para processamento assíncrono (%s).', $operationName)
+            );
+        }
     }
 
     public function finalize(Request $request, Response $response): void
@@ -108,6 +119,7 @@ final class ApiAuditManager
             $statusProcessamento,
             $this->resolveDurationMs($request)
         );
+        $this->webhookScheduler->scheduleForRequestId($requestId);
     }
 
     public function updateOperationContext(Request $request, ?string $operationName, ?string $mode): void

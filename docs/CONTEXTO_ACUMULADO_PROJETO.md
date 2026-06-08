@@ -216,8 +216,9 @@ Foi introduzida uma segunda esteira apos a execucao principal da API, focada em 
 Novos componentes:
 
 - campos de extracao em `t99001`
-- `t99007` para dados extraidos de NFe
-- `t99008` para dados extraidos de NSU
+- `t99007` para a execucao da consulta DF-e e o envelope retornado
+- `t99008` para os documentos `docZip` retornados
+- `t99009` a `t99018` para a normalizacao relacional de NFe, eventos, itens, totais e inutilizacao
 - worker dedicado `app:api-extraction-worker`
 
 Essa camada existe para separar:

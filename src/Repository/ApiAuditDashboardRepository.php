@@ -277,16 +277,29 @@ final class ApiAuditDashboardRepository
     public function findExtractedNfe(int $requestInternalId): array
     {
         $this->ensureExtractionColumns();
+        $bundle = $this->findExtractionBundle($requestInternalId);
+        $rows = [];
 
-        if (!$this->auditConnection->createSchemaManager()->tablesExist(['t99007'])) {
-            return [];
+        foreach ($bundle['documents'] as $document) {
+            $schemaFamily = (string) ($document['c_schema_family'] ?? '');
+            if (!in_array($schemaFamily, ['resNFe', 'procNFe'], true)) {
+                continue;
+            }
+
+            $documentId = (string) $document['id_t99008'];
+            $rows[] = [
+                'documento' => $document,
+                'resumo' => $bundle['nfe_resumo'][$documentId] ?? null,
+                'proc' => $bundle['nfe_proc'][$documentId] ?? null,
+                'emitente' => $bundle['nfe_emitente'][$documentId] ?? null,
+                'destinatario' => $bundle['nfe_destinatario'][$documentId] ?? null,
+                'total' => $bundle['nfe_totais'][$documentId] ?? null,
+                'itens' => array_values(array_filter(
+                    $bundle['nfe_itens'],
+                    static fn (array $item): bool => (int) ($item['t99008_id'] ?? 0) === (int) $documentId
+                )),
+            ];
         }
-
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $this->auditConnection->fetchAllAssociative(
-            'SELECT * FROM t99007 WHERE t99001_id = :id ORDER BY id_t99007 DESC',
-            ['id' => $requestInternalId]
-        );
 
         return $rows;
     }
@@ -298,18 +311,7 @@ final class ApiAuditDashboardRepository
     public function findExtractedNsu(int $requestInternalId): array
     {
         $this->ensureExtractionColumns();
-
-        if (!$this->auditConnection->createSchemaManager()->tablesExist(['t99008'])) {
-            return [];
-        }
-
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $this->auditConnection->fetchAllAssociative(
-            'SELECT * FROM t99008 WHERE t99001_id = :id ORDER BY id_t99008 DESC',
-            ['id' => $requestInternalId]
-        );
-
-        return $rows;
+        return $this->findExtractionBundle($requestInternalId);
     }
 
     /**
@@ -621,5 +623,111 @@ final class ApiAuditDashboardRepository
         }
 
         $this->extractionColumnsEnsured = true;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function findExtractionBundle(int $requestInternalId): array
+    {
+        if (
+            !$this->auditConnection->createSchemaManager()->tablesExist(['t99007'])
+            || !$this->auditConnection->createSchemaManager()->tablesExist(['t99008'])
+        ) {
+            return [
+                'executions' => [],
+                'documents' => [],
+                'nfe_resumo' => [],
+                'nfe_proc' => [],
+                'nfe_emitente' => [],
+                'nfe_destinatario' => [],
+                'nfe_itens' => [],
+                'nfe_totais' => [],
+                'evento_resumo' => [],
+                'evento_proc' => [],
+                'evento_detalhe' => [],
+                'inutilizacao_proc' => [],
+            ];
+        }
+
+        /** @var list<array<string, mixed>> $executions */
+        $executions = $this->auditConnection->fetchAllAssociative(
+            'SELECT * FROM t99007 WHERE t99001_id = :id ORDER BY id_t99007 DESC',
+            ['id' => $requestInternalId]
+        );
+
+        /** @var list<array<string, mixed>> $documents */
+        $documents = $this->auditConnection->fetchAllAssociative(
+            <<<'SQL'
+            SELECT d.*
+            FROM t99008 d
+            INNER JOIN t99007 e ON e.id_t99007 = d.t99007_id
+            WHERE e.t99001_id = :id
+            ORDER BY d.id_t99008 DESC
+            SQL,
+            ['id' => $requestInternalId]
+        );
+
+        $documentIds = array_values(array_map(static fn (array $row): int => (int) $row['id_t99008'], $documents));
+
+        return [
+            'executions' => $executions,
+            'documents' => $documents,
+            'nfe_resumo' => $this->fetchExtractionTableMap('t99009', $documentIds),
+            'nfe_proc' => $this->fetchExtractionTableMap('t99010', $documentIds),
+            'nfe_emitente' => $this->fetchExtractionTableMap('t99011', $documentIds),
+            'nfe_destinatario' => $this->fetchExtractionTableMap('t99012', $documentIds),
+            'nfe_itens' => $this->fetchExtractionTableRows('t99013', $documentIds),
+            'nfe_totais' => $this->fetchExtractionTableMap('t99014', $documentIds),
+            'evento_resumo' => $this->fetchExtractionTableMap('t99015', $documentIds),
+            'evento_proc' => $this->fetchExtractionTableMap('t99016', $documentIds),
+            'evento_detalhe' => $this->fetchExtractionTableMap('t99017', $documentIds),
+            'inutilizacao_proc' => $this->fetchExtractionTableMap('t99018', $documentIds),
+        ];
+    }
+
+    /**
+     * @param list<int> $documentIds
+     * @return array<string, array<string, mixed>>
+     */
+    private function fetchExtractionTableMap(string $table, array $documentIds): array
+    {
+        if ($documentIds === [] || !$this->auditConnection->createSchemaManager()->tablesExist([$table])) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            sprintf('SELECT * FROM %s WHERE t99008_id IN (?) ORDER BY t99008_id ASC', $table),
+            [$documentIds],
+            [Connection::PARAM_INT_ARRAY]
+        );
+
+        $indexed = [];
+        foreach ($rows as $row) {
+            $indexed[(string) $row['t99008_id']] = $row;
+        }
+
+        return $indexed;
+    }
+
+    /**
+     * @param list<int> $documentIds
+     * @return list<array<string, mixed>>
+     */
+    private function fetchExtractionTableRows(string $table, array $documentIds): array
+    {
+        if ($documentIds === [] || !$this->auditConnection->createSchemaManager()->tablesExist([$table])) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            sprintf('SELECT * FROM %s WHERE t99008_id IN (?) ORDER BY t99008_id ASC, id_t99013 ASC', $table),
+            [$documentIds],
+            [Connection::PARAM_INT_ARRAY]
+        );
+
+        return $rows;
     }
 }

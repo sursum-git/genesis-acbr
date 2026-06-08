@@ -384,10 +384,10 @@
                                 </details>
 
                                 <details class="fold-card" open data-detail-search-item data-fold-item data-fold-key="nfe_extraidas">
-                                    <summary>NFe extraídas ({{ extractedNfe|length }})</summary>
+                                    <summary>Documentos NFe normalizados ({{ extractedNfe|length }})</summary>
                                     <div class="fold-body">
                                         {% if extractedNfe is empty %}
-                                            <p>Nenhuma NFe extraída para esta requisição.</p>
+                                            <p>Nenhum documento NFe normalizado para esta requisição.</p>
                                         {% else %}
                                             <pre class="code-block"><code>{{ extractedNfe|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES')) }}</code></pre>
                                         {% endif %}
@@ -395,10 +395,10 @@
                                 </details>
 
                                 <details class="fold-card" open data-detail-search-item data-fold-item data-fold-key="nsu_extraidos">
-                                    <summary>Itens NSU extraídos ({{ extractedNsu|length }})</summary>
+                                    <summary>Execução e documentos NSU ({{ extractedNsu.documents|length }})</summary>
                                     <div class="fold-body">
-                                        {% if extractedNsu is empty %}
-                                            <p>Nenhum item NSU extraído para esta requisição.</p>
+                                        {% if extractedNsu.executions is empty and extractedNsu.documents is empty %}
+                                            <p>Nenhuma execução de NSU persistida para esta requisição.</p>
                                         {% else %}
                                             <pre class="code-block"><code>{{ extractedNsu|json_encode(constant('JSON_PRETTY_PRINT') b-or constant('JSON_UNESCAPED_UNICODE') b-or constant('JSON_UNESCAPED_SLASHES')) }}</code></pre>
                                         {% endif %}

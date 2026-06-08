@@ -11,7 +11,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 
-#[AsCommand(name: 'app:api-extraction-worker', description: 'Processa a fila de extração de NFe e NSU.')]
+#[AsCommand(name: 'app:api-extraction-worker', description: 'Processa a fila de extração de NFe, NSU e documentos da distribuição DF-e.')]
 final class ApiExtractionWorkerCommand extends Command
 {
     public function __construct(
@@ -67,7 +67,7 @@ final class ApiExtractionWorkerCommand extends Command
                     $this->auditRepository->createEvent(
                         $requestInternalId,
                         'extraction.finished',
-                        sprintf('Extração concluída com %d NFe(s) e %d item(ns) NSU.', $counts['nfe_count'], $counts['nsu_count'])
+                        sprintf('Extração concluída com %d documento(s) NFe normalizado(s) e %d documento(s) NSU processado(s).', $counts['nfe_count'], $counts['nsu_count'])
                     );
                 } catch (\Throwable $throwable) {
                     $this->extractionRepository->markFailed($requestInternalId, $throwable->getMessage());

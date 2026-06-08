@@ -51,8 +51,9 @@ Tabelas mais importantes:
 - `t99004`: eventos operacionais
 - `t99005`: capacidade de workers
 - `t99006`: fila/tentativas de entrega de webhook
-- `t99007`: dados extraidos de NFe
-- `t99008`: dados extraidos de NSU/distribuicao
+- `t99007`: execucao de consulta DF-e e envelope `retDistDFeInt`
+- `t99008`: documentos `docZip` retornados, com schema exato e XML bruto
+- `t99009` a `t99018`: normalizacao de `resNFe`, `procNFe`, `resEvento`, `procEventoNFe` e `procInutNFe`
 
 Campos recentes adicionados em `t99001`:
 
@@ -110,7 +111,7 @@ Funcao:
 
 - processa apenas requisicoes concluidas e elegiveis para extracao
 - le `t99001`
-- salva dados em `t99007` e `t99008`
+- salva a execucao em `t99007`, os documentos brutos em `t99008` e a normalizacao nas tabelas `t99009` a `t99018`
 
 Observacao critica:
 
@@ -163,13 +164,10 @@ Observacao critica:
 
 ### Estado funcional atual
 
-- a extracao ja esta salvando `NFe` em `t99007`
-- a extracao de resposta textual `[Consulta]` foi implementada
-- campos salvos nesse caso:
-  - `c_chave_acesso`
-  - `c_stat`
-  - `x_motivo`
-  - `dt_autorizacao`
+- a extracao de distribuicao DF-e persiste primeiro o envelope da consulta e cada `docZip`
+- o nome exato de `docZip/@schema` passou a ser preservado no banco
+- a normalizacao atual cobre `resNFe`, `procNFe`, `resEvento`, `procEventoNFe` e `procInutNFe`
+- a extracao de resposta textual `[Consulta]` continua existindo como fallback de consulta NFe fora da distribuicao
 
 Limitacao atual:
 

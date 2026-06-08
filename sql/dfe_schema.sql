@@ -168,61 +168,279 @@ CREATE UNIQUE INDEX IF NOT EXISTS t99006_binding_request_uidx
 CREATE INDEX IF NOT EXISTS t99006_status_idx
     ON public.t99006 (c_status_entrega, dt_hr_proxima_tentativa, dt_hr_atu);
 
+DROP TABLE IF EXISTS public.t99018 CASCADE;
+DROP TABLE IF EXISTS public.t99017 CASCADE;
+DROP TABLE IF EXISTS public.t99016 CASCADE;
+DROP TABLE IF EXISTS public.t99015 CASCADE;
+DROP TABLE IF EXISTS public.t99014 CASCADE;
+DROP TABLE IF EXISTS public.t99013 CASCADE;
+DROP TABLE IF EXISTS public.t99012 CASCADE;
+DROP TABLE IF EXISTS public.t99011 CASCADE;
+DROP TABLE IF EXISTS public.t99010 CASCADE;
+DROP TABLE IF EXISTS public.t99009 CASCADE;
+DROP TABLE IF EXISTS public.t99008 CASCADE;
+DROP TABLE IF EXISTS public.t99007 CASCADE;
+
 CREATE TABLE IF NOT EXISTS public.t99007 (
     id_t99007 bigserial PRIMARY KEY,
     t99001_id bigint NOT NULL REFERENCES public.t99001 (id_t99001) ON DELETE CASCADE,
     u_c_request_id varchar(36) NOT NULL,
     c_caminho_origem varchar(255),
-    c_tipo_documento varchar(60),
-    c_chave_acesso varchar(44),
-    c_nsu_relacionado varchar(20),
-    c_numero varchar(20),
-    c_serie varchar(10),
-    c_modelo varchar(10),
-    c_emitente_documento varchar(20),
-    c_destinatario_documento varchar(20),
-    c_interessado_documento varchar(20),
-    c_stat varchar(10),
-    x_motivo varchar(500),
-    c_situacao varchar(120),
-    dt_emissao timestamp,
-    dt_autorizacao timestamp,
-    t_payload_bruto text,
-    dt_hr_extracao timestamp NOT NULL DEFAULT now(),
-    dt_hr_atu timestamp NOT NULL DEFAULT now()
+    c_tipo_consulta varchar(40),
+    c_documento_consulta varchar(20),
+    c_nsu_entrada char(15),
+    tp_amb smallint,
+    c_ver_aplic varchar(120),
+    c_stat integer,
+    x_motivo varchar(255),
+    dh_resp timestamptz,
+    c_ult_nsu char(15),
+    c_max_nsu char(15),
+    q_doc_zip integer NOT NULL DEFAULT 0,
+    t_xml_envelope text,
+    dt_hr_criacao timestamptz NOT NULL DEFAULT now(),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE INDEX IF NOT EXISTS t99007_t99001_id_idx
-    ON public.t99007 (t99001_id, dt_hr_extracao DESC);
-
-CREATE INDEX IF NOT EXISTS t99007_chave_idx
-    ON public.t99007 (c_chave_acesso);
+    ON public.t99007 (t99001_id, id_t99007 DESC);
 
 CREATE TABLE IF NOT EXISTS public.t99008 (
     id_t99008 bigserial PRIMARY KEY,
-    t99001_id bigint NOT NULL REFERENCES public.t99001 (id_t99001) ON DELETE CASCADE,
+    t99007_id bigint NOT NULL REFERENCES public.t99007 (id_t99007) ON DELETE CASCADE,
     u_c_request_id varchar(36) NOT NULL,
     c_caminho_origem varchar(255),
-    c_tipo_item varchar(60),
-    c_nsu_consultado varchar(20),
-    c_nsu varchar(20),
-    c_ult_nsu varchar(20),
-    c_max_nsu varchar(20),
-    c_schema varchar(120),
-    c_chave_acesso varchar(44),
-    c_stat varchar(10),
-    x_motivo varchar(500),
-    c_situacao varchar(120),
-    t_payload_bruto text,
-    dt_hr_extracao timestamp NOT NULL DEFAULT now(),
-    dt_hr_atu timestamp NOT NULL DEFAULT now()
+    c_nsu char(15),
+    c_schema_name varchar(100) NOT NULL,
+    c_schema_family varchar(30),
+    c_ch_nfe char(44),
+    c_tp_evento varchar(20),
+    i_n_seq_evento integer,
+    c_n_prot varchar(20),
+    t_xml_gzip_base64 text,
+    t_xml_descompactado text,
+    c_hash_xml varchar(64),
+    tp_amb smallint,
+    c_emit_cnpj_cpf varchar(14),
+    c_dest_cnpj_cpf varchar(14),
+    dt_hr_processado_em timestamptz NOT NULL DEFAULT now(),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS t99008_t99001_id_idx
-    ON public.t99008 (t99001_id, dt_hr_extracao DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS t99008_schema_nsu_hash_uidx
+    ON public.t99008 (c_schema_name, c_nsu, c_hash_xml);
 
-CREATE INDEX IF NOT EXISTS t99008_nsu_idx
-    ON public.t99008 (c_nsu, c_ult_nsu, c_max_nsu);
+CREATE INDEX IF NOT EXISTS t99008_t99007_id_idx
+    ON public.t99008 (t99007_id, id_t99008 DESC);
+
+CREATE INDEX IF NOT EXISTS t99008_chave_idx
+    ON public.t99008 (c_ch_nfe);
+
+CREATE TABLE IF NOT EXISTS public.t99009 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    c_emit_cnpj varchar(14),
+    c_emit_cpf varchar(11),
+    x_emit_nome varchar(255),
+    c_emit_ie varchar(20),
+    dh_emi timestamptz,
+    tp_nf smallint,
+    v_nf numeric(18,2),
+    c_dig_val varchar(128),
+    dh_recbto timestamptz,
+    c_sit_nfe varchar(20),
+    c_versao varchar(20),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99010 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    c_versao varchar(20),
+    c_id_nfe varchar(80),
+    c_uf varchar(4),
+    c_nnf varchar(20),
+    c_serie varchar(10),
+    c_mod varchar(10),
+    dh_emi timestamptz,
+    dh_saida_entrada timestamptz,
+    tp_nf smallint,
+    c_id_dest varchar(4),
+    c_mun_fg varchar(10),
+    c_tp_emis varchar(10),
+    tp_amb smallint,
+    c_fin_nfe varchar(10),
+    c_ind_final varchar(10),
+    c_ind_pres varchar(10),
+    c_proc_emi varchar(10),
+    c_ver_proc varchar(60),
+    c_n_prot varchar(20),
+    c_ch_nfe char(44),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99011 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    c_cnpj varchar(14),
+    c_cpf varchar(11),
+    x_nome varchar(255),
+    x_fant varchar(255),
+    c_ie varchar(20),
+    c_iest varchar(20),
+    c_im varchar(20),
+    c_cnae varchar(20),
+    c_crt varchar(10),
+    x_lgr varchar(255),
+    c_nro varchar(20),
+    x_bairro varchar(255),
+    c_mun varchar(10),
+    x_mun varchar(255),
+    c_uf varchar(4),
+    c_cep varchar(12),
+    c_pais varchar(10),
+    x_pais varchar(120),
+    c_fone varchar(20),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99012 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    c_cnpj varchar(14),
+    c_cpf varchar(11),
+    c_id_estrangeiro varchar(40),
+    x_nome varchar(255),
+    c_ind_ie_dest varchar(10),
+    c_ie varchar(20),
+    c_isuf varchar(20),
+    c_im varchar(20),
+    c_email varchar(255),
+    x_lgr varchar(255),
+    c_nro varchar(20),
+    x_bairro varchar(255),
+    c_mun varchar(10),
+    x_mun varchar(255),
+    c_uf varchar(4),
+    c_cep varchar(12),
+    c_pais varchar(10),
+    x_pais varchar(120),
+    c_fone varchar(20),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99013 (
+    id_t99013 bigserial PRIMARY KEY,
+    t99008_id bigint NOT NULL REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    i_n_item integer,
+    c_prod varchar(80),
+    c_ean varchar(30),
+    x_prod varchar(255),
+    c_ncm varchar(20),
+    c_cest varchar(20),
+    c_cfop varchar(10),
+    c_ucom varchar(20),
+    q_com numeric(18,4),
+    v_un_com numeric(18,6),
+    v_prod numeric(18,2),
+    c_ean_trib varchar(30),
+    c_utrib varchar(20),
+    q_trib numeric(18,4),
+    v_un_trib numeric(18,6),
+    v_frete numeric(18,2),
+    v_seg numeric(18,2),
+    v_desc numeric(18,2),
+    i_ind_tot smallint,
+    t_inf_ad_prod text,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99013_t99008_id_idx
+    ON public.t99013 (t99008_id, i_n_item);
+
+CREATE TABLE IF NOT EXISTS public.t99014 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    v_bc numeric(18,2),
+    v_icms numeric(18,2),
+    v_icms_deson numeric(18,2),
+    v_fcp numeric(18,2),
+    v_bcst numeric(18,2),
+    v_st numeric(18,2),
+    v_fcpst numeric(18,2),
+    v_prod numeric(18,2),
+    v_frete numeric(18,2),
+    v_seg numeric(18,2),
+    v_desc numeric(18,2),
+    v_ii numeric(18,2),
+    v_ipi numeric(18,2),
+    v_ipi_devol numeric(18,2),
+    v_pis numeric(18,2),
+    v_cofins numeric(18,2),
+    v_outro numeric(18,2),
+    v_nf numeric(18,2),
+    v_tot_trib numeric(18,2),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99015 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    c_orgao varchar(10),
+    c_cnpj varchar(14),
+    c_cpf varchar(11),
+    c_ch_nfe char(44),
+    dh_evento timestamptz,
+    c_tp_evento varchar(20),
+    i_n_seq_evento integer,
+    x_evento varchar(255),
+    dh_recbto timestamptz,
+    c_n_prot varchar(20),
+    c_versao varchar(20),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99016 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    c_versao varchar(20),
+    c_id_evento varchar(80),
+    c_orgao varchar(10),
+    tp_amb smallint,
+    c_cnpj varchar(14),
+    c_cpf varchar(11),
+    c_ch_nfe char(44),
+    dh_evento timestamptz,
+    c_tp_evento varchar(20),
+    i_n_seq_evento integer,
+    c_ver_evento varchar(20),
+    x_desc_evento varchar(255),
+    c_stat integer,
+    x_motivo varchar(255),
+    c_n_prot varchar(20),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99017 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    t_xml_det_evento text,
+    t_json_det_evento text,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.t99018 (
+    t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
+    c_versao varchar(20),
+    tp_amb smallint,
+    x_serv varchar(60),
+    c_uf varchar(4),
+    c_ano varchar(4),
+    c_cnpj varchar(14),
+    c_mod varchar(10),
+    c_serie varchar(10),
+    c_nnf_ini varchar(20),
+    c_nnf_fin varchar(20),
+    x_just text,
+    c_ver_aplic varchar(120),
+    c_stat integer,
+    x_motivo varchar(255),
+    dh_recbto timestamptz,
+    c_n_prot varchar(20),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
 
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_cod_programa varchar(80);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_nome_programa varchar(255);

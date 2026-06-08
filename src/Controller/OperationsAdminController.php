@@ -43,8 +43,9 @@ final class OperationsAdminController extends AbstractController
                 ['table' => 't99002', 'description' => 'Tentativas do worker para requisições assíncronas.'],
                 ['table' => 't99003', 'description' => 'Regras de execução síncrona/assíncrona por operação, caminho ou chave global.'],
                 ['table' => 't99004', 'description' => 'Eventos operacionais ligados à requisição, incluindo fila, worker e webhook.'],
-                ['table' => 't99007', 'description' => 'Histórico dos dados extraídos de NFe retornados pelas requisições elegíveis.'],
-                ['table' => 't99008', 'description' => 'Histórico dos dados extraídos de NSU/distribuição e dos itens retornados.'],
+                ['table' => 't99007', 'description' => 'Execução da consulta DF-e: envelope, NSU de entrada, faixa de NSU e status técnico do retorno.'],
+                ['table' => 't99008', 'description' => 'Documentos `docZip` retornados pela distribuição, com schema exato, XML bruto e hash do conteúdo.'],
+                ['table' => 't99009-t99018', 'description' => 'Normalização dos documentos distribuídos: resumo e XML processado de NFe, eventos, itens, totais e inutilização.'],
             ],
         ]);
     }

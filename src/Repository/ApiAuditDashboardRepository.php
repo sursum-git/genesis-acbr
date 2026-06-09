@@ -281,7 +281,7 @@ final class ApiAuditDashboardRepository
         $rows = [];
 
         foreach ($bundle['documents'] as $document) {
-            $schemaFamily = (string) ($document['c_schema_family'] ?? '');
+            $schemaFamily = (string) ($document['schema_family'] ?? '');
             if (!in_array($schemaFamily, ['resNFe', 'procNFe'], true)) {
                 continue;
             }

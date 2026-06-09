@@ -30,7 +30,7 @@ final class ApiExtractionProcessor
         $baseContext = [
             't99001_id' => (int) ($requestRow['id_t99001'] ?? 0),
             'u_c_request_id' => (string) ($requestRow['u_c_request_id'] ?? ''),
-            'c_caminho_origem' => $path,
+            'caminho_origem' => $path,
         ];
 
         $responseBody = (string) ($requestRow['t_corpo_resposta'] ?? '');
@@ -83,27 +83,27 @@ final class ApiExtractionProcessor
             $fallbackKey = $this->extractFallbackAccessKey($queryParams, $requestBody, $responseBody);
             if ($fallbackKey !== null) {
                 $nfeRows[] = [
-                    'c_ch_nfe' => $fallbackKey,
-                    'c_schema_name' => 'consulta_texto_fallback',
-                    'c_schema_family' => 'resNFe',
-                    'c_hash_xml' => hash('sha256', $fallbackKey),
-                    't_xml_descompactado' => $responseBody !== '' ? $responseBody : $requestBody,
-                    't_xml_gzip_base64' => null,
-                    'c_emit_cnpj_cpf' => null,
-                    'c_dest_cnpj_cpf' => null,
+                    'ch_nfe' => $fallbackKey,
+                    'schema_name' => 'consulta_texto_fallback',
+                    'schema_family' => 'resNFe',
+                    'hash_xml' => hash('sha256', $fallbackKey),
+                    'xml_descompactado' => $responseBody !== '' ? $responseBody : $requestBody,
+                    'xml_gzip_base64' => null,
+                    'emit_cnpj_cpf' => null,
+                    'dest_cnpj_cpf' => null,
                     'tp_amb' => null,
                     'normalized' => [
                         'type' => 'resNFe',
                         'resumo' => [
-                            'c_versao' => null,
-                            'c_emit_cnpj' => null,
-                            'c_emit_cpf' => null,
-                            'x_emit_nome' => null,
-                            'c_emit_ie' => null,
+                            'versao' => null,
+                            'cnpj' => null,
+                            'cpf' => null,
+                            'x_nome' => null,
+                            'ie' => null,
                             'dh_emi' => null,
                             'tp_nf' => null,
                             'v_nf' => null,
-                            'c_dig_val' => null,
+                            'dig_val' => null,
                             'dh_recbto' => null,
                             'c_sit_nfe' => null,
                         ],
@@ -112,13 +112,13 @@ final class ApiExtractionProcessor
             }
         }
 
-        $nfeRows = $this->deduplicateRows($nfeRows, ['c_ch_nfe', 'c_schema_name', 'c_hash_xml']);
+        $nfeRows = $this->deduplicateRows($nfeRows, ['ch_nfe', 'schema_name', 'hash_xml']);
         $executionId = $this->extractionRepository->storeDistributionExecution($baseContext + [
-            'c_tipo_consulta' => 'consulta_nfe',
-            'c_documento_consulta' => $queryParams['eChaveOuNFe'] ?? $queryParams['AechNFe'] ?? null,
-            'c_nsu_entrada' => $queryParams['AeNSU'] ?? $queryParams['AeultNSU'] ?? null,
+            'tipo_consulta' => 'consulta_nfe',
+            'documento_consulta' => $queryParams['eChaveOuNFe'] ?? $queryParams['AechNFe'] ?? null,
+            'nsu_entrada' => $queryParams['AeNSU'] ?? $queryParams['AeultNSU'] ?? null,
             'q_doc_zip' => count($nfeRows),
-            't_xml_envelope' => $responseBody !== '' ? $responseBody : $requestBody,
+            'xml_envelope' => $responseBody !== '' ? $responseBody : $requestBody,
         ]);
 
         foreach ($nfeRows as $row) {
@@ -169,18 +169,18 @@ final class ApiExtractionProcessor
         $docs = $docZipNodes === false ? [] : iterator_to_array($docZipNodes);
 
         $executionId = $this->extractionRepository->storeDistributionExecution($baseContext + [
-            'c_tipo_consulta' => $this->resolveQueryType($baseContext['c_caminho_origem'] ?? ''),
-            'c_documento_consulta' => $queryParams['AeCNPJCPF'] ?? $queryParams['AechNFe'] ?? null,
-            'c_nsu_entrada' => $queryParams['AeNSU'] ?? $queryParams['AeultNSU'] ?? null,
+            'tipo_consulta' => $this->resolveQueryType($baseContext['caminho_origem'] ?? ''),
+            'documento_consulta' => $queryParams['AeCNPJCPF'] ?? $queryParams['AechNFe'] ?? null,
+            'nsu_entrada' => $queryParams['AeNSU'] ?? $queryParams['AeultNSU'] ?? null,
             'tp_amb' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="tpAmb"])[1])'),
-            'c_ver_aplic' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="verAplic"])[1])'),
+            'ver_aplic' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="verAplic"])[1])'),
             'c_stat' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="cStat"])[1])'),
             'x_motivo' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="xMotivo"])[1])'),
             'dh_resp' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="dhResp"])[1])'),
-            'c_ult_nsu' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="ultNSU"])[1])'),
-            'c_max_nsu' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="maxNSU"])[1])'),
+            'ult_nsu' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="ultNSU"])[1])'),
+            'max_nsu' => $this->xpathValue($xpath, 'string((/*[local-name()="retDistDFeInt"]/*[local-name()="maxNSU"])[1])'),
             'q_doc_zip' => count($docs),
-            't_xml_envelope' => $rawXml,
+            'xml_envelope' => $rawXml,
         ]);
 
         $nfeCount = 0;
@@ -215,7 +215,7 @@ final class ApiExtractionProcessor
             $this->persistNormalizedDocument($documentId, $documentRow['normalized'] ?? null);
 
             $nsuCount++;
-            if (($documentRow['c_schema_family'] ?? null) !== 'procEventoNFe') {
+            if (($documentRow['schema_family'] ?? null) !== 'procEventoNFe') {
                 $nfeCount++;
             }
         }
@@ -328,33 +328,33 @@ final class ApiExtractionProcessor
         }
 
         return [
-            'c_nsu' => null,
-            'c_schema_name' => 'consulta_texto',
-            'c_schema_family' => 'resNFe',
-            'c_ch_nfe' => $accessKey,
-            'c_tp_evento' => null,
-            'i_n_seq_evento' => null,
-            'c_n_prot' => $this->nullableString($fields['NProt'] ?? null),
-            't_xml_gzip_base64' => null,
-            't_xml_descompactado' => $candidate,
-            'c_hash_xml' => hash('sha256', $candidate),
+            'nsu' => null,
+            'schema_name' => 'consulta_texto',
+            'schema_family' => 'resNFe',
+            'ch_nfe' => $accessKey,
+            'tp_evento' => null,
+            'n_seq_evento' => null,
+            'n_prot' => $this->nullableString($fields['NProt'] ?? null),
+            'xml_gzip_base64' => null,
+            'xml_descompactado' => $candidate,
+            'hash_xml' => hash('sha256', $candidate),
             'tp_amb' => null,
-            'c_emit_cnpj_cpf' => null,
-            'c_dest_cnpj_cpf' => null,
+            'emit_cnpj_cpf' => null,
+            'dest_cnpj_cpf' => null,
             'normalized' => [
                 'type' => 'resNFe',
                 'resumo' => [
-                    'c_emit_cnpj' => null,
-                    'c_emit_cpf' => null,
-                    'x_emit_nome' => null,
-                    'c_emit_ie' => null,
+                    'cnpj' => null,
+                    'cpf' => null,
+                    'x_nome' => null,
+                    'ie' => null,
                     'dh_emi' => null,
                     'tp_nf' => null,
                     'v_nf' => null,
-                    'c_dig_val' => null,
+                    'dig_val' => null,
                     'dh_recbto' => $this->normalizeBrazilianDateTime($fields['DhRecbto'] ?? null),
                     'c_sit_nfe' => $this->nullableString($fields['CStat'] ?? null),
-                    'c_versao' => null,
+                    'versao' => null,
                 ],
             ],
         ];
@@ -375,22 +375,22 @@ final class ApiExtractionProcessor
         $schemaFamily = $this->resolveSchemaFamily($schemaName, $rootName);
 
         $payload = [
-            'c_nsu' => $nsu,
-            'c_schema_name' => $schemaName,
-            'c_schema_family' => $schemaFamily,
-            'c_ch_nfe' => $this->firstNonEmpty(
+            'nsu' => $nsu,
+            'schema_name' => $schemaName,
+            'schema_family' => $schemaFamily,
+            'ch_nfe' => $this->firstNonEmpty(
                 $this->xpathValue($xpath, 'string((//*[local-name()="chNFe"])[1])'),
                 $this->extractAccessKeyFromString($decodedXml)
             ),
-            'c_tp_evento' => $this->xpathValue($xpath, 'string((//*[local-name()="tpEvento"])[1])'),
-            'i_n_seq_evento' => $this->xpathValue($xpath, 'string((//*[local-name()="nSeqEvento"])[1])'),
-            'c_n_prot' => $this->xpathValue($xpath, 'string((//*[local-name()="nProt"])[1])'),
-            't_xml_gzip_base64' => $compressedPayload,
-            't_xml_descompactado' => $decodedXml,
-            'c_hash_xml' => hash('sha256', $decodedXml),
+            'tp_evento' => $this->xpathValue($xpath, 'string((//*[local-name()="tpEvento"])[1])'),
+            'n_seq_evento' => $this->xpathValue($xpath, 'string((//*[local-name()="nSeqEvento"])[1])'),
+            'n_prot' => $this->xpathValue($xpath, 'string((//*[local-name()="nProt"])[1])'),
+            'xml_gzip_base64' => $compressedPayload,
+            'xml_descompactado' => $decodedXml,
+            'hash_xml' => hash('sha256', $decodedXml),
             'tp_amb' => $this->xpathValue($xpath, 'string((//*[local-name()="tpAmb"])[1])'),
-            'c_emit_cnpj_cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNPJ" or local-name()="CPF"])[1] | (//*[local-name()="CNPJ"])[1] | (//*[local-name()="CPF"])[1])'),
-            'c_dest_cnpj_cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="CNPJ" or local-name()="CPF"])[1])'),
+            'emit_cnpj_cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNPJ" or local-name()="CPF"])[1] | (//*[local-name()="CNPJ"])[1] | (//*[local-name()="CPF"])[1])'),
+            'dest_cnpj_cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="CNPJ" or local-name()="CPF"])[1])'),
         ];
 
         $payload['normalized'] = match ($schemaFamily) {
@@ -413,17 +413,17 @@ final class ApiExtractionProcessor
         return [
             'type' => 'resNFe',
             'resumo' => [
-                'c_emit_cnpj' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="CNPJ"])[1])'),
-                'c_emit_cpf' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="CPF"])[1])'),
-                'x_emit_nome' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="xNome"])[1])'),
-                'c_emit_ie' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="IE"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="CNPJ"])[1])'),
+                'cpf' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="CPF"])[1])'),
+                'x_nome' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="xNome"])[1])'),
+                'ie' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="IE"])[1])'),
                 'dh_emi' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="dhEmi"])[1])'),
                 'tp_nf' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="tpNF"])[1])'),
                 'v_nf' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="vNF"])[1])'),
-                'c_dig_val' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="digVal"])[1])'),
+                'dig_val' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="digVal"])[1])'),
                 'dh_recbto' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="dhRecbto"])[1])'),
                 'c_sit_nfe' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/*[local-name()="cSitNFe"])[1])'),
-                'c_versao' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/@versao)[1])'),
+                'versao' => $this->xpathValue($xpath, 'string((/*[local-name()="resNFe"]/@versao)[1])'),
             ],
         ];
     }
@@ -442,26 +442,26 @@ final class ApiExtractionProcessor
                 }
 
                 $items[] = [
-                    'i_n_item' => $itemNode->getAttribute('nItem'),
+                    'n_item' => $itemNode->getAttribute('nItem'),
                     'c_prod' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="cProd"]', $itemNode),
                     'c_ean' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="cEAN"]', $itemNode),
                     'x_prod' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="xProd"]', $itemNode),
                     'c_ncm' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="NCM"]', $itemNode),
                     'c_cest' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="CEST"]', $itemNode),
                     'c_cfop' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="CFOP"]', $itemNode),
-                    'c_ucom' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="uCom"]', $itemNode),
+                    'u_com' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="uCom"]', $itemNode),
                     'q_com' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="qCom"]', $itemNode),
                     'v_un_com' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vUnCom"]', $itemNode),
                     'v_prod' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vProd"]', $itemNode),
                     'c_ean_trib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="cEANTrib"]', $itemNode),
-                    'c_utrib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="uTrib"]', $itemNode),
+                    'u_trib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="uTrib"]', $itemNode),
                     'q_trib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="qTrib"]', $itemNode),
                     'v_un_trib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vUnTrib"]', $itemNode),
                     'v_frete' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vFrete"]', $itemNode),
                     'v_seg' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vSeg"]', $itemNode),
                     'v_desc' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vDesc"]', $itemNode),
-                    'i_ind_tot' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="indTot"]', $itemNode),
-                    't_inf_ad_prod' => $this->queryNodeString($xpath, './*[local-name()="infAdProd"]', $itemNode),
+                    'ind_tot' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="indTot"]', $itemNode),
+                    'inf_ad_prod' => $this->queryNodeString($xpath, './*[local-name()="infAdProd"]', $itemNode),
                 ];
             }
         }
@@ -469,12 +469,12 @@ final class ApiExtractionProcessor
         return [
             'type' => 'procNFe',
             'proc' => [
-                'c_versao' => $this->xpathValue($xpath, 'string((/*[local-name()="nfeProc"]/@versao)[1])'),
-                'c_id_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="infNFe"]/@Id)[1])'),
+                'versao' => $this->xpathValue($xpath, 'string((/*[local-name()="nfeProc"]/@versao)[1])'),
+                'id_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="infNFe"]/@Id)[1])'),
                 'c_uf' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="cUF"])[1])'),
-                'c_nnf' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="nNF"])[1])'),
-                'c_serie' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="serie"])[1])'),
-                'c_mod' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="mod"])[1])'),
+                'n_nf' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="nNF"])[1])'),
+                'serie' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="serie"])[1])'),
+                'mod' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="mod"])[1])'),
                 'dh_emi' => $this->firstNonEmpty(
                     $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="dhEmi"])[1])'),
                     $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="dEmi"])[1])')
@@ -484,59 +484,59 @@ final class ApiExtractionProcessor
                     $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="dSaiEnt"])[1])')
                 ),
                 'tp_nf' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="tpNF"])[1])'),
-                'c_id_dest' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="idDest"])[1])'),
+                'id_dest' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="idDest"])[1])'),
                 'c_mun_fg' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="cMunFG"])[1])'),
-                'c_tp_emis' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="tpEmis"])[1])'),
+                'tp_emis' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="tpEmis"])[1])'),
                 'tp_amb' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="tpAmb"])[1])'),
-                'c_fin_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="finNFe"])[1])'),
-                'c_ind_final' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="indFinal"])[1])'),
-                'c_ind_pres' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="indPres"])[1])'),
-                'c_proc_emi' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="procEmi"])[1])'),
-                'c_ver_proc' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="verProc"])[1])'),
-                'c_n_prot' => $this->xpathValue($xpath, 'string((//*[local-name()="protNFe"]/*[local-name()="infProt"]/*[local-name()="nProt"])[1])'),
-                'c_ch_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="protNFe"]/*[local-name()="infProt"]/*[local-name()="chNFe"])[1])'),
+                'fin_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="finNFe"])[1])'),
+                'ind_final' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="indFinal"])[1])'),
+                'ind_pres' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="indPres"])[1])'),
+                'proc_emi' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="procEmi"])[1])'),
+                'ver_proc' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="verProc"])[1])'),
+                'n_prot' => $this->xpathValue($xpath, 'string((//*[local-name()="protNFe"]/*[local-name()="infProt"]/*[local-name()="nProt"])[1])'),
+                'ch_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="protNFe"]/*[local-name()="infProt"]/*[local-name()="chNFe"])[1])'),
             ],
             'emitente' => [
-                'c_cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNPJ"])[1])'),
-                'c_cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CPF"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNPJ"])[1])'),
+                'cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CPF"])[1])'),
                 'x_nome' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="xNome"])[1])'),
                 'x_fant' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="xFant"])[1])'),
-                'c_ie' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IE"])[1])'),
-                'c_iest' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IEST"])[1])'),
-                'c_im' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IM"])[1])'),
-                'c_cnae' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNAE"])[1])'),
-                'c_crt' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CRT"])[1])'),
+                'ie' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IE"])[1])'),
+                'iest' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IEST"])[1])'),
+                'im' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IM"])[1])'),
+                'cnae' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNAE"])[1])'),
+                'crt' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CRT"])[1])'),
                 'x_lgr' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xLgr"])[1])'),
-                'c_nro' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="nro"])[1])'),
+                'nro' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="nro"])[1])'),
                 'x_bairro' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xBairro"])[1])'),
                 'c_mun' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="cMun"])[1])'),
                 'x_mun' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xMun"])[1])'),
-                'c_uf' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="UF"])[1])'),
-                'c_cep' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="CEP"])[1])'),
+                'uf' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="UF"])[1])'),
+                'cep' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="CEP"])[1])'),
                 'c_pais' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="cPais"])[1])'),
                 'x_pais' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xPais"])[1])'),
-                'c_fone' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="fone"])[1])'),
+                'fone' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="fone"])[1])'),
             ],
             'destinatario' => [
-                'c_cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="CNPJ"])[1])'),
-                'c_cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="CPF"])[1])'),
-                'c_id_estrangeiro' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="idEstrangeiro"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="CNPJ"])[1])'),
+                'cpf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="CPF"])[1])'),
+                'id_estrangeiro' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="idEstrangeiro"])[1])'),
                 'x_nome' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="xNome"])[1])'),
-                'c_ind_ie_dest' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="indIEDest"])[1])'),
-                'c_ie' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="IE"])[1])'),
-                'c_isuf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="ISUF"])[1])'),
-                'c_im' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="IM"])[1])'),
-                'c_email' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="email"])[1])'),
+                'ind_ie_dest' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="indIEDest"])[1])'),
+                'ie' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="IE"])[1])'),
+                'isuf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="ISUF"])[1])'),
+                'im' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="IM"])[1])'),
+                'email' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="email"])[1])'),
                 'x_lgr' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xLgr"])[1])'),
-                'c_nro' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="nro"])[1])'),
+                'nro' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="nro"])[1])'),
                 'x_bairro' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xBairro"])[1])'),
                 'c_mun' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="cMun"])[1])'),
                 'x_mun' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xMun"])[1])'),
-                'c_uf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="UF"])[1])'),
-                'c_cep' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="CEP"])[1])'),
+                'uf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="UF"])[1])'),
+                'cep' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="CEP"])[1])'),
                 'c_pais' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="cPais"])[1])'),
                 'x_pais' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xPais"])[1])'),
-                'c_fone' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="fone"])[1])'),
+                'fone' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="fone"])[1])'),
             ],
             'itens' => $items,
             'total' => [
@@ -572,16 +572,16 @@ final class ApiExtractionProcessor
             'type' => 'resEvento',
             'resumo' => [
                 'c_orgao' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="cOrgao"])[1])'),
-                'c_cnpj' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="CNPJ"])[1])'),
-                'c_cpf' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="CPF"])[1])'),
-                'c_ch_nfe' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="chNFe"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="CNPJ"])[1])'),
+                'cpf' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="CPF"])[1])'),
+                'ch_nfe' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="chNFe"])[1])'),
                 'dh_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="dhEvento"])[1])'),
-                'c_tp_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="tpEvento"])[1])'),
-                'i_n_seq_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="nSeqEvento"])[1])'),
+                'tp_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="tpEvento"])[1])'),
+                'n_seq_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="nSeqEvento"])[1])'),
                 'x_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="xEvento"])[1])'),
                 'dh_recbto' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="dhRecbto"])[1])'),
-                'c_n_prot' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="nProt"])[1])'),
-                'c_versao' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/@versao)[1])'),
+                'n_prot' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/*[local-name()="nProt"])[1])'),
+                'versao' => $this->xpathValue($xpath, 'string((/*[local-name()="resEvento"]/@versao)[1])'),
             ],
         ];
     }
@@ -596,24 +596,24 @@ final class ApiExtractionProcessor
         return [
             'type' => 'procEventoNFe',
             'evento' => [
-                'c_versao' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/@versao)[1])'),
-                'c_id_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/@Id)[1])'),
+                'versao' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/@versao)[1])'),
+                'id_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/@Id)[1])'),
                 'c_orgao' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="cOrgao"])[1])'),
                 'tp_amb' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="tpAmb"])[1])'),
-                'c_cnpj' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="CNPJ"])[1])'),
-                'c_cpf' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="CPF"])[1])'),
-                'c_ch_nfe' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="chNFe"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="CNPJ"])[1])'),
+                'cpf' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="CPF"])[1])'),
+                'ch_nfe' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="chNFe"])[1])'),
                 'dh_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="dhEvento"])[1])'),
-                'c_tp_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="tpEvento"])[1])'),
-                'i_n_seq_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="nSeqEvento"])[1])'),
-                'c_ver_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="verEvento"])[1])'),
-                'x_desc_evento' => $this->firstNonEmpty(
+                'tp_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="tpEvento"])[1])'),
+                'n_seq_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="nSeqEvento"])[1])'),
+                'ver_evento' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="evento"]/*[local-name()="infEvento"]/*[local-name()="verEvento"])[1])'),
+                'desc_evento' => $this->firstNonEmpty(
                     $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="retEvento"]/*[local-name()="infEvento"]/*[local-name()="xEvento"])[1])'),
                     $this->queryNodeString($xpath, './*[local-name()="descEvento"]', $detNode)
                 ),
                 'c_stat' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="retEvento"]/*[local-name()="infEvento"]/*[local-name()="cStat"])[1])'),
                 'x_motivo' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="retEvento"]/*[local-name()="infEvento"]/*[local-name()="xMotivo"])[1])'),
-                'c_n_prot' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="retEvento"]/*[local-name()="infEvento"]/*[local-name()="nProt"])[1])'),
+                'n_prot' => $this->xpathValue($xpath, 'string((/*[local-name()="procEventoNFe"]/*[local-name()="retEvento"]/*[local-name()="infEvento"]/*[local-name()="nProt"])[1])'),
             ],
             'xml_det_evento' => $detNode !== null ? $document->saveXML($detNode) : null,
             'json_det_evento' => $detNode !== null ? json_encode($this->domNodeToArray($detNode), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
@@ -628,28 +628,28 @@ final class ApiExtractionProcessor
         return [
             'type' => 'procInutNFe',
             'inutilizacao' => [
-                'c_versao' => $this->xpathValue($xpath, 'string((/*[local-name()="ProcInutNFe"]/@versao | /*[local-name()="procInutNFe"]/@versao)[1])'),
+                'versao' => $this->xpathValue($xpath, 'string((/*[local-name()="ProcInutNFe"]/@versao | /*[local-name()="procInutNFe"]/@versao)[1])'),
                 'tp_amb' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="tpAmb"])[1])'),
                 'x_serv' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="xServ"])[1])'),
                 'c_uf' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="cUF"])[1])'),
-                'c_ano' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="ano"])[1])'),
-                'c_cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="CNPJ"])[1])'),
-                'c_mod' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="mod"])[1])'),
-                'c_serie' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="serie"])[1])'),
-                'c_nnf_ini' => $this->firstNonEmpty(
+                'ano' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="ano"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="CNPJ"])[1])'),
+                'mod' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="mod"])[1])'),
+                'serie' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="serie"])[1])'),
+                'n_nf_ini' => $this->firstNonEmpty(
                     $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="nNFIni"])[1])'),
                     $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="nNFIni"])[1])')
                 ),
-                'c_nnf_fin' => $this->firstNonEmpty(
+                'n_nf_fin' => $this->firstNonEmpty(
                     $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="nNFFin"])[1])'),
                     $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="nNFFin"])[1])')
                 ),
                 'x_just' => $this->xpathValue($xpath, 'string((//*[local-name()="infInut"]/*[local-name()="xJust"])[1])'),
-                'c_ver_aplic' => $this->xpathValue($xpath, 'string((//*[local-name()="retInutNFe"]/*[local-name()="infInut"]/*[local-name()="verAplic"])[1])'),
+                'ver_aplic' => $this->xpathValue($xpath, 'string((//*[local-name()="retInutNFe"]/*[local-name()="infInut"]/*[local-name()="verAplic"])[1])'),
                 'c_stat' => $this->xpathValue($xpath, 'string((//*[local-name()="retInutNFe"]/*[local-name()="infInut"]/*[local-name()="cStat"])[1])'),
                 'x_motivo' => $this->xpathValue($xpath, 'string((//*[local-name()="retInutNFe"]/*[local-name()="infInut"]/*[local-name()="xMotivo"])[1])'),
                 'dh_recbto' => $this->xpathValue($xpath, 'string((//*[local-name()="retInutNFe"]/*[local-name()="infInut"]/*[local-name()="dhRecbto"])[1])'),
-                'c_n_prot' => $this->xpathValue($xpath, 'string((//*[local-name()="retInutNFe"]/*[local-name()="infInut"]/*[local-name()="nProt"])[1])'),
+                'n_prot' => $this->xpathValue($xpath, 'string((//*[local-name()="retInutNFe"]/*[local-name()="infInut"]/*[local-name()="nProt"])[1])'),
             ],
         ];
     }

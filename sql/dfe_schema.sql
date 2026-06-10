@@ -453,8 +453,6 @@ CREATE TABLE IF NOT EXISTS public.t99019 (
     dh_emi timestamptz,
     dh_sai_ent timestamptz,
     v_nf numeric(18,2),
-    emitente_id bigint,
-    destinatario_id bigint,
     tp_imp varchar(10),
     inf_cpl text,
     proc_emi varchar(20),

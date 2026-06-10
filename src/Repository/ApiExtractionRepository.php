@@ -824,13 +824,42 @@ final class ApiExtractionRepository
                 dt_hr_atu timestamptz NOT NULL DEFAULT now()
             )
             SQL,
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99019 (
+                id_t99019 bigserial PRIMARY KEY,
+                t99008_id bigint UNIQUE REFERENCES t99008 (id_t99008) ON DELETE CASCADE,
+                ch_nfe char(44),
+                n_nf varchar(20),
+                versao varchar(20),
+                mod varchar(10),
+                serie varchar(10),
+                dh_emi timestamptz,
+                dh_sai_ent timestamptz,
+                v_nf numeric(18,2),
+                emitente_id bigint,
+                destinatario_id bigint,
+                tp_imp varchar(10),
+                inf_cpl text,
+                proc_emi varchar(20),
+                ver_proc varchar(60),
+                tp_emis varchar(10),
+                fin_nfe varchar(10),
+                nat_op varchar(255),
+                ind_intermed varchar(10),
+                tp_nf smallint,
+                dig_val varchar(128),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99019_t99008_id_idx ON t99019 (t99008_id)",
+            "CREATE INDEX IF NOT EXISTS t99019_ch_nfe_idx ON t99019 (ch_nfe)",
         ];
 
         foreach ($createStatements as $statement) {
             $this->auditConnection->executeStatement($statement);
         }
 
-        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018'] as $table) {
+        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019'] as $table) {
             $this->tableExistsCache[$table] = true;
         }
 

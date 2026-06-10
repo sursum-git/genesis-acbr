@@ -591,6 +591,58 @@ CREATE TABLE IF NOT EXISTS public.t99025 (
 CREATE UNIQUE INDEX IF NOT EXISTS t99025_t99019_uidx
     ON public.t99025 (t99019_id);
 
+CREATE TABLE IF NOT EXISTS public.t99026 (
+    id_t99026 bigserial PRIMARY KEY,
+    t99019_id bigint NOT NULL REFERENCES public.t99019 (id_t99019) ON DELETE CASCADE,
+    num integer,
+    descricao text,
+    qtd numeric(18,4),
+    unidade_comercial varchar(20),
+    valor numeric(18,6),
+    codigo_produto varchar(80),
+    codigo_ncm varchar(20),
+    codigo_cest varchar(20),
+    indicador_escala_relevante varchar(10),
+    cnpj_fabricante_mercadoria varchar(14),
+    codigo_beneficio_fiscal_uf varchar(40),
+    codigo_ex_tipi varchar(20),
+    cfop varchar(10),
+    outras_despesas_acessorias numeric(18,2),
+    valor_desconto numeric(18,2),
+    valor_total_frete numeric(18,2),
+    valor_seguro numeric(18,2),
+    indicador_composicao_valor_total_nfe varchar(10),
+    codigo_ean_comercial varchar(30),
+    quantidade_comercial numeric(18,4),
+    codigo_ean_tributavel varchar(30),
+    unidade_tributavel varchar(20),
+    quantidade_tributavel numeric(18,4),
+    valor_unitario_comercializacao numeric(18,6),
+    valor_unitario_tributacao numeric(18,6),
+    numero_pedido_compra varchar(40),
+    item_pedido_compra varchar(40),
+    valor_aproximado_tributos numeric(18,2),
+    numero_fci varchar(40),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99026_t99019_id_idx
+    ON public.t99026 (t99019_id, num);
+
+CREATE TABLE IF NOT EXISTS public.t99027 (
+    id_t99027 bigserial PRIMARY KEY,
+    t99026_id bigint NOT NULL REFERENCES public.t99026 (id_t99026) ON DELETE CASCADE,
+    nome_imposto varchar(120),
+    cst varchar(20),
+    base_calculo numeric(18,2),
+    aliquota numeric(10,4),
+    valor numeric(18,2),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99027_t99026_id_idx
+    ON public.t99027 (t99026_id, nome_imposto);
+
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_cod_programa varchar(80);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_nome_programa varchar(255);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_versao_programa varchar(80);

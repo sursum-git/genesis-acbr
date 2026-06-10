@@ -1075,13 +1075,63 @@ final class ApiExtractionRepository
             )
             SQL,
             "CREATE UNIQUE INDEX IF NOT EXISTS t99025_t99019_uidx ON t99025 (t99019_id)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99026 (
+                id_t99026 bigserial PRIMARY KEY,
+                t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
+                num integer,
+                descricao text,
+                qtd numeric(18,4),
+                unidade_comercial varchar(20),
+                valor numeric(18,6),
+                codigo_produto varchar(80),
+                codigo_ncm varchar(20),
+                codigo_cest varchar(20),
+                indicador_escala_relevante varchar(10),
+                cnpj_fabricante_mercadoria varchar(14),
+                codigo_beneficio_fiscal_uf varchar(40),
+                codigo_ex_tipi varchar(20),
+                cfop varchar(10),
+                outras_despesas_acessorias numeric(18,2),
+                valor_desconto numeric(18,2),
+                valor_total_frete numeric(18,2),
+                valor_seguro numeric(18,2),
+                indicador_composicao_valor_total_nfe varchar(10),
+                codigo_ean_comercial varchar(30),
+                quantidade_comercial numeric(18,4),
+                codigo_ean_tributavel varchar(30),
+                unidade_tributavel varchar(20),
+                quantidade_tributavel numeric(18,4),
+                valor_unitario_comercializacao numeric(18,6),
+                valor_unitario_tributacao numeric(18,6),
+                numero_pedido_compra varchar(40),
+                item_pedido_compra varchar(40),
+                valor_aproximado_tributos numeric(18,2),
+                numero_fci varchar(40),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99026_t99019_id_idx ON t99026 (t99019_id, num)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99027 (
+                id_t99027 bigserial PRIMARY KEY,
+                t99026_id bigint NOT NULL REFERENCES t99026 (id_t99026) ON DELETE CASCADE,
+                nome_imposto varchar(120),
+                cst varchar(20),
+                base_calculo numeric(18,2),
+                aliquota numeric(10,4),
+                valor numeric(18,2),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99027_t99026_id_idx ON t99027 (t99026_id, nome_imposto)",
         ];
 
         foreach ($createStatements as $statement) {
             $this->auditConnection->executeStatement($statement);
         }
 
-        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023', 't99024', 't99025'] as $table) {
+        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023', 't99024', 't99025', 't99026', 't99027'] as $table) {
             $this->tableExistsCache[$table] = true;
         }
 

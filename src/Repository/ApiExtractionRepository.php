@@ -479,6 +479,57 @@ final class ApiExtractionRepository
     }
 
     /**
+     * @param array<string, mixed> $payload
+     */
+    public function versionEmitente(array $payload): int
+    {
+        return $this->versionEntityByCnpj('t99020', 'id_t99020', $payload);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function versionDestinatario(array $payload): int
+    {
+        return $this->versionEntityByCnpj('t99021', 'id_t99021', $payload);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function versionTransporte(array $payload): int
+    {
+        return $this->versionEntityByCnpj('t99022', 'id_t99022', $payload);
+    }
+
+    public function saveNfePessoaTransportePivot(int $t99019Id, ?int $t99020Id, ?int $t99021Id, ?int $t99022Id): int
+    {
+        $this->ensureSchema();
+
+        $payload = [
+            't99020_id' => $t99020Id,
+            't99021_id' => $t99021Id,
+            't99022_id' => $t99022Id,
+            'dt_hr_atu' => date('c'),
+        ];
+
+        $existingId = $this->auditConnection->fetchOne(
+            'SELECT id_t99023 FROM t99023 WHERE t99019_id = :t99019_id LIMIT 1',
+            ['t99019_id' => $t99019Id]
+        );
+
+        if ($existingId === false) {
+            $this->auditConnection->insert('t99023', $payload + ['t99019_id' => $t99019Id]);
+
+            return (int) $this->auditConnection->lastInsertId();
+        }
+
+        $this->auditConnection->update('t99023', $payload, ['id_t99023' => (int) $existingId]);
+
+        return (int) $existingId;
+    }
+
+    /**
      * @return array<string, mixed>|false
      */
     private function claimByStatus(int $status): array|false
@@ -502,6 +553,62 @@ final class ApiExtractionRepository
                 'status' => ParameterType::INTEGER,
             ]
         );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function versionEntityByCnpj(string $table, string $idColumn, array $payload): int
+    {
+        $this->ensureSchema();
+
+        $cnpj = $this->nullableTrim($payload['cnpj'] ?? null);
+        if ($cnpj === null) {
+            throw new \InvalidArgumentException(sprintf('Campo cnpj e obrigatorio para versionar %s.', $table));
+        }
+
+        $this->auditConnection->beginTransaction();
+
+        try {
+            $current = $this->auditConnection->fetchAssociative(
+                sprintf(
+                    'SELECT %s, versao FROM %s WHERE cnpj = :cnpj AND data_fim IS NULL ORDER BY versao DESC, %s DESC LIMIT 1 FOR UPDATE',
+                    $idColumn,
+                    $table,
+                    $idColumn
+                ),
+                ['cnpj' => $cnpj]
+            );
+
+            $nextVersion = 1;
+            if ($current !== false) {
+                $nextVersion = ((int) ($current['versao'] ?? 0)) + 1;
+                $this->auditConnection->update($table, [
+                    'data_fim' => date('c'),
+                    'dt_hr_atu' => date('c'),
+                ], [
+                    $idColumn => (int) $current[$idColumn],
+                ]);
+            }
+
+            $insertPayload = $this->normalizeVersionedPayload($payload) + [
+                'cnpj' => $cnpj,
+                'versao' => $nextVersion,
+                'data_inicio' => date('c'),
+                'data_fim' => null,
+                'dt_hr_atu' => date('c'),
+            ];
+
+            $this->auditConnection->insert($table, $insertPayload);
+            $id = (int) $this->auditConnection->lastInsertId();
+
+            $this->auditConnection->commit();
+
+            return $id;
+        } catch (\Throwable $throwable) {
+            $this->auditConnection->rollBack();
+            throw $throwable;
+        }
     }
 
     /**
@@ -853,13 +960,98 @@ final class ApiExtractionRepository
             SQL,
             "CREATE INDEX IF NOT EXISTS t99019_t99008_id_idx ON t99019 (t99008_id)",
             "CREATE INDEX IF NOT EXISTS t99019_ch_nfe_idx ON t99019 (ch_nfe)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99020 (
+                id_t99020 bigserial PRIMARY KEY,
+                nome_razao_social varchar(255),
+                nome_fantasia varchar(255),
+                cnpj varchar(14) NOT NULL,
+                endereco varchar(255),
+                bairro_distrito varchar(255),
+                cep varchar(12),
+                municipio varchar(255),
+                telefone varchar(20),
+                uf varchar(4),
+                pais varchar(120),
+                inscricao_estadual varchar(20),
+                inscricao_estadual_st varchar(20),
+                inscricao_municipal varchar(20),
+                municipio_ocorrencia_fato_gerador_icms varchar(255),
+                cnae_fiscal varchar(20),
+                codigo_regime_tributario varchar(10),
+                versao integer NOT NULL,
+                data_inicio timestamptz NOT NULL DEFAULT now(),
+                data_fim timestamptz,
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99020_cnpj_idx ON t99020 (cnpj, versao DESC)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99021 (
+                id_t99021 bigserial PRIMARY KEY,
+                nome_razao_social varchar(255),
+                cnpj varchar(14) NOT NULL,
+                endereco varchar(255),
+                bairro_distrito varchar(255),
+                cep varchar(12),
+                municipio varchar(255),
+                telefone varchar(20),
+                uf varchar(4),
+                pais varchar(120),
+                indicador_ie varchar(10),
+                inscricao_estadual varchar(20),
+                inscricao_suframa varchar(20),
+                im varchar(20),
+                email varchar(255),
+                versao integer NOT NULL,
+                data_inicio timestamptz NOT NULL DEFAULT now(),
+                data_fim timestamptz,
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99021_cnpj_idx ON t99021 (cnpj, versao DESC)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99022 (
+                id_t99022 bigserial PRIMARY KEY,
+                modalidade_frete varchar(20),
+                cnpj varchar(14) NOT NULL,
+                nome_razao_social varchar(255),
+                inscricao_estadual varchar(20),
+                endereco_completo varchar(255),
+                municipio varchar(255),
+                uf varchar(4),
+                volumes varchar(40),
+                quantidade numeric(18,4),
+                especie varchar(120),
+                marca_volumes varchar(255),
+                numeracao varchar(120),
+                peso_liquido numeric(18,4),
+                peso_bruto numeric(18,4),
+                versao integer NOT NULL,
+                data_inicio timestamptz NOT NULL DEFAULT now(),
+                data_fim timestamptz,
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99022_cnpj_idx ON t99022 (cnpj, versao DESC)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99023 (
+                id_t99023 bigserial PRIMARY KEY,
+                t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
+                t99020_id bigint REFERENCES t99020 (id_t99020) ON DELETE CASCADE,
+                t99021_id bigint REFERENCES t99021 (id_t99021) ON DELETE CASCADE,
+                t99022_id bigint REFERENCES t99022 (id_t99022) ON DELETE CASCADE,
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99023_t99019_uidx ON t99023 (t99019_id)",
         ];
 
         foreach ($createStatements as $statement) {
             $this->auditConnection->executeStatement($statement);
         }
 
-        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019'] as $table) {
+        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023'] as $table) {
             $this->tableExistsCache[$table] = true;
         }
 
@@ -969,6 +1161,33 @@ final class ApiExtractionRepository
         $timestamp = strtotime($trimmed);
 
         return $timestamp === false ? $trimmed : date('c', $timestamp);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    private function normalizeVersionedPayload(array $payload): array
+    {
+        unset($payload['versao'], $payload['data_inicio'], $payload['data_fim'], $payload['dt_hr_atu']);
+
+        foreach ($payload as $key => $value) {
+            if ($key === 'quantidade' || $key === 'peso_liquido' || $key === 'peso_bruto') {
+                $payload[$key] = $this->nullableDecimal($value);
+                continue;
+            }
+
+            if ($value instanceof \DateTimeInterface) {
+                $payload[$key] = $value->format('c');
+                continue;
+            }
+
+            if (is_scalar($value) || $value === null) {
+                $payload[$key] = $this->nullableTrim($value);
+            }
+        }
+
+        return $payload;
     }
 
     private function truncate(string $value, int $maxLength): string

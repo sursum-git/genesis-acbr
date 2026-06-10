@@ -474,6 +474,95 @@ CREATE INDEX IF NOT EXISTS t99019_t99008_id_idx
 CREATE INDEX IF NOT EXISTS t99019_ch_nfe_idx
     ON public.t99019 (ch_nfe);
 
+CREATE TABLE IF NOT EXISTS public.t99020 (
+    id_t99020 bigserial PRIMARY KEY,
+    nome_razao_social varchar(255),
+    nome_fantasia varchar(255),
+    cnpj varchar(14) NOT NULL,
+    endereco varchar(255),
+    bairro_distrito varchar(255),
+    cep varchar(12),
+    municipio varchar(255),
+    telefone varchar(20),
+    uf varchar(4),
+    pais varchar(120),
+    inscricao_estadual varchar(20),
+    inscricao_estadual_st varchar(20),
+    inscricao_municipal varchar(20),
+    municipio_ocorrencia_fato_gerador_icms varchar(255),
+    cnae_fiscal varchar(20),
+    codigo_regime_tributario varchar(10),
+    versao integer NOT NULL,
+    data_inicio timestamptz NOT NULL DEFAULT now(),
+    data_fim timestamptz,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99020_cnpj_idx
+    ON public.t99020 (cnpj, versao DESC);
+
+CREATE TABLE IF NOT EXISTS public.t99021 (
+    id_t99021 bigserial PRIMARY KEY,
+    nome_razao_social varchar(255),
+    cnpj varchar(14) NOT NULL,
+    endereco varchar(255),
+    bairro_distrito varchar(255),
+    cep varchar(12),
+    municipio varchar(255),
+    telefone varchar(20),
+    uf varchar(4),
+    pais varchar(120),
+    indicador_ie varchar(10),
+    inscricao_estadual varchar(20),
+    inscricao_suframa varchar(20),
+    im varchar(20),
+    email varchar(255),
+    versao integer NOT NULL,
+    data_inicio timestamptz NOT NULL DEFAULT now(),
+    data_fim timestamptz,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99021_cnpj_idx
+    ON public.t99021 (cnpj, versao DESC);
+
+CREATE TABLE IF NOT EXISTS public.t99022 (
+    id_t99022 bigserial PRIMARY KEY,
+    modalidade_frete varchar(20),
+    cnpj varchar(14) NOT NULL,
+    nome_razao_social varchar(255),
+    inscricao_estadual varchar(20),
+    endereco_completo varchar(255),
+    municipio varchar(255),
+    uf varchar(4),
+    volumes varchar(40),
+    quantidade numeric(18,4),
+    especie varchar(120),
+    marca_volumes varchar(255),
+    numeracao varchar(120),
+    peso_liquido numeric(18,4),
+    peso_bruto numeric(18,4),
+    versao integer NOT NULL,
+    data_inicio timestamptz NOT NULL DEFAULT now(),
+    data_fim timestamptz,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99022_cnpj_idx
+    ON public.t99022 (cnpj, versao DESC);
+
+CREATE TABLE IF NOT EXISTS public.t99023 (
+    id_t99023 bigserial PRIMARY KEY,
+    t99019_id bigint NOT NULL REFERENCES public.t99019 (id_t99019) ON DELETE CASCADE,
+    t99020_id bigint REFERENCES public.t99020 (id_t99020) ON DELETE CASCADE,
+    t99021_id bigint REFERENCES public.t99021 (id_t99021) ON DELETE CASCADE,
+    t99022_id bigint REFERENCES public.t99022 (id_t99022) ON DELETE CASCADE,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS t99023_t99019_uidx
+    ON public.t99023 (t99019_id);
+
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_cod_programa varchar(80);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_nome_programa varchar(255);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_versao_programa varchar(80);

@@ -501,6 +501,10 @@ CREATE TABLE IF NOT EXISTS public.t99020 (
 CREATE INDEX IF NOT EXISTS t99020_cnpj_idx
     ON public.t99020 (cnpj, versao DESC);
 
+CREATE UNIQUE INDEX IF NOT EXISTS t99020_cnpj_ativo_uidx
+    ON public.t99020 (cnpj)
+    WHERE data_fim IS NULL;
+
 CREATE TABLE IF NOT EXISTS public.t99021 (
     id_t99021 bigserial PRIMARY KEY,
     nome_razao_social varchar(255),
@@ -525,6 +529,10 @@ CREATE TABLE IF NOT EXISTS public.t99021 (
 
 CREATE INDEX IF NOT EXISTS t99021_cnpj_idx
     ON public.t99021 (cnpj, versao DESC);
+
+CREATE UNIQUE INDEX IF NOT EXISTS t99021_cnpj_ativo_uidx
+    ON public.t99021 (cnpj)
+    WHERE data_fim IS NULL;
 
 CREATE TABLE IF NOT EXISTS public.t99022 (
     id_t99022 bigserial PRIMARY KEY,
@@ -551,17 +559,39 @@ CREATE TABLE IF NOT EXISTS public.t99022 (
 CREATE INDEX IF NOT EXISTS t99022_cnpj_idx
     ON public.t99022 (cnpj, versao DESC);
 
+CREATE UNIQUE INDEX IF NOT EXISTS t99022_cnpj_ativo_uidx
+    ON public.t99022 (cnpj)
+    WHERE data_fim IS NULL;
+
 CREATE TABLE IF NOT EXISTS public.t99023 (
     id_t99023 bigserial PRIMARY KEY,
     t99019_id bigint NOT NULL REFERENCES public.t99019 (id_t99019) ON DELETE CASCADE,
-    t99020_id bigint REFERENCES public.t99020 (id_t99020) ON DELETE CASCADE,
-    t99021_id bigint REFERENCES public.t99021 (id_t99021) ON DELETE CASCADE,
-    t99022_id bigint REFERENCES public.t99022 (id_t99022) ON DELETE CASCADE,
+    t99020_id bigint NOT NULL REFERENCES public.t99020 (id_t99020) ON DELETE CASCADE,
     dt_hr_atu timestamptz NOT NULL DEFAULT now()
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS t99023_t99019_uidx
     ON public.t99023 (t99019_id);
+
+CREATE TABLE IF NOT EXISTS public.t99024 (
+    id_t99024 bigserial PRIMARY KEY,
+    t99019_id bigint NOT NULL REFERENCES public.t99019 (id_t99019) ON DELETE CASCADE,
+    t99021_id bigint NOT NULL REFERENCES public.t99021 (id_t99021) ON DELETE CASCADE,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS t99024_t99019_uidx
+    ON public.t99024 (t99019_id);
+
+CREATE TABLE IF NOT EXISTS public.t99025 (
+    id_t99025 bigserial PRIMARY KEY,
+    t99019_id bigint NOT NULL REFERENCES public.t99019 (id_t99019) ON DELETE CASCADE,
+    t99022_id bigint NOT NULL REFERENCES public.t99022 (id_t99022) ON DELETE CASCADE,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS t99025_t99019_uidx
+    ON public.t99025 (t99019_id);
 
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_cod_programa varchar(80);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_nome_programa varchar(255);

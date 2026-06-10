@@ -502,31 +502,19 @@ final class ApiExtractionRepository
         return $this->versionEntityByCnpj('t99022', 'id_t99022', $payload);
     }
 
-    public function saveNfePessoaTransportePivot(int $t99019Id, ?int $t99020Id, ?int $t99021Id, ?int $t99022Id): int
+    public function saveT99019EmitentePivot(int $t99019Id, int $t99020Id): int
     {
-        $this->ensureSchema();
+        return $this->saveSingleRelationPivot('t99023', 'id_t99023', 't99020_id', $t99019Id, $t99020Id);
+    }
 
-        $payload = [
-            't99020_id' => $t99020Id,
-            't99021_id' => $t99021Id,
-            't99022_id' => $t99022Id,
-            'dt_hr_atu' => date('c'),
-        ];
+    public function saveT99019DestinatarioPivot(int $t99019Id, int $t99021Id): int
+    {
+        return $this->saveSingleRelationPivot('t99024', 'id_t99024', 't99021_id', $t99019Id, $t99021Id);
+    }
 
-        $existingId = $this->auditConnection->fetchOne(
-            'SELECT id_t99023 FROM t99023 WHERE t99019_id = :t99019_id LIMIT 1',
-            ['t99019_id' => $t99019Id]
-        );
-
-        if ($existingId === false) {
-            $this->auditConnection->insert('t99023', $payload + ['t99019_id' => $t99019Id]);
-
-            return (int) $this->auditConnection->lastInsertId();
-        }
-
-        $this->auditConnection->update('t99023', $payload, ['id_t99023' => (int) $existingId]);
-
-        return (int) $existingId;
+    public function saveT99019TransportePivot(int $t99019Id, int $t99022Id): int
+    {
+        return $this->saveSingleRelationPivot('t99025', 'id_t99025', 't99022_id', $t99019Id, $t99022Id);
     }
 
     /**
@@ -609,6 +597,31 @@ final class ApiExtractionRepository
             $this->auditConnection->rollBack();
             throw $throwable;
         }
+    }
+
+    private function saveSingleRelationPivot(string $table, string $idColumn, string $relationColumn, int $t99019Id, int $relationId): int
+    {
+        $this->ensureSchema();
+
+        $payload = [
+            $relationColumn => $relationId,
+            'dt_hr_atu' => date('c'),
+        ];
+
+        $existingId = $this->auditConnection->fetchOne(
+            sprintf('SELECT %s FROM %s WHERE t99019_id = :t99019_id LIMIT 1', $idColumn, $table),
+            ['t99019_id' => $t99019Id]
+        );
+
+        if ($existingId === false) {
+            $this->auditConnection->insert($table, $payload + ['t99019_id' => $t99019Id]);
+
+            return (int) $this->auditConnection->lastInsertId();
+        }
+
+        $this->auditConnection->update($table, $payload, [$idColumn => (int) $existingId]);
+
+        return (int) $existingId;
     }
 
     /**
@@ -986,6 +999,7 @@ final class ApiExtractionRepository
             )
             SQL,
             "CREATE INDEX IF NOT EXISTS t99020_cnpj_idx ON t99020 (cnpj, versao DESC)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99020_cnpj_ativo_uidx ON t99020 (cnpj) WHERE data_fim IS NULL",
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS t99021 (
                 id_t99021 bigserial PRIMARY KEY,
@@ -1010,6 +1024,7 @@ final class ApiExtractionRepository
             )
             SQL,
             "CREATE INDEX IF NOT EXISTS t99021_cnpj_idx ON t99021 (cnpj, versao DESC)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99021_cnpj_ativo_uidx ON t99021 (cnpj) WHERE data_fim IS NULL",
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS t99022 (
                 id_t99022 bigserial PRIMARY KEY,
@@ -1034,24 +1049,41 @@ final class ApiExtractionRepository
             )
             SQL,
             "CREATE INDEX IF NOT EXISTS t99022_cnpj_idx ON t99022 (cnpj, versao DESC)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99022_cnpj_ativo_uidx ON t99022 (cnpj) WHERE data_fim IS NULL",
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS t99023 (
                 id_t99023 bigserial PRIMARY KEY,
                 t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
-                t99020_id bigint REFERENCES t99020 (id_t99020) ON DELETE CASCADE,
-                t99021_id bigint REFERENCES t99021 (id_t99021) ON DELETE CASCADE,
-                t99022_id bigint REFERENCES t99022 (id_t99022) ON DELETE CASCADE,
+                t99020_id bigint NOT NULL REFERENCES t99020 (id_t99020) ON DELETE CASCADE,
                 dt_hr_atu timestamptz NOT NULL DEFAULT now()
             )
             SQL,
             "CREATE UNIQUE INDEX IF NOT EXISTS t99023_t99019_uidx ON t99023 (t99019_id)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99024 (
+                id_t99024 bigserial PRIMARY KEY,
+                t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
+                t99021_id bigint NOT NULL REFERENCES t99021 (id_t99021) ON DELETE CASCADE,
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99024_t99019_uidx ON t99024 (t99019_id)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99025 (
+                id_t99025 bigserial PRIMARY KEY,
+                t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
+                t99022_id bigint NOT NULL REFERENCES t99022 (id_t99022) ON DELETE CASCADE,
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99025_t99019_uidx ON t99025 (t99019_id)",
         ];
 
         foreach ($createStatements as $statement) {
             $this->auditConnection->executeStatement($statement);
         }
 
-        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023'] as $table) {
+        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023', 't99024', 't99025'] as $table) {
             $this->tableExistsCache[$table] = true;
         }
 

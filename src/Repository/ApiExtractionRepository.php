@@ -357,6 +357,149 @@ final class ApiExtractionRepository
     /**
      * @param array<string, mixed> $payload
      */
+    public function upsertNfeDadosGerais(int $documentId, array $payload): int
+    {
+        $this->ensureSchema();
+
+        $row = [
+            'ch_nfe' => $this->nullableTrim($payload['ch_nfe'] ?? null),
+            'n_nf' => $this->nullableTrim($payload['n_nf'] ?? null),
+            'versao' => $this->nullableTrim($payload['versao'] ?? null),
+            'mod' => $this->nullableTrim($payload['mod'] ?? null),
+            'serie' => $this->nullableTrim($payload['serie'] ?? null),
+            'dh_emi' => $this->normalizeDateTime($payload['dh_emi'] ?? null),
+            'dh_sai_ent' => $this->normalizeDateTime($payload['dh_sai_ent'] ?? null),
+            'v_nf' => $this->nullableDecimal($payload['v_nf'] ?? null),
+            'tp_imp' => $this->nullableTrim($payload['tp_imp'] ?? null),
+            'inf_cpl' => $payload['inf_cpl'] ?? null,
+            'proc_emi' => $this->nullableTrim($payload['proc_emi'] ?? null),
+            'ver_proc' => $this->nullableTrim($payload['ver_proc'] ?? null),
+            'tp_emis' => $this->nullableTrim($payload['tp_emis'] ?? null),
+            'fin_nfe' => $this->nullableTrim($payload['fin_nfe'] ?? null),
+            'nat_op' => $this->nullableTrim($payload['nat_op'] ?? null),
+            'ind_intermed' => $this->nullableTrim($payload['ind_intermed'] ?? null),
+            'tp_nf' => $this->nullableInt($payload['tp_nf'] ?? null),
+            'dig_val' => $this->nullableTrim($payload['dig_val'] ?? null),
+            'dt_hr_atu' => date('c'),
+        ];
+
+        $existingId = $this->auditConnection->fetchOne(
+            'SELECT id_t99019 FROM t99019 WHERE t99008_id = :t99008_id LIMIT 1',
+            ['t99008_id' => $documentId]
+        );
+
+        if ($existingId === false) {
+            $this->auditConnection->insert('t99019', ['t99008_id' => $documentId] + $row);
+
+            return (int) $this->auditConnection->lastInsertId();
+        }
+
+        $this->auditConnection->update('t99019', $row, ['id_t99019' => (int) $existingId]);
+
+        return (int) $existingId;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function upsertNfeCobranca(int $t99019Id, array $payload): ?int
+    {
+        $this->ensureSchema();
+
+        if (!$this->hasMeaningfulValues($payload, ['n_fat', 'v_orig', 'v_desc', 'v_liq'])) {
+            $this->auditConnection->delete('t99028', ['t99019_id' => $t99019Id]);
+
+            return null;
+        }
+
+        $row = [
+            'n_fat' => $this->nullableTrim($payload['n_fat'] ?? null),
+            'v_orig' => $this->nullableDecimal($payload['v_orig'] ?? null),
+            'v_desc' => $this->nullableDecimal($payload['v_desc'] ?? null),
+            'v_liq' => $this->nullableDecimal($payload['v_liq'] ?? null),
+            'dt_hr_atu' => date('c'),
+        ];
+
+        $existingId = $this->auditConnection->fetchOne(
+            'SELECT id_t99028 FROM t99028 WHERE t99019_id = :t99019_id LIMIT 1',
+            ['t99019_id' => $t99019Id]
+        );
+
+        if ($existingId === false) {
+            $this->auditConnection->insert('t99028', ['t99019_id' => $t99019Id] + $row);
+
+            return (int) $this->auditConnection->lastInsertId();
+        }
+
+        $this->auditConnection->update('t99028', $row, ['id_t99028' => (int) $existingId]);
+
+        return (int) $existingId;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    public function replaceNfePagamentos(int $t99019Id, array $payload): void
+    {
+        $this->ensureSchema();
+        $this->auditConnection->delete('t99029', ['t99019_id' => $t99019Id]);
+
+        $detalhes = is_array($payload['detalhes'] ?? null) ? $payload['detalhes'] : [];
+        $vTroco = $this->nullableDecimal($payload['v_troco'] ?? null);
+
+        foreach ($detalhes as $detalhe) {
+            if (!is_array($detalhe)) {
+                continue;
+            }
+
+            $this->auditConnection->insert('t99029', [
+                't99019_id' => $t99019Id,
+                'ind_pag' => $this->nullableTrim($detalhe['ind_pag'] ?? null),
+                't_pag' => $this->nullableTrim($detalhe['t_pag'] ?? null),
+                'x_pag' => $this->nullableTrim($detalhe['x_pag'] ?? null),
+                'v_pag' => $this->nullableDecimal($detalhe['v_pag'] ?? null),
+                'd_pag' => $this->normalizeDateTime($detalhe['d_pag'] ?? null),
+                'cnpj_pag' => $this->nullableTrim($detalhe['cnpj_pag'] ?? null),
+                'uf_pag' => $this->nullableTrim($detalhe['uf_pag'] ?? null),
+                'tp_integra' => $this->nullableTrim($detalhe['tp_integra'] ?? null),
+                'cnpj_cred' => $this->nullableTrim($detalhe['cnpj_cred'] ?? null),
+                't_band' => $this->nullableTrim($detalhe['t_band'] ?? null),
+                'c_aut' => $this->nullableTrim($detalhe['c_aut'] ?? null),
+                'cnpj_receb' => $this->nullableTrim($detalhe['cnpj_receb'] ?? null),
+                'id_term_pag' => $this->nullableTrim($detalhe['id_term_pag'] ?? null),
+                'v_troco' => $vTroco,
+                'dt_hr_atu' => date('c'),
+            ]);
+        }
+    }
+
+    /**
+     * @param list<array<string, mixed>> $duplicatas
+     */
+    public function replaceNfeDuplicatas(?int $t99028Id, array $duplicatas): void
+    {
+        $this->ensureSchema();
+
+        if ($t99028Id === null) {
+            return;
+        }
+
+        $this->auditConnection->delete('t99030', ['t99028_id' => $t99028Id]);
+
+        foreach ($duplicatas as $duplicata) {
+            $this->auditConnection->insert('t99030', [
+                't99028_id' => $t99028Id,
+                'n_dup' => $this->nullableTrim($duplicata['n_dup'] ?? null),
+                'd_venc' => $this->normalizeDateTime($duplicata['d_venc'] ?? null),
+                'v_dup' => $this->nullableDecimal($duplicata['v_dup'] ?? null),
+                'dt_hr_atu' => date('c'),
+            ]);
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
     public function upsertEventoResumo(int $documentId, array $payload): void
     {
         $this->upsertSingleRow('t99015', 't99008_id', $documentId, [
@@ -475,6 +618,7 @@ final class ApiExtractionRepository
             'evento_proc' => $this->fetchByDocumentIds('t99016', $documentIds),
             'evento_detalhe' => $this->fetchByDocumentIds('t99017', $documentIds),
             'inutilizacao_proc' => $this->fetchByDocumentIds('t99018', $documentIds),
+            'nfe_dados_gerais' => $this->fetchByDocumentIds('t99019', $documentIds),
         ];
     }
 
@@ -1125,13 +1269,58 @@ final class ApiExtractionRepository
             )
             SQL,
             "CREATE INDEX IF NOT EXISTS t99027_t99026_id_idx ON t99027 (t99026_id, nome_imposto)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99028 (
+                id_t99028 bigserial PRIMARY KEY,
+                t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
+                n_fat varchar(40),
+                v_orig numeric(18,2),
+                v_desc numeric(18,2),
+                v_liq numeric(18,2),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99028_t99019_uidx ON t99028 (t99019_id)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99029 (
+                id_t99029 bigserial PRIMARY KEY,
+                t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
+                ind_pag varchar(10),
+                t_pag varchar(10),
+                x_pag varchar(255),
+                v_pag numeric(18,2),
+                d_pag timestamptz,
+                cnpj_pag varchar(14),
+                uf_pag varchar(4),
+                tp_integra varchar(10),
+                cnpj_cred varchar(14),
+                t_band varchar(10),
+                c_aut varchar(255),
+                cnpj_receb varchar(14),
+                id_term_pag varchar(40),
+                v_troco numeric(18,2),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99029_t99019_id_idx ON t99029 (t99019_id, id_t99029)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99030 (
+                id_t99030 bigserial PRIMARY KEY,
+                t99028_id bigint NOT NULL REFERENCES t99028 (id_t99028) ON DELETE CASCADE,
+                n_dup varchar(40),
+                d_venc timestamptz,
+                v_dup numeric(18,2),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99030_t99028_id_idx ON t99030 (t99028_id, id_t99030)",
         ];
 
         foreach ($createStatements as $statement) {
             $this->auditConnection->executeStatement($statement);
         }
 
-        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023', 't99024', 't99025', 't99026', 't99027'] as $table) {
+        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023', 't99024', 't99025', 't99026', 't99027', 't99028', 't99029', 't99030'] as $table) {
             $this->tableExistsCache[$table] = true;
         }
 
@@ -1268,6 +1457,21 @@ final class ApiExtractionRepository
         }
 
         return $payload;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @param list<string> $keys
+     */
+    private function hasMeaningfulValues(array $payload, array $keys): bool
+    {
+        foreach ($keys as $key) {
+            if ($this->nullableTrim($payload[$key] ?? null) !== null) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function truncate(string $value, int $maxLength): string

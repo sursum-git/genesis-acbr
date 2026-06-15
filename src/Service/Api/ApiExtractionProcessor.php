@@ -243,6 +243,10 @@ final class ApiExtractionProcessor
                 $this->extractionRepository->upsertNfeDestinatario($documentId, $normalized['destinatario'] ?? []);
                 $this->extractionRepository->replaceNfeItens($documentId, $normalized['itens'] ?? []);
                 $this->extractionRepository->upsertNfeTotal($documentId, $normalized['total'] ?? []);
+                $t99019Id = $this->extractionRepository->upsertNfeDadosGerais($documentId, $normalized['dados_nfe'] ?? []);
+                $this->extractionRepository->replaceNfePagamentos($t99019Id, $normalized['pagamentos'] ?? []);
+                $cobrancaId = $this->extractionRepository->upsertNfeCobranca($t99019Id, $normalized['cobranca'] ?? []);
+                $this->extractionRepository->replaceNfeDuplicatas($cobrancaId, $normalized['duplicatas'] ?? []);
                 break;
 
             case 'resEvento':
@@ -457,11 +461,38 @@ final class ApiExtractionProcessor
                     'u_trib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="uTrib"]', $itemNode),
                     'q_trib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="qTrib"]', $itemNode),
                     'v_un_trib' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vUnTrib"]', $itemNode),
+                    'v_outro' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vOutro"]', $itemNode),
                     'v_frete' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vFrete"]', $itemNode),
                     'v_seg' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vSeg"]', $itemNode),
                     'v_desc' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vDesc"]', $itemNode),
                     'ind_tot' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="indTot"]', $itemNode),
                     'inf_ad_prod' => $this->queryNodeString($xpath, './*[local-name()="infAdProd"]', $itemNode),
+                ];
+            }
+        }
+
+        $payments = [];
+        $paymentNodes = $xpath->query('//*[local-name()="pag"]/*[local-name()="detPag"]');
+        if ($paymentNodes !== false) {
+            foreach ($paymentNodes as $paymentNode) {
+                if (!$paymentNode instanceof DOMElement) {
+                    continue;
+                }
+
+                $payments[] = [
+                    'ind_pag' => $this->queryNodeString($xpath, './*[local-name()="indPag"]', $paymentNode),
+                    't_pag' => $this->queryNodeString($xpath, './*[local-name()="tPag"]', $paymentNode),
+                    'x_pag' => $this->queryNodeString($xpath, './*[local-name()="xPag"]', $paymentNode),
+                    'v_pag' => $this->queryNodeString($xpath, './*[local-name()="vPag"]', $paymentNode),
+                    'd_pag' => $this->queryNodeString($xpath, './*[local-name()="dPag"]', $paymentNode),
+                    'cnpj_pag' => $this->queryNodeString($xpath, './*[local-name()="CNPJPag"]', $paymentNode),
+                    'uf_pag' => $this->queryNodeString($xpath, './*[local-name()="UFPag"]', $paymentNode),
+                    'tp_integra' => $this->queryNodeString($xpath, './*[local-name()="card"]/*[local-name()="tpIntegra"]', $paymentNode),
+                    'cnpj_cred' => $this->queryNodeString($xpath, './*[local-name()="card"]/*[local-name()="CNPJCred"]', $paymentNode),
+                    't_band' => $this->queryNodeString($xpath, './*[local-name()="card"]/*[local-name()="tBand"]', $paymentNode),
+                    'c_aut' => $this->queryNodeString($xpath, './*[local-name()="card"]/*[local-name()="cAut"]', $paymentNode),
+                    'cnpj_receb' => $this->queryNodeString($xpath, './*[local-name()="CNPJReceb"]', $paymentNode),
+                    'id_term_pag' => $this->queryNodeString($xpath, './*[local-name()="idTermPag"]', $paymentNode),
                 ];
             }
         }
@@ -495,6 +526,35 @@ final class ApiExtractionProcessor
                 'ver_proc' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="verProc"])[1])'),
                 'n_prot' => $this->xpathValue($xpath, 'string((//*[local-name()="protNFe"]/*[local-name()="infProt"]/*[local-name()="nProt"])[1])'),
                 'ch_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="protNFe"]/*[local-name()="infProt"]/*[local-name()="chNFe"])[1])'),
+            ],
+            'dados_nfe' => [
+                'ch_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="protNFe"]/*[local-name()="infProt"]/*[local-name()="chNFe"])[1])'),
+                'n_nf' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="nNF"])[1])'),
+                'versao' => $this->firstNonEmpty(
+                    $this->xpathValue($xpath, 'string((//*[local-name()="infNFe"]/@versao)[1])'),
+                    $this->xpathValue($xpath, 'string((/*[local-name()="nfeProc"]/@versao)[1])')
+                ),
+                'mod' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="mod"])[1])'),
+                'serie' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="serie"])[1])'),
+                'dh_emi' => $this->firstNonEmpty(
+                    $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="dhEmi"])[1])'),
+                    $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="dEmi"])[1])')
+                ),
+                'dh_sai_ent' => $this->firstNonEmpty(
+                    $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="dhSaiEnt"])[1])'),
+                    $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="dSaiEnt"])[1])')
+                ),
+                'v_nf' => $this->xpathValue($xpath, 'string((//*[local-name()="ICMSTot"]/*[local-name()="vNF"])[1])'),
+                'tp_imp' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="tpImp"])[1])'),
+                'inf_cpl' => $this->xpathValue($xpath, 'string((//*[local-name()="infAdic"]/*[local-name()="infCpl"])[1])'),
+                'proc_emi' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="procEmi"])[1])'),
+                'ver_proc' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="verProc"])[1])'),
+                'tp_emis' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="tpEmis"])[1])'),
+                'fin_nfe' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="finNFe"])[1])'),
+                'nat_op' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="natOp"])[1])'),
+                'ind_intermed' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="indIntermed"])[1])'),
+                'tp_nf' => $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="tpNF"])[1])'),
+                'dig_val' => $this->xpathValue($xpath, 'string((//*[local-name()="DigestValue"])[1])'),
             ],
             'emitente' => [
                 'cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNPJ"])[1])'),
@@ -560,7 +620,44 @@ final class ApiExtractionProcessor
                 'v_nf' => $this->xpathValue($xpath, 'string((//*[local-name()="ICMSTot"]/*[local-name()="vNF"])[1])'),
                 'v_tot_trib' => $this->xpathValue($xpath, 'string((//*[local-name()="ICMSTot"]/*[local-name()="vTotTrib"])[1])'),
             ],
+            'cobranca' => [
+                'n_fat' => $this->xpathValue($xpath, 'string((//*[local-name()="cobr"]/*[local-name()="fat"]/*[local-name()="nFat"])[1])'),
+                'v_orig' => $this->xpathValue($xpath, 'string((//*[local-name()="cobr"]/*[local-name()="fat"]/*[local-name()="vOrig"])[1])'),
+                'v_desc' => $this->xpathValue($xpath, 'string((//*[local-name()="cobr"]/*[local-name()="fat"]/*[local-name()="vDesc"])[1])'),
+                'v_liq' => $this->xpathValue($xpath, 'string((//*[local-name()="cobr"]/*[local-name()="fat"]/*[local-name()="vLiq"])[1])'),
+            ],
+            'duplicatas' => $this->extractDuplicatas($xpath),
+            'pagamentos' => [
+                'v_troco' => $this->xpathValue($xpath, 'string((//*[local-name()="pag"]/*[local-name()="vTroco"])[1])'),
+                'detalhes' => $payments,
+            ],
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function extractDuplicatas(DOMXPath $xpath): array
+    {
+        $duplicatas = [];
+        $dupNodes = $xpath->query('//*[local-name()="cobr"]/*[local-name()="dup"]');
+        if ($dupNodes === false) {
+            return $duplicatas;
+        }
+
+        foreach ($dupNodes as $dupNode) {
+            if (!$dupNode instanceof DOMElement) {
+                continue;
+            }
+
+            $duplicatas[] = [
+                'n_dup' => $this->queryNodeString($xpath, './*[local-name()="nDup"]', $dupNode),
+                'd_venc' => $this->queryNodeString($xpath, './*[local-name()="dVenc"]', $dupNode),
+                'v_dup' => $this->queryNodeString($xpath, './*[local-name()="vDup"]', $dupNode),
+            ];
+        }
+
+        return $duplicatas;
     }
 
     /**

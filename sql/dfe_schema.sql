@@ -649,6 +649,37 @@ CREATE TABLE IF NOT EXISTS public.t99031 (
 CREATE INDEX IF NOT EXISTS t99031_t99026_id_idx
     ON public.t99031 (t99026_id, id_t99031);
 
+CREATE UNIQUE INDEX IF NOT EXISTS t99031_t99026_tag_uidx
+    ON public.t99031 (t99026_id, tag_api, tag);
+
+CREATE TABLE IF NOT EXISTS public.t99032 (
+    id_t99032 bigserial PRIMARY KEY,
+    t99019_id bigint NOT NULL REFERENCES public.t99019 (id_t99019) ON DELETE CASCADE,
+    tag varchar(120),
+    tag_api varchar(120),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99032_t99019_id_idx
+    ON public.t99032 (t99019_id, id_t99032);
+
+CREATE UNIQUE INDEX IF NOT EXISTS t99032_t99019_tag_uidx
+    ON public.t99032 (t99019_id, tag_api, tag);
+
+CREATE TABLE IF NOT EXISTS public.t99033 (
+    id_t99033 bigserial PRIMARY KEY,
+    t99032_id bigint NOT NULL REFERENCES public.t99032 (id_t99032) ON DELETE CASCADE,
+    nome_imposto varchar(120),
+    cst varchar(20),
+    base_calculo numeric(18,2),
+    aliquota numeric(10,4),
+    valor numeric(18,2),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99033_t99032_id_idx
+    ON public.t99033 (t99032_id, nome_imposto);
+
 CREATE TABLE IF NOT EXISTS public.t99027 (
     id_t99027 bigserial PRIMARY KEY,
     t99031_id bigint NOT NULL REFERENCES public.t99031 (id_t99031) ON DELETE CASCADE,

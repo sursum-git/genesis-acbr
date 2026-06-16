@@ -507,6 +507,106 @@ final class ApiExtractionRepository
     }
 
     /**
+     * @param list<array<string, mixed>> $items
+     */
+    public function replaceNfeProdutoServicoEstrutura(int $t99019Id, array $items): void
+    {
+        $this->ensureSchema();
+        $this->auditConnection->delete('t99026', ['t99019_id' => $t99019Id]);
+
+        foreach ($items as $item) {
+            $this->auditConnection->insert('t99026', [
+                't99019_id' => $t99019Id,
+                'num' => $this->nullableInt($item['n_item'] ?? null),
+                'descricao' => $item['x_prod'] ?? null,
+                'qtd' => $this->nullableDecimal($item['q_com'] ?? null),
+                'unidade_comercial' => $this->nullableTrim($item['u_com'] ?? null),
+                'valor' => $this->nullableDecimal($item['v_prod'] ?? null),
+                'codigo_produto' => $this->nullableTrim($item['c_prod'] ?? null),
+                'codigo_ncm' => $this->nullableTrim($item['c_ncm'] ?? null),
+                'codigo_cest' => $this->nullableTrim($item['c_cest'] ?? null),
+                'cfop' => $this->nullableTrim($item['c_cfop'] ?? null),
+                'outras_despesas_acessorias' => $this->nullableDecimal($item['v_outro'] ?? null),
+                'valor_desconto' => $this->nullableDecimal($item['v_desc'] ?? null),
+                'valor_total_frete' => $this->nullableDecimal($item['v_frete'] ?? null),
+                'valor_seguro' => $this->nullableDecimal($item['v_seg'] ?? null),
+                'indicador_composicao_valor_total_nfe' => $this->nullableTrim($item['ind_tot'] ?? null),
+                'codigo_ean_comercial' => $this->nullableTrim($item['c_ean'] ?? null),
+                'quantidade_comercial' => $this->nullableDecimal($item['q_com'] ?? null),
+                'codigo_ean_tributavel' => $this->nullableTrim($item['c_ean_trib'] ?? null),
+                'unidade_tributavel' => $this->nullableTrim($item['u_trib'] ?? null),
+                'quantidade_tributavel' => $this->nullableDecimal($item['q_trib'] ?? null),
+                'valor_unitario_comercializacao' => $this->nullableDecimal($item['v_un_com'] ?? null),
+                'valor_unitario_tributacao' => $this->nullableDecimal($item['v_un_trib'] ?? null),
+                'dt_hr_atu' => date('c'),
+            ]);
+
+            $t99026Id = (int) $this->auditConnection->lastInsertId();
+            foreach (($item['impostos_modalidades'] ?? []) as $modalidade) {
+                if (!is_array($modalidade)) {
+                    continue;
+                }
+
+                $t99031Id = $this->upsertItemTaxModality($t99026Id, $modalidade);
+                foreach (($modalidade['impostos'] ?? []) as $imposto) {
+                    if (!is_array($imposto) || !$this->hasMeaningfulValues($imposto, ['nome_imposto', 'cst', 'base_calculo', 'aliquota', 'valor'])) {
+                        continue;
+                    }
+
+                    $this->auditConnection->insert('t99027', [
+                        't99031_id' => $t99031Id,
+                        'nome_imposto' => $this->nullableTrim($imposto['nome_imposto'] ?? null),
+                        'cst' => $this->nullableTrim($imposto['cst'] ?? null),
+                        'base_calculo' => $this->nullableDecimal($imposto['base_calculo'] ?? null),
+                        'aliquota' => $this->nullableDecimal($imposto['aliquota'] ?? null),
+                        'valor' => $this->nullableDecimal($imposto['valor'] ?? null),
+                        'dt_hr_atu' => date('c'),
+                    ]);
+                }
+            }
+        }
+    }
+
+    /**
+     * @param list<array<string, mixed>> $modalidades
+     */
+    public function replaceNfeTotalImpostosEstrutura(int $t99019Id, array $modalidades): void
+    {
+        $this->ensureSchema();
+        $this->auditConnection->delete('t99032', ['t99019_id' => $t99019Id]);
+
+        foreach ($modalidades as $modalidade) {
+            if (!is_array($modalidade)) {
+                continue;
+            }
+
+            $this->auditConnection->insert('t99032', [
+                't99019_id' => $t99019Id,
+                'tag' => $this->nullableTrim($modalidade['tag'] ?? null),
+                'tag_api' => $this->nullableTrim($modalidade['tag_api'] ?? null),
+                'dt_hr_atu' => date('c'),
+            ]);
+
+            $t99032Id = (int) $this->auditConnection->lastInsertId();
+            foreach (($modalidade['impostos'] ?? []) as $imposto) {
+                if (!is_array($imposto) || !$this->hasMeaningfulValues($imposto, ['nome_imposto', 'cst', 'base_calculo', 'aliquota', 'valor'])) {
+                    continue;
+                }
+
+                $this->auditConnection->insert('t99033', [
+                    't99032_id' => $t99032Id,
+                    'nome_imposto' => $this->nullableTrim($imposto['nome_imposto'] ?? null),
+                    'cst' => $this->nullableTrim($imposto['cst'] ?? null),
+                    'base_calculo' => $this->nullableDecimal($imposto['base_calculo'] ?? null),
+                    'aliquota' => $this->nullableDecimal($imposto['aliquota'] ?? null),
+                    'valor' => $this->nullableDecimal($imposto['valor'] ?? null),
+                    'dt_hr_atu' => date('c'),
+                ]);
+            }
+        }
+    }
+
+    /**
      * @param array<string, mixed> $payload
      */
     public function upsertEventoResumo(int $documentId, array $payload): void
@@ -775,6 +875,40 @@ final class ApiExtractionRepository
         $this->auditConnection->update($table, $payload, [$idColumn => (int) $existingId]);
 
         return (int) $existingId;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function upsertItemTaxModality(int $t99026Id, array $payload): int
+    {
+        $tag = $this->nullableTrim($payload['tag'] ?? null);
+        $tagApi = $this->nullableTrim($payload['tag_api'] ?? null);
+        if ($tag === null || $tagApi === null) {
+            throw new \InvalidArgumentException('Campos tag e tag_api sao obrigatorios para a modalidade de imposto.');
+        }
+
+        $existingId = $this->auditConnection->fetchOne(
+            'SELECT id_t99031 FROM t99031 WHERE t99026_id = :t99026_id AND tag = :tag AND tag_api = :tag_api LIMIT 1',
+            ['t99026_id' => $t99026Id, 'tag' => $tag, 'tag_api' => $tagApi]
+        );
+
+        if ($existingId !== false) {
+            $this->auditConnection->update('t99031', [
+                'dt_hr_atu' => date('c'),
+            ], ['id_t99031' => (int) $existingId]);
+
+            return (int) $existingId;
+        }
+
+        $this->auditConnection->insert('t99031', [
+            't99026_id' => $t99026Id,
+            'tag' => $tag,
+            'tag_api' => $tagApi,
+            'dt_hr_atu' => date('c'),
+        ]);
+
+        return (int) $this->auditConnection->lastInsertId();
     }
 
     /**
@@ -1329,6 +1463,31 @@ final class ApiExtractionRepository
             )
             SQL,
             "CREATE INDEX IF NOT EXISTS t99031_t99026_id_idx ON t99031 (t99026_id, id_t99031)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99031_t99026_tag_uidx ON t99031 (t99026_id, tag_api, tag)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99032 (
+                id_t99032 bigserial PRIMARY KEY,
+                t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
+                tag varchar(120),
+                tag_api varchar(120),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99032_t99019_id_idx ON t99032 (t99019_id, id_t99032)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS t99032_t99019_tag_uidx ON t99032 (t99019_id, tag_api, tag)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99033 (
+                id_t99033 bigserial PRIMARY KEY,
+                t99032_id bigint NOT NULL REFERENCES t99032 (id_t99032) ON DELETE CASCADE,
+                nome_imposto varchar(120),
+                cst varchar(20),
+                base_calculo numeric(18,2),
+                aliquota numeric(10,4),
+                valor numeric(18,2),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99033_t99032_id_idx ON t99033 (t99032_id, nome_imposto)",
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS t99027 (
                 id_t99027 bigserial PRIMARY KEY,
@@ -1348,7 +1507,7 @@ final class ApiExtractionRepository
             $this->auditConnection->executeStatement($statement);
         }
 
-        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023', 't99024', 't99025', 't99026', 't99027', 't99028', 't99029', 't99030', 't99031'] as $table) {
+        foreach (['t99007', 't99008', 't99009', 't99010', 't99011', 't99012', 't99013', 't99014', 't99015', 't99016', 't99017', 't99018', 't99019', 't99020', 't99021', 't99022', 't99023', 't99024', 't99025', 't99026', 't99027', 't99028', 't99029', 't99030', 't99031', 't99032', 't99033'] as $table) {
             $this->tableExistsCache[$table] = true;
         }
 

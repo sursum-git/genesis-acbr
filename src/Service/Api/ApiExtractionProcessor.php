@@ -244,6 +244,8 @@ final class ApiExtractionProcessor
                 $this->extractionRepository->replaceNfeItens($documentId, $normalized['itens'] ?? []);
                 $this->extractionRepository->upsertNfeTotal($documentId, $normalized['total'] ?? []);
                 $t99019Id = $this->extractionRepository->upsertNfeDadosGerais($documentId, $normalized['dados_nfe'] ?? []);
+                $this->extractionRepository->replaceNfeProdutoServicoEstrutura($t99019Id, $normalized['itens'] ?? []);
+                $this->extractionRepository->replaceNfeTotalImpostosEstrutura($t99019Id, $normalized['impostos_nf'] ?? []);
                 $this->extractionRepository->replaceNfePagamentos($t99019Id, $normalized['pagamentos'] ?? []);
                 $cobrancaId = $this->extractionRepository->upsertNfeCobranca($t99019Id, $normalized['cobranca'] ?? []);
                 $this->extractionRepository->replaceNfeDuplicatas($cobrancaId, $normalized['duplicatas'] ?? []);
@@ -467,6 +469,7 @@ final class ApiExtractionProcessor
                     'v_desc' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="vDesc"]', $itemNode),
                     'ind_tot' => $this->queryNodeString($xpath, './*[local-name()="prod"]/*[local-name()="indTot"]', $itemNode),
                     'inf_ad_prod' => $this->queryNodeString($xpath, './*[local-name()="infAdProd"]', $itemNode),
+                    'impostos_modalidades' => $this->extractItemTaxModalities($xpath, $itemNode),
                 ];
             }
         }
@@ -640,6 +643,7 @@ final class ApiExtractionProcessor
                 'v_troco' => $this->xpathValue($xpath, 'string((//*[local-name()="pag"]/*[local-name()="vTroco"])[1])'),
                 'detalhes' => $payments,
             ],
+            'impostos_nf' => $this->extractTotalTaxModalities($xpath),
         ];
     }
 
@@ -667,6 +671,226 @@ final class ApiExtractionProcessor
         }
 
         return $duplicatas;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function extractItemTaxModalities(DOMXPath $xpath, DOMElement $itemNode): array
+    {
+        $modalidades = [];
+        $impostoNode = $xpath->query('./*[local-name()="imposto"]', $itemNode)->item(0);
+        if (!$impostoNode instanceof DOMElement) {
+            return $modalidades;
+        }
+
+        foreach ($impostoNode->childNodes as $groupNode) {
+            if (!$groupNode instanceof DOMElement) {
+                continue;
+            }
+
+            $tagApi = $groupNode->localName;
+            if ($tagApi === 'vTotTrib') {
+                continue;
+            }
+
+            if ($tagApi === 'IBSCBS') {
+                $modalidades[] = [
+                    'tag_api' => $tagApi,
+                    'tag' => $this->findFirstNestedTag($groupNode, ['gIBSCBS']) ?? $tagApi,
+                    'impostos' => $this->buildIbscbsTaxes($xpath, $groupNode),
+                ];
+                continue;
+            }
+
+            $modalityNode = $this->findPrimaryModalityNode($groupNode);
+            $modalidades[] = [
+                'tag_api' => $tagApi,
+                'tag' => $modalityNode?->localName ?? $tagApi,
+                'impostos' => [
+                    [
+                        'nome_imposto' => $tagApi,
+                        'cst' => $this->queryNodeString($xpath, './/*[local-name()="CST"]', $modalityNode ?? $groupNode),
+                        'base_calculo' => $this->queryNodeString($xpath, './/*[local-name()="vBC"]', $modalityNode ?? $groupNode),
+                        'aliquota' => $this->extractAliquotaForTax($xpath, $tagApi, $modalityNode ?? $groupNode),
+                        'valor' => $this->extractValorForTax($xpath, $tagApi, $modalityNode ?? $groupNode),
+                    ],
+                ],
+            ];
+        }
+
+        return $modalidades;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function extractTotalTaxModalities(DOMXPath $xpath): array
+    {
+        $modalidades = [];
+
+        $icmsTot = $xpath->query('(//*[local-name()="total"]/*[local-name()="ICMSTot"])[1]')->item(0);
+        if ($icmsTot instanceof DOMElement) {
+            $modalidades[] = [
+                'tag_api' => 'total',
+                'tag' => 'ICMSTot',
+                'impostos' => [
+                    ['nome_imposto' => 'ICMS', 'cst' => null, 'base_calculo' => $this->queryNodeString($xpath, './*[local-name()="vBC"]', $icmsTot), 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vICMS"]', $icmsTot)],
+                    ['nome_imposto' => 'ICMSDeson', 'cst' => null, 'base_calculo' => null, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vICMSDeson"]', $icmsTot)],
+                    ['nome_imposto' => 'FCP', 'cst' => null, 'base_calculo' => null, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vFCP"]', $icmsTot)],
+                    ['nome_imposto' => 'ST', 'cst' => null, 'base_calculo' => $this->queryNodeString($xpath, './*[local-name()="vBCST"]', $icmsTot), 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vST"]', $icmsTot)],
+                    ['nome_imposto' => 'PIS', 'cst' => null, 'base_calculo' => null, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vPIS"]', $icmsTot)],
+                    ['nome_imposto' => 'COFINS', 'cst' => null, 'base_calculo' => null, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vCOFINS"]', $icmsTot)],
+                    ['nome_imposto' => 'II', 'cst' => null, 'base_calculo' => null, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vII"]', $icmsTot)],
+                    ['nome_imposto' => 'IPI', 'cst' => null, 'base_calculo' => null, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vIPI"]', $icmsTot)],
+                    ['nome_imposto' => 'IPIDevol', 'cst' => null, 'base_calculo' => null, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './*[local-name()="vIPIDevol"]', $icmsTot)],
+                ],
+            ];
+        }
+
+        $ibscbsTot = $xpath->query('(//*[local-name()="total"]/*[local-name()="IBSCBSTot"])[1]')->item(0);
+        if ($ibscbsTot instanceof DOMElement) {
+            $base = $this->queryNodeString($xpath, './*[local-name()="vBCIBSCBS"]', $ibscbsTot);
+            $modalidades[] = [
+                'tag_api' => 'total',
+                'tag' => 'IBSCBSTot',
+                'impostos' => [
+                    ['nome_imposto' => 'IBSUF', 'cst' => null, 'base_calculo' => $base, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './/*[local-name()="gIBSUF"]/*[local-name()="vIBSUF"]', $ibscbsTot)],
+                    ['nome_imposto' => 'IBSMun', 'cst' => null, 'base_calculo' => $base, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './/*[local-name()="gIBSMun"]/*[local-name()="vIBSMun"]', $ibscbsTot)],
+                    ['nome_imposto' => 'IBS', 'cst' => null, 'base_calculo' => $base, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './/*[local-name()="gIBS"]/*[local-name()="vIBS"]', $ibscbsTot)],
+                    ['nome_imposto' => 'CBS', 'cst' => null, 'base_calculo' => $base, 'aliquota' => null, 'valor' => $this->queryNodeString($xpath, './/*[local-name()="gCBS"]/*[local-name()="vCBS"]', $ibscbsTot)],
+                ],
+            ];
+        }
+
+        return $modalidades;
+    }
+
+    private function findPrimaryModalityNode(DOMElement $groupNode): ?DOMElement
+    {
+        foreach ($groupNode->childNodes as $childNode) {
+            if (!$childNode instanceof DOMElement) {
+                continue;
+            }
+
+            if ($this->elementHasChildElements($childNode)) {
+                return $childNode;
+            }
+        }
+
+        return null;
+    }
+
+    private function elementHasChildElements(DOMElement $element): bool
+    {
+        foreach ($element->childNodes as $childNode) {
+            if ($childNode instanceof DOMElement) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param list<string> $candidates
+     */
+    private function findFirstNestedTag(DOMElement $groupNode, array $candidates): ?string
+    {
+        foreach ($groupNode->childNodes as $childNode) {
+            if (!$childNode instanceof DOMElement) {
+                continue;
+            }
+
+            if (in_array($childNode->localName, $candidates, true)) {
+                return $childNode->localName;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractAliquotaForTax(DOMXPath $xpath, string $tagApi, DOMElement $scopeNode): ?string
+    {
+        $patterns = match ($tagApi) {
+            'ICMS' => ['.//*[local-name()="pICMS"]', './/*[local-name()="pICMSST"]'],
+            'IPI' => ['.//*[local-name()="pIPI"]'],
+            'PIS' => ['.//*[local-name()="pPIS"]'],
+            'COFINS' => ['.//*[local-name()="pCOFINS"]'],
+            default => [],
+        };
+
+        foreach ($patterns as $pattern) {
+            $value = $this->queryNodeString($xpath, $pattern, $scopeNode);
+            if ($value !== null) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    private function extractValorForTax(DOMXPath $xpath, string $tagApi, DOMElement $scopeNode): ?string
+    {
+        $patterns = match ($tagApi) {
+            'ICMS' => ['.//*[local-name()="vICMS"]', './/*[local-name()="vICMSST"]'],
+            'IPI' => ['.//*[local-name()="vIPI"]'],
+            'PIS' => ['.//*[local-name()="vPIS"]'],
+            'COFINS' => ['.//*[local-name()="vCOFINS"]'],
+            default => [],
+        };
+
+        foreach ($patterns as $pattern) {
+            $value = $this->queryNodeString($xpath, $pattern, $scopeNode);
+            if ($value !== null) {
+                return $value;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function buildIbscbsTaxes(DOMXPath $xpath, DOMElement $groupNode): array
+    {
+        $cst = $this->queryNodeString($xpath, './*[local-name()="CST"]', $groupNode);
+        $base = $this->queryNodeString($xpath, './/*[local-name()="gIBSCBS"]/*[local-name()="vBC"]', $groupNode);
+
+        $rows = [
+            [
+                'nome_imposto' => 'IBSUF',
+                'cst' => $cst,
+                'base_calculo' => $base,
+                'aliquota' => $this->queryNodeString($xpath, './/*[local-name()="gIBSUF"]/*[local-name()="pIBSUF"]', $groupNode),
+                'valor' => $this->queryNodeString($xpath, './/*[local-name()="gIBSUF"]/*[local-name()="vIBSUF"]', $groupNode),
+            ],
+            [
+                'nome_imposto' => 'IBSMun',
+                'cst' => $cst,
+                'base_calculo' => $base,
+                'aliquota' => $this->queryNodeString($xpath, './/*[local-name()="gIBSMun"]/*[local-name()="pIBSMun"]', $groupNode),
+                'valor' => $this->queryNodeString($xpath, './/*[local-name()="gIBSMun"]/*[local-name()="vIBSMun"]', $groupNode),
+            ],
+            [
+                'nome_imposto' => 'CBS',
+                'cst' => $cst,
+                'base_calculo' => $base,
+                'aliquota' => $this->queryNodeString($xpath, './/*[local-name()="gCBS"]/*[local-name()="pCBS"]', $groupNode),
+                'valor' => $this->queryNodeString($xpath, './/*[local-name()="gCBS"]/*[local-name()="vCBS"]', $groupNode),
+            ],
+        ];
+
+        return array_values(array_filter($rows, static function (array $row): bool {
+            foreach (['cst', 'base_calculo', 'aliquota', 'valor'] as $field) {
+                if (($row[$field] ?? null) !== null && $row[$field] !== '') {
+                    return true;
+                }
+            }
+
+            return false;
+        }));
     }
 
     /**

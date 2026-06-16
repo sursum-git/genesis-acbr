@@ -700,6 +700,17 @@ CREATE TABLE IF NOT EXISTS public.t99030 (
 CREATE INDEX IF NOT EXISTS t99030_t99028_id_idx
     ON public.t99030 (t99028_id, id_t99030);
 
+CREATE TABLE IF NOT EXISTS public.t99031 (
+    id_t99031 bigserial PRIMARY KEY,
+    t99027_id bigint NOT NULL REFERENCES public.t99027 (id_t99027) ON DELETE CASCADE,
+    tag varchar(120),
+    tag_api varchar(120),
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99031_t99027_id_idx
+    ON public.t99031 (t99027_id, id_t99031);
+
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_cod_programa varchar(80);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_nome_programa varchar(255);
 ALTER TABLE IF EXISTS public.t99001 ADD COLUMN IF NOT EXISTS c_versao_programa varchar(80);

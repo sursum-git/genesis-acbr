@@ -1275,19 +1275,6 @@ final class ApiExtractionRepository
             SQL,
             "CREATE INDEX IF NOT EXISTS t99026_t99019_id_idx ON t99026 (t99019_id, num)",
             <<<'SQL'
-            CREATE TABLE IF NOT EXISTS t99027 (
-                id_t99027 bigserial PRIMARY KEY,
-                t99026_id bigint NOT NULL REFERENCES t99026 (id_t99026) ON DELETE CASCADE,
-                nome_imposto varchar(120),
-                cst varchar(20),
-                base_calculo numeric(18,2),
-                aliquota numeric(10,4),
-                valor numeric(18,2),
-                dt_hr_atu timestamptz NOT NULL DEFAULT now()
-            )
-            SQL,
-            "CREATE INDEX IF NOT EXISTS t99027_t99026_id_idx ON t99027 (t99026_id, nome_imposto)",
-            <<<'SQL'
             CREATE TABLE IF NOT EXISTS t99028 (
                 id_t99028 bigserial PRIMARY KEY,
                 t99019_id bigint NOT NULL REFERENCES t99019 (id_t99019) ON DELETE CASCADE,
@@ -1335,13 +1322,26 @@ final class ApiExtractionRepository
             <<<'SQL'
             CREATE TABLE IF NOT EXISTS t99031 (
                 id_t99031 bigserial PRIMARY KEY,
-                t99027_id bigint NOT NULL REFERENCES t99027 (id_t99027) ON DELETE CASCADE,
+                t99026_id bigint NOT NULL REFERENCES t99026 (id_t99026) ON DELETE CASCADE,
                 tag varchar(120),
                 tag_api varchar(120),
                 dt_hr_atu timestamptz NOT NULL DEFAULT now()
             )
             SQL,
-            "CREATE INDEX IF NOT EXISTS t99031_t99027_id_idx ON t99031 (t99027_id, id_t99031)",
+            "CREATE INDEX IF NOT EXISTS t99031_t99026_id_idx ON t99031 (t99026_id, id_t99031)",
+            <<<'SQL'
+            CREATE TABLE IF NOT EXISTS t99027 (
+                id_t99027 bigserial PRIMARY KEY,
+                t99031_id bigint NOT NULL REFERENCES t99031 (id_t99031) ON DELETE CASCADE,
+                nome_imposto varchar(120),
+                cst varchar(20),
+                base_calculo numeric(18,2),
+                aliquota numeric(10,4),
+                valor numeric(18,2),
+                dt_hr_atu timestamptz NOT NULL DEFAULT now()
+            )
+            SQL,
+            "CREATE INDEX IF NOT EXISTS t99027_t99031_id_idx ON t99027 (t99031_id, nome_imposto)",
         ];
 
         foreach ($createStatements as $statement) {

@@ -951,16 +951,34 @@ final class ApiExtractionRepository
             "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS dt_hr_fim_extracao timestamp",
             "ALTER TABLE t99001 ADD COLUMN IF NOT EXISTS t_erro_extracao text",
             "CREATE INDEX IF NOT EXISTS t99001_si_status_extracao_idx ON t99001 (si_status_extracao, dt_hr_recebimento)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS c_caminho_origem varchar(255)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS c_tipo_consulta varchar(40)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS c_documento_consulta varchar(20)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS c_nsu_entrada char(15)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS c_ver_aplic varchar(120)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS c_ult_nsu char(15)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS c_max_nsu char(15)",
+            "ALTER TABLE t99007 ADD COLUMN IF NOT EXISTS t_xml_envelope text",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_caminho_origem varchar(255)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_nsu char(15)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_schema_name varchar(100)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_schema_family varchar(30)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_ch_nfe char(44)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_tp_evento varchar(20)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS i_n_seq_evento integer",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_n_prot varchar(20)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS t_xml_gzip_base64 text",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS t_xml_descompactado text",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_hash_xml varchar(64)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_emit_cnpj_cpf varchar(14)",
+            "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_dest_cnpj_cpf varchar(14)",
         ];
 
         foreach ($statements as $statement) {
             $this->auditConnection->executeStatement($statement);
         }
 
-        if (
-            ($this->tableExists('t99007') && $this->tableHasColumn('t99007', 'c_tipo_documento'))
-            || ($this->tableExists('t99007') && $this->tableHasColumn('t99007', 'c_caminho_origem'))
-        ) {
+        if ($this->tableExists('t99007') && $this->tableHasColumn('t99007', 'c_tipo_documento')) {
             foreach (['t99018', 't99017', 't99016', 't99015', 't99014', 't99013', 't99012', 't99011', 't99010', 't99009', 't99008', 't99007'] as $table) {
                 $this->auditConnection->executeStatement(sprintf('DROP TABLE IF EXISTS %s CASCADE', $table));
                 $this->tableExistsCache[$table] = false;
@@ -1504,6 +1522,79 @@ final class ApiExtractionRepository
         ];
 
         foreach ($createStatements as $statement) {
+            $this->auditConnection->executeStatement($statement);
+        }
+
+        $compatibilityStatements = [
+            <<<'SQL'
+            CREATE OR REPLACE FUNCTION t99007_sync_legacy_columns()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                NEW.caminho_origem := COALESCE(NEW.caminho_origem, NEW.c_caminho_origem);
+                NEW.c_caminho_origem := COALESCE(NEW.c_caminho_origem, NEW.caminho_origem);
+                NEW.tipo_consulta := COALESCE(NEW.tipo_consulta, NEW.c_tipo_consulta);
+                NEW.c_tipo_consulta := COALESCE(NEW.c_tipo_consulta, NEW.tipo_consulta);
+                NEW.documento_consulta := COALESCE(NEW.documento_consulta, NEW.c_documento_consulta);
+                NEW.c_documento_consulta := COALESCE(NEW.c_documento_consulta, NEW.documento_consulta);
+                NEW.nsu_entrada := COALESCE(NEW.nsu_entrada, NEW.c_nsu_entrada);
+                NEW.c_nsu_entrada := COALESCE(NEW.c_nsu_entrada, NEW.nsu_entrada);
+                NEW.ver_aplic := COALESCE(NEW.ver_aplic, NEW.c_ver_aplic);
+                NEW.c_ver_aplic := COALESCE(NEW.c_ver_aplic, NEW.ver_aplic);
+                NEW.ult_nsu := COALESCE(NEW.ult_nsu, NEW.c_ult_nsu);
+                NEW.c_ult_nsu := COALESCE(NEW.c_ult_nsu, NEW.ult_nsu);
+                NEW.max_nsu := COALESCE(NEW.max_nsu, NEW.c_max_nsu);
+                NEW.c_max_nsu := COALESCE(NEW.c_max_nsu, NEW.max_nsu);
+                NEW.xml_envelope := COALESCE(NEW.xml_envelope, NEW.t_xml_envelope);
+                NEW.t_xml_envelope := COALESCE(NEW.t_xml_envelope, NEW.xml_envelope);
+                RETURN NEW;
+            END
+            $$;
+            SQL,
+            "DROP TRIGGER IF EXISTS t99007_sync_legacy_columns_trg ON t99007",
+            "CREATE TRIGGER t99007_sync_legacy_columns_trg BEFORE INSERT OR UPDATE ON t99007 FOR EACH ROW EXECUTE FUNCTION t99007_sync_legacy_columns()",
+            <<<'SQL'
+            CREATE OR REPLACE FUNCTION t99008_sync_legacy_columns()
+            RETURNS trigger
+            LANGUAGE plpgsql
+            AS $$
+            BEGIN
+                NEW.caminho_origem := COALESCE(NEW.caminho_origem, NEW.c_caminho_origem);
+                NEW.c_caminho_origem := COALESCE(NEW.c_caminho_origem, NEW.caminho_origem);
+                NEW.nsu := COALESCE(NEW.nsu, NEW.c_nsu);
+                NEW.c_nsu := COALESCE(NEW.c_nsu, NEW.nsu);
+                NEW.schema_name := COALESCE(NEW.schema_name, NEW.c_schema_name);
+                NEW.c_schema_name := COALESCE(NEW.c_schema_name, NEW.schema_name);
+                NEW.schema_family := COALESCE(NEW.schema_family, NEW.c_schema_family);
+                NEW.c_schema_family := COALESCE(NEW.c_schema_family, NEW.schema_family);
+                NEW.ch_nfe := COALESCE(NEW.ch_nfe, NEW.c_ch_nfe);
+                NEW.c_ch_nfe := COALESCE(NEW.c_ch_nfe, NEW.ch_nfe);
+                NEW.tp_evento := COALESCE(NEW.tp_evento, NEW.c_tp_evento);
+                NEW.c_tp_evento := COALESCE(NEW.c_tp_evento, NEW.tp_evento);
+                NEW.n_seq_evento := COALESCE(NEW.n_seq_evento, NEW.i_n_seq_evento);
+                NEW.i_n_seq_evento := COALESCE(NEW.i_n_seq_evento, NEW.n_seq_evento);
+                NEW.n_prot := COALESCE(NEW.n_prot, NEW.c_n_prot);
+                NEW.c_n_prot := COALESCE(NEW.c_n_prot, NEW.n_prot);
+                NEW.xml_gzip_base64 := COALESCE(NEW.xml_gzip_base64, NEW.t_xml_gzip_base64);
+                NEW.t_xml_gzip_base64 := COALESCE(NEW.t_xml_gzip_base64, NEW.xml_gzip_base64);
+                NEW.xml_descompactado := COALESCE(NEW.xml_descompactado, NEW.t_xml_descompactado);
+                NEW.t_xml_descompactado := COALESCE(NEW.t_xml_descompactado, NEW.xml_descompactado);
+                NEW.hash_xml := COALESCE(NEW.hash_xml, NEW.c_hash_xml);
+                NEW.c_hash_xml := COALESCE(NEW.c_hash_xml, NEW.hash_xml);
+                NEW.emit_cnpj_cpf := COALESCE(NEW.emit_cnpj_cpf, NEW.c_emit_cnpj_cpf);
+                NEW.c_emit_cnpj_cpf := COALESCE(NEW.c_emit_cnpj_cpf, NEW.emit_cnpj_cpf);
+                NEW.dest_cnpj_cpf := COALESCE(NEW.dest_cnpj_cpf, NEW.c_dest_cnpj_cpf);
+                NEW.c_dest_cnpj_cpf := COALESCE(NEW.c_dest_cnpj_cpf, NEW.dest_cnpj_cpf);
+                RETURN NEW;
+            END
+            $$;
+            SQL,
+            "DROP TRIGGER IF EXISTS t99008_sync_legacy_columns_trg ON t99008",
+            "CREATE TRIGGER t99008_sync_legacy_columns_trg BEFORE INSERT OR UPDATE ON t99008 FOR EACH ROW EXECUTE FUNCTION t99008_sync_legacy_columns()",
+        ];
+
+        foreach ($compatibilityStatements as $statement) {
             $this->auditConnection->executeStatement($statement);
         }
 

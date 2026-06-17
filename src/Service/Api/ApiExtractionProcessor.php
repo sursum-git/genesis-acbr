@@ -244,6 +244,18 @@ final class ApiExtractionProcessor
                 $this->extractionRepository->replaceNfeItens($documentId, $normalized['itens'] ?? []);
                 $this->extractionRepository->upsertNfeTotal($documentId, $normalized['total'] ?? []);
                 $t99019Id = $this->extractionRepository->upsertNfeDadosGerais($documentId, $normalized['dados_nfe'] ?? []);
+                if (($normalized['emitente_vinculo']['cnpj'] ?? null) !== null) {
+                    $t99020Id = $this->extractionRepository->versionEmitente($normalized['emitente_vinculo']);
+                    $this->extractionRepository->saveT99019EmitentePivot($t99019Id, $t99020Id);
+                }
+                if (($normalized['destinatario_vinculo']['cnpj'] ?? null) !== null) {
+                    $t99021Id = $this->extractionRepository->versionDestinatario($normalized['destinatario_vinculo']);
+                    $this->extractionRepository->saveT99019DestinatarioPivot($t99019Id, $t99021Id);
+                }
+                if (($normalized['transporte']['cnpj'] ?? null) !== null) {
+                    $t99022Id = $this->extractionRepository->versionTransporte($normalized['transporte']);
+                    $this->extractionRepository->saveT99019TransportePivot($t99019Id, $t99022Id);
+                }
                 $this->extractionRepository->replaceNfeProdutoServicoEstrutura($t99019Id, $normalized['itens'] ?? []);
                 $this->extractionRepository->replaceNfeTotalImpostosEstrutura($t99019Id, $normalized['impostos_nf'] ?? []);
                 $this->extractionRepository->replaceNfePagamentos($t99019Id, $normalized['pagamentos'] ?? []);
@@ -610,6 +622,67 @@ final class ApiExtractionProcessor
                 'x_pais' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xPais"])[1])'),
                 'fone' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="fone"])[1])'),
             ],
+            'emitente_vinculo' => [
+                'nome_razao_social' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="xNome"])[1])'),
+                'nome_fantasia' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="xFant"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNPJ"])[1])'),
+                'endereco' => $this->joinAddress(
+                    $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xLgr"])[1])'),
+                    $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="nro"])[1])'),
+                    $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xCpl"])[1])')
+                ),
+                'bairro_distrito' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xBairro"])[1])'),
+                'cep' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="CEP"])[1])'),
+                'municipio' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xMun"])[1])'),
+                'telefone' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="fone"])[1])'),
+                'uf' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="UF"])[1])'),
+                'pais' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xPais"])[1])'),
+                'inscricao_estadual' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IE"])[1])'),
+                'inscricao_estadual_st' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IEST"])[1])'),
+                'inscricao_municipal' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="IM"])[1])'),
+                'municipio_ocorrencia_fato_gerador_icms' => $this->firstNonEmpty(
+                    $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="enderEmit"]/*[local-name()="xMun"])[1])'),
+                    $this->xpathValue($xpath, 'string((//*[local-name()="ide"]/*[local-name()="cMunFG"])[1])')
+                ),
+                'cnae_fiscal' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CNAE"])[1])'),
+                'codigo_regime_tributario' => $this->xpathValue($xpath, 'string((//*[local-name()="emit"]/*[local-name()="CRT"])[1])'),
+            ],
+            'destinatario_vinculo' => [
+                'nome_razao_social' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="xNome"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="CNPJ"])[1])'),
+                'endereco' => $this->joinAddress(
+                    $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xLgr"])[1])'),
+                    $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="nro"])[1])'),
+                    $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xCpl"])[1])')
+                ),
+                'bairro_distrito' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xBairro"])[1])'),
+                'cep' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="CEP"])[1])'),
+                'municipio' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xMun"])[1])'),
+                'telefone' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="fone"])[1])'),
+                'uf' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="UF"])[1])'),
+                'pais' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="enderDest"]/*[local-name()="xPais"])[1])'),
+                'indicador_ie' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="indIEDest"])[1])'),
+                'inscricao_estadual' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="IE"])[1])'),
+                'inscricao_suframa' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="ISUF"])[1])'),
+                'im' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="IM"])[1])'),
+                'email' => $this->xpathValue($xpath, 'string((//*[local-name()="dest"]/*[local-name()="email"])[1])'),
+            ],
+            'transporte' => [
+                'modalidade_frete' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="modFrete"])[1])'),
+                'cnpj' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="transporta"]/*[local-name()="CNPJ"])[1])'),
+                'nome_razao_social' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="transporta"]/*[local-name()="xNome"])[1])'),
+                'inscricao_estadual' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="transporta"]/*[local-name()="IE"])[1])'),
+                'endereco_completo' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="transporta"]/*[local-name()="xEnder"])[1])'),
+                'municipio' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="transporta"]/*[local-name()="xMun"])[1])'),
+                'uf' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="transporta"]/*[local-name()="UF"])[1])'),
+                'volumes' => $this->xpathValue($xpath, 'string(count(//*[local-name()="transp"]/*[local-name()="vol"]))'),
+                'quantidade' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="vol"]/*[local-name()="qVol"])[1])'),
+                'especie' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="vol"]/*[local-name()="esp"])[1])'),
+                'marca_volumes' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="vol"]/*[local-name()="marca"])[1])'),
+                'numeracao' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="vol"]/*[local-name()="nVol"])[1])'),
+                'peso_liquido' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="vol"]/*[local-name()="pesoL"])[1])'),
+                'peso_bruto' => $this->xpathValue($xpath, 'string((//*[local-name()="transp"]/*[local-name()="vol"]/*[local-name()="pesoB"])[1])'),
+            ],
             'itens' => $items,
             'total' => [
                 'v_bc' => $this->xpathValue($xpath, 'string((//*[local-name()="ICMSTot"]/*[local-name()="vBC"])[1])'),
@@ -671,6 +744,23 @@ final class ApiExtractionProcessor
         }
 
         return $duplicatas;
+    }
+
+    private function joinAddress(?string ...$parts): ?string
+    {
+        $values = [];
+        foreach ($parts as $part) {
+            $trimmed = $this->nullableString($part);
+            if ($trimmed !== null) {
+                $values[] = $trimmed;
+            }
+        }
+
+        if ($values === []) {
+            return null;
+        }
+
+        return implode(', ', $values);
     }
 
     /**

@@ -236,6 +236,103 @@ CREATE INDEX IF NOT EXISTS t99008_t99007_id_idx
 CREATE INDEX IF NOT EXISTS t99008_chave_idx
     ON public.t99008 (ch_nfe);
 
+ALTER TABLE public.t99007
+    ADD COLUMN IF NOT EXISTS c_caminho_origem varchar(255),
+    ADD COLUMN IF NOT EXISTS c_tipo_consulta varchar(40),
+    ADD COLUMN IF NOT EXISTS c_documento_consulta varchar(20),
+    ADD COLUMN IF NOT EXISTS c_nsu_entrada char(15),
+    ADD COLUMN IF NOT EXISTS c_ver_aplic varchar(120),
+    ADD COLUMN IF NOT EXISTS c_ult_nsu char(15),
+    ADD COLUMN IF NOT EXISTS c_max_nsu char(15),
+    ADD COLUMN IF NOT EXISTS t_xml_envelope text;
+
+ALTER TABLE public.t99008
+    ADD COLUMN IF NOT EXISTS c_caminho_origem varchar(255),
+    ADD COLUMN IF NOT EXISTS c_nsu char(15),
+    ADD COLUMN IF NOT EXISTS c_schema_name varchar(100),
+    ADD COLUMN IF NOT EXISTS c_schema_family varchar(30),
+    ADD COLUMN IF NOT EXISTS c_ch_nfe char(44),
+    ADD COLUMN IF NOT EXISTS c_tp_evento varchar(20),
+    ADD COLUMN IF NOT EXISTS i_n_seq_evento integer,
+    ADD COLUMN IF NOT EXISTS c_n_prot varchar(20),
+    ADD COLUMN IF NOT EXISTS t_xml_gzip_base64 text,
+    ADD COLUMN IF NOT EXISTS t_xml_descompactado text,
+    ADD COLUMN IF NOT EXISTS c_hash_xml varchar(64),
+    ADD COLUMN IF NOT EXISTS c_emit_cnpj_cpf varchar(14),
+    ADD COLUMN IF NOT EXISTS c_dest_cnpj_cpf varchar(14);
+
+CREATE OR REPLACE FUNCTION public.t99007_sync_legacy_columns()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.caminho_origem := COALESCE(NEW.caminho_origem, NEW.c_caminho_origem);
+    NEW.c_caminho_origem := COALESCE(NEW.c_caminho_origem, NEW.caminho_origem);
+    NEW.tipo_consulta := COALESCE(NEW.tipo_consulta, NEW.c_tipo_consulta);
+    NEW.c_tipo_consulta := COALESCE(NEW.c_tipo_consulta, NEW.tipo_consulta);
+    NEW.documento_consulta := COALESCE(NEW.documento_consulta, NEW.c_documento_consulta);
+    NEW.c_documento_consulta := COALESCE(NEW.c_documento_consulta, NEW.documento_consulta);
+    NEW.nsu_entrada := COALESCE(NEW.nsu_entrada, NEW.c_nsu_entrada);
+    NEW.c_nsu_entrada := COALESCE(NEW.c_nsu_entrada, NEW.nsu_entrada);
+    NEW.ver_aplic := COALESCE(NEW.ver_aplic, NEW.c_ver_aplic);
+    NEW.c_ver_aplic := COALESCE(NEW.c_ver_aplic, NEW.ver_aplic);
+    NEW.ult_nsu := COALESCE(NEW.ult_nsu, NEW.c_ult_nsu);
+    NEW.c_ult_nsu := COALESCE(NEW.c_ult_nsu, NEW.ult_nsu);
+    NEW.max_nsu := COALESCE(NEW.max_nsu, NEW.c_max_nsu);
+    NEW.c_max_nsu := COALESCE(NEW.c_max_nsu, NEW.max_nsu);
+    NEW.xml_envelope := COALESCE(NEW.xml_envelope, NEW.t_xml_envelope);
+    NEW.t_xml_envelope := COALESCE(NEW.t_xml_envelope, NEW.xml_envelope);
+    RETURN NEW;
+END
+$$;
+
+DROP TRIGGER IF EXISTS t99007_sync_legacy_columns_trg ON public.t99007;
+CREATE TRIGGER t99007_sync_legacy_columns_trg
+    BEFORE INSERT OR UPDATE ON public.t99007
+    FOR EACH ROW
+    EXECUTE FUNCTION public.t99007_sync_legacy_columns();
+
+CREATE OR REPLACE FUNCTION public.t99008_sync_legacy_columns()
+RETURNS trigger
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    NEW.caminho_origem := COALESCE(NEW.caminho_origem, NEW.c_caminho_origem);
+    NEW.c_caminho_origem := COALESCE(NEW.c_caminho_origem, NEW.caminho_origem);
+    NEW.nsu := COALESCE(NEW.nsu, NEW.c_nsu);
+    NEW.c_nsu := COALESCE(NEW.c_nsu, NEW.nsu);
+    NEW.schema_name := COALESCE(NEW.schema_name, NEW.c_schema_name);
+    NEW.c_schema_name := COALESCE(NEW.c_schema_name, NEW.schema_name);
+    NEW.schema_family := COALESCE(NEW.schema_family, NEW.c_schema_family);
+    NEW.c_schema_family := COALESCE(NEW.c_schema_family, NEW.schema_family);
+    NEW.ch_nfe := COALESCE(NEW.ch_nfe, NEW.c_ch_nfe);
+    NEW.c_ch_nfe := COALESCE(NEW.c_ch_nfe, NEW.ch_nfe);
+    NEW.tp_evento := COALESCE(NEW.tp_evento, NEW.c_tp_evento);
+    NEW.c_tp_evento := COALESCE(NEW.c_tp_evento, NEW.tp_evento);
+    NEW.n_seq_evento := COALESCE(NEW.n_seq_evento, NEW.i_n_seq_evento);
+    NEW.i_n_seq_evento := COALESCE(NEW.i_n_seq_evento, NEW.n_seq_evento);
+    NEW.n_prot := COALESCE(NEW.n_prot, NEW.c_n_prot);
+    NEW.c_n_prot := COALESCE(NEW.c_n_prot, NEW.n_prot);
+    NEW.xml_gzip_base64 := COALESCE(NEW.xml_gzip_base64, NEW.t_xml_gzip_base64);
+    NEW.t_xml_gzip_base64 := COALESCE(NEW.t_xml_gzip_base64, NEW.xml_gzip_base64);
+    NEW.xml_descompactado := COALESCE(NEW.xml_descompactado, NEW.t_xml_descompactado);
+    NEW.t_xml_descompactado := COALESCE(NEW.t_xml_descompactado, NEW.xml_descompactado);
+    NEW.hash_xml := COALESCE(NEW.hash_xml, NEW.c_hash_xml);
+    NEW.c_hash_xml := COALESCE(NEW.c_hash_xml, NEW.hash_xml);
+    NEW.emit_cnpj_cpf := COALESCE(NEW.emit_cnpj_cpf, NEW.c_emit_cnpj_cpf);
+    NEW.c_emit_cnpj_cpf := COALESCE(NEW.c_emit_cnpj_cpf, NEW.emit_cnpj_cpf);
+    NEW.dest_cnpj_cpf := COALESCE(NEW.dest_cnpj_cpf, NEW.c_dest_cnpj_cpf);
+    NEW.c_dest_cnpj_cpf := COALESCE(NEW.c_dest_cnpj_cpf, NEW.dest_cnpj_cpf);
+    RETURN NEW;
+END
+$$;
+
+DROP TRIGGER IF EXISTS t99008_sync_legacy_columns_trg ON public.t99008;
+CREATE TRIGGER t99008_sync_legacy_columns_trg
+    BEFORE INSERT OR UPDATE ON public.t99008
+    FOR EACH ROW
+    EXECUTE FUNCTION public.t99008_sync_legacy_columns();
+
 CREATE TABLE IF NOT EXISTS public.t99009 (
     t99008_id bigint PRIMARY KEY REFERENCES public.t99008 (id_t99008) ON DELETE CASCADE,
     cnpj varchar(14),

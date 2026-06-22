@@ -13,6 +13,10 @@ final class ApiExtractionPlanResolver
         '/nfe/distribuicao-dfe/por-chave',
         '/nfe/distribuicao-dfe/por-nsu',
         '/nfe/distribuicao-dfe/por-ult-nsu',
+        '/nfe/envio/enviar-sincrono-xml',
+        '/nfe/envio/enviar-assincrono-xml',
+        '/nfe/envio/enviar-sincrono-ini',
+        '/nfe/envio/enviar-assincrono-ini',
     ];
 
     public function resolveInitialStatus(string $path): int

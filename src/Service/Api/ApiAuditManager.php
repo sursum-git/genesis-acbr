@@ -35,7 +35,7 @@ final class ApiAuditManager
             'c_fonte_versao' => $programVersion['version_source'] ?? null,
             'c_caminho_fisico_programa' => $programVersion['physical_path'] ?? null,
             't_query_string' => $request->getQueryString(),
-            't_corpo_requisicao' => $this->truncate($request->getContent()),
+            't_corpo_requisicao' => $this->captureRequestBody($request),
             't_headers_requisicao' => json_encode($this->sanitizeRequestHeaders($request), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'c_rota' => $request->attributes->get('_route'),
             'c_nome_operacao' => null,
@@ -113,7 +113,7 @@ final class ApiAuditManager
         $this->repository->finalizeRequest(
             $requestId,
             $response->getStatusCode(),
-            $this->truncate($response->getContent()),
+            $this->captureResponseBody($request, $response),
             $this->truncate($this->headersToString($response)),
             $statusProcessamento === ApiRequestStatus::FALHA ? $this->extractErrorMessage($response) : null,
             $statusProcessamento,
@@ -243,6 +243,28 @@ final class ApiAuditManager
         $token = trim((string) ($matches[1] ?? ''));
 
         return $token === '' ? null : $token;
+    }
+
+    private function captureRequestBody(Request $request): ?string
+    {
+        $content = $request->getContent();
+
+        if ($this->extractionPlanResolver->isExtractablePath($request->getPathInfo())) {
+            return $content;
+        }
+
+        return $this->truncate($content);
+    }
+
+    private function captureResponseBody(Request $request, Response $response): ?string
+    {
+        $content = $response->getContent();
+
+        if ($this->extractionPlanResolver->isExtractablePath($request->getPathInfo())) {
+            return $content;
+        }
+
+        return $this->truncate($content);
     }
 
     private function truncate(?string $value, int $maxLength = 12000): ?string

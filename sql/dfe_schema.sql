@@ -187,7 +187,7 @@ CREATE TABLE IF NOT EXISTS public.t99007 (
     u_c_request_id varchar(36) NOT NULL,
     caminho_origem varchar(255),
     tipo_consulta varchar(40),
-    documento_consulta varchar(20),
+    documento_consulta varchar(60),
     nsu_entrada char(15),
     tp_amb smallint,
     ver_aplic varchar(120),
@@ -239,12 +239,16 @@ CREATE INDEX IF NOT EXISTS t99008_chave_idx
 ALTER TABLE public.t99007
     ADD COLUMN IF NOT EXISTS c_caminho_origem varchar(255),
     ADD COLUMN IF NOT EXISTS c_tipo_consulta varchar(40),
-    ADD COLUMN IF NOT EXISTS c_documento_consulta varchar(20),
+    ADD COLUMN IF NOT EXISTS c_documento_consulta varchar(60),
     ADD COLUMN IF NOT EXISTS c_nsu_entrada char(15),
     ADD COLUMN IF NOT EXISTS c_ver_aplic varchar(120),
     ADD COLUMN IF NOT EXISTS c_ult_nsu char(15),
     ADD COLUMN IF NOT EXISTS c_max_nsu char(15),
     ADD COLUMN IF NOT EXISTS t_xml_envelope text;
+
+ALTER TABLE public.t99007
+    ALTER COLUMN documento_consulta TYPE varchar(60),
+    ALTER COLUMN c_documento_consulta TYPE varchar(60);
 
 ALTER TABLE public.t99008
     ADD COLUMN IF NOT EXISTS c_caminho_origem varchar(255),

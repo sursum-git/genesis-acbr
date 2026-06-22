@@ -72,7 +72,7 @@ final class ApiExtractionProcessor
             }
         }
 
-        if ($requestBody !== '') {
+        if ($requestBody !== '' && (!$this->isNfeSendPath($path) || $nfeRows === [])) {
             $row = $this->extractSimpleNfeCandidate($requestBody, $baseContext);
             if ($row !== null) {
                 $nfeRows[] = $row;
@@ -84,7 +84,7 @@ final class ApiExtractionProcessor
             if ($fallbackKey !== null) {
                 $nfeRows[] = [
                     'ch_nfe' => $fallbackKey,
-                    'schema_name' => 'consulta_texto_fallback',
+                    'schema_name' => 'consulta_texto',
                     'schema_family' => 'resNFe',
                     'hash_xml' => hash('sha256', $fallbackKey),
                     'xml_descompactado' => $responseBody !== '' ? $responseBody : $requestBody,
@@ -1148,7 +1148,7 @@ final class ApiExtractionProcessor
 
         return match (true) {
             str_contains($lowerSchema, 'resnfe') || $rootName === 'resNFe' => 'resNFe',
-            str_contains($lowerSchema, 'procnfe') || $rootName === 'nfeProc' => 'procNFe',
+            str_contains($lowerSchema, 'procnfe') || in_array($rootName, ['nfeProc', 'NFe'], true) => 'procNFe',
             str_contains($lowerSchema, 'resevento') || $rootName === 'resEvento' => 'resEvento',
             str_contains($lowerSchema, 'proceventonfe') || $rootName === 'procEventoNFe' => 'procEventoNFe',
             str_contains($lowerSchema, 'procinutnfe') || in_array($rootName, ['ProcInutNFe', 'procInutNFe'], true) => 'procInutNFe',
@@ -1278,6 +1278,16 @@ final class ApiExtractionProcessor
     private function isNfeConsultPath(string $path): bool
     {
         return in_array($path, ['/nfe/consultas/consultar-com-chave', '/nfe/consultas/consultar-com-chave-xml'], true);
+    }
+
+    private function isNfeSendPath(string $path): bool
+    {
+        return in_array($path, [
+            '/nfe/envio/enviar-sincrono-xml',
+            '/nfe/envio/enviar-assincrono-xml',
+            '/nfe/envio/enviar-sincrono-ini',
+            '/nfe/envio/enviar-assincrono-ini',
+        ], true);
     }
 
     private function firstNonEmpty(?string ...$values): ?string

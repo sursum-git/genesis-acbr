@@ -13,6 +13,9 @@ Esta pasta foi separada em tres grupos:
   - `tpAmb` alterado para `2`
   - `emit/xNome` ajustado para `NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL`
   - `dest/xNome` ajustado para `NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL`
+  - remocao de `Signature`
+  - remocao de `protNFe`
+  - remocao do envelope `nfeProc`, deixando apenas a `NFe`
 
 ## Observacao importante
 

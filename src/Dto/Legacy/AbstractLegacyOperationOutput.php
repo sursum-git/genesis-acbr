@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Dto\Legacy;
 
 abstract class AbstractLegacyOperationOutput
@@ -20,11 +22,26 @@ abstract class AbstractLegacyOperationOutput
         ?string $received_at = null,
     ) {
         $this->resultado = $resultado;
-        $this->mensagem = $mensagem;
+        $this->mensagem = $this->normalizeMensagem($resultado, $mensagem);
         $this->request_id = $request_id ?? $this->extractString($resultado, 'request_id');
         $this->status = $status ?? $this->extractString($resultado, 'status');
         $this->endpoint = $endpoint ?? $this->extractString($resultado, 'endpoint');
         $this->received_at = $received_at ?? $this->extractString($resultado, 'received_at');
+    }
+
+    private function normalizeMensagem(?array $resultado, ?string $mensagem): ?string
+    {
+        if ($mensagem === null) {
+            return null;
+        }
+
+        $mensagemResultado = $this->extractString($resultado, 'mensagem');
+
+        if ($mensagemResultado !== null && $mensagemResultado === $mensagem) {
+            return null;
+        }
+
+        return $mensagem;
     }
 
     private function extractString(?array $payload, string $key): ?string

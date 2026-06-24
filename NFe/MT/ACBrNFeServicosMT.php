@@ -151,8 +151,10 @@ try {
 
         if (ConfigGravarValor($handle, $ffi, "DANFE", "PathLogo", $_POST['PathLogo']) != 0) exit;
         if (ConfigGravarValor($handle, $ffi, "DANFE", "TipoDANFE", $_POST['TipoDANFE']) != 0) exit;
-        // Mesmo caminho da pasta para salvar aquivos da NFe
-        if (ConfigGravarValor($handle, $ffi, "DANFE", "PathPDF", $_POST['PathNFe']) != 0) exit;
+        $pathPdf = isset($_POST['PathPDF']) && trim((string) $_POST['PathPDF']) !== ''
+            ? $_POST['PathPDF']
+            : rtrim((string) $_POST['PathNFe'], '/\\') . '/danfes';
+        if (ConfigGravarValor($handle, $ffi, "DANFE", "PathPDF", $pathPdf) != 0) exit;
 
         if (ConfigGravarValor($handle, $ffi, "DANFENFCe", "TipoRelatorioBobina", $_POST['TipoRelatorioBobina']) != 0) exit;
 

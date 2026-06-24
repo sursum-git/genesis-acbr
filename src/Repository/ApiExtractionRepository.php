@@ -397,8 +397,42 @@ final class ApiExtractionRepository
             ['t99008_id' => $documentId]
         );
 
+        if ($existingId === false && $row['ch_nfe'] !== null) {
+            $existingId = $this->auditConnection->fetchOne(
+                'SELECT id_t99019 FROM t99019 WHERE ch_nfe = :ch_nfe ORDER BY id_t99019 DESC LIMIT 1',
+                ['ch_nfe' => $row['ch_nfe']]
+            );
+        }
+
         if ($existingId === false) {
             $this->auditConnection->insert('t99019', ['t99008_id' => $documentId] + $row);
+
+            return (int) $this->auditConnection->lastInsertId();
+        }
+
+        $this->auditConnection->update('t99019', ['t99008_id' => $documentId] + $row, ['id_t99019' => (int) $existingId]);
+
+        return (int) $existingId;
+    }
+
+    public function upsertAuthorizedNfeArtifacts(string $accessKey, string $authorizedXml, ?string $danfePath): int
+    {
+        $this->ensureSchema();
+
+        $existingId = $this->auditConnection->fetchOne(
+            'SELECT id_t99019 FROM t99019 WHERE ch_nfe = :ch_nfe ORDER BY id_t99019 DESC LIMIT 1',
+            ['ch_nfe' => $accessKey]
+        );
+
+        $row = [
+            'ch_nfe' => $accessKey,
+            'xml_autorizado' => $authorizedXml,
+            'caminho_danfe' => $this->nullableTrim($danfePath),
+            'dt_hr_atu' => date('c'),
+        ];
+
+        if ($existingId === false) {
+            $this->auditConnection->insert('t99019', $row);
 
             return (int) $this->auditConnection->lastInsertId();
         }
@@ -974,6 +1008,8 @@ final class ApiExtractionRepository
             "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_hash_xml varchar(64)",
             "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_emit_cnpj_cpf varchar(14)",
             "ALTER TABLE t99008 ADD COLUMN IF NOT EXISTS c_dest_cnpj_cpf varchar(14)",
+            "ALTER TABLE t99019 ADD COLUMN IF NOT EXISTS xml_autorizado text",
+            "ALTER TABLE t99019 ADD COLUMN IF NOT EXISTS caminho_danfe varchar(500)",
         ];
 
         foreach ($statements as $statement) {
@@ -1282,6 +1318,8 @@ final class ApiExtractionRepository
                 ind_intermed varchar(10),
                 tp_nf smallint,
                 dig_val varchar(128),
+                xml_autorizado text,
+                caminho_danfe varchar(500),
                 dt_hr_atu timestamptz NOT NULL DEFAULT now()
             )
             SQL,

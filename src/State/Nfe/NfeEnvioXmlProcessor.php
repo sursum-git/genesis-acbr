@@ -8,6 +8,7 @@ use App\Dto\Nfe\NfeEnvioOutput;
 use App\Http\Exception\AcbrLegacyApiException;
 use App\Service\Api\ApiAsyncResponder;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
+use App\Service\Nfe\NfeAuthorizedArtifactService;
 use DOMDocument;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -17,6 +18,7 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
         private readonly AcbrLegacyScriptExecutor $executor,
         private readonly RequestStack $requestStack,
         private readonly ApiAsyncResponder $asyncResponder,
+        private readonly NfeAuthorizedArtifactService $artifactService,
     ) {
     }
 
@@ -85,9 +87,15 @@ final class NfeEnvioXmlProcessor implements ProcessorInterface
             }
         }
 
+        $artifacts = $this->artifactService->enrich($resultado);
+
         return new NfeEnvioOutput(
             $resultado,
-            isset($resultado['mensagem']) ? (string) $resultado['mensagem'] : null
+            isset($resultado['mensagem']) ? (string) $resultado['mensagem'] : null,
+            c_stat_receita: $artifacts['c_stat_receita'] ?? null,
+            xml_autorizado: $artifacts['xml_autorizado'] ?? null,
+            caminho_danfe: $artifacts['caminho_danfe'] ?? null,
+            danfe_base64: $artifacts['danfe_base64'] ?? null,
         );
     }
 

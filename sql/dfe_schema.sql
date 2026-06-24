@@ -573,6 +573,8 @@ CREATE TABLE IF NOT EXISTS public.t99019 (
     ind_intermed varchar(10),
     tp_nf smallint,
     dig_val varchar(128),
+    xml_autorizado text,
+    caminho_danfe varchar(500),
     dt_hr_atu timestamptz NOT NULL DEFAULT now()
 );
 
@@ -581,6 +583,33 @@ CREATE INDEX IF NOT EXISTS t99019_t99008_id_idx
 
 CREATE INDEX IF NOT EXISTS t99019_ch_nfe_idx
     ON public.t99019 (ch_nfe);
+
+CREATE TABLE IF NOT EXISTS public.t99034 (
+    id_t99034 bigserial PRIMARY KEY,
+    dt_inicio_vigencia timestamp NOT NULL,
+    dt_fim_vigencia timestamp NOT NULL,
+    c_codigos_sucesso_http varchar(255) NOT NULL,
+    c_codigos_sucesso_receita varchar(255) NOT NULL,
+    dt_hr_atu timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS t99034_vigencia_idx
+    ON public.t99034 (dt_inicio_vigencia, dt_fim_vigencia);
+
+INSERT INTO public.t99034 (
+    dt_inicio_vigencia,
+    dt_fim_vigencia,
+    c_codigos_sucesso_http,
+    c_codigos_sucesso_receita
+)
+SELECT
+    current_date::timestamp,
+    '2999-01-01 00:00:00'::timestamp,
+    '200,201',
+    '150'
+WHERE NOT EXISTS (
+    SELECT 1 FROM public.t99034
+);
 
 CREATE TABLE IF NOT EXISTS public.t99020 (
     id_t99020 bigserial PRIMARY KEY,

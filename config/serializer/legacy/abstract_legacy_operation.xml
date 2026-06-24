@@ -14,5 +14,17 @@
         <attribute name="mensagem">
             <group>acbr_legacy_operation:read</group>
         </attribute>
+        <attribute name="c_stat_receita">
+            <group>acbr_legacy_operation:read</group>
+        </attribute>
+        <attribute name="xml_autorizado">
+            <group>acbr_legacy_operation:read</group>
+        </attribute>
+        <attribute name="caminho_danfe">
+            <group>acbr_legacy_operation:read</group>
+        </attribute>
+        <attribute name="danfe_base64">
+            <group>acbr_legacy_operation:read</group>
+        </attribute>
     </class>
 </serializer>

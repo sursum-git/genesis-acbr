@@ -12,6 +12,10 @@ abstract class AbstractLegacyOperationOutput
     public ?string $status;
     public ?string $endpoint;
     public ?string $received_at;
+    public ?string $c_stat_receita;
+    public ?string $xml_autorizado;
+    public ?string $caminho_danfe;
+    public ?string $danfe_base64;
 
     public function __construct(
         ?array $resultado = null,
@@ -20,6 +24,10 @@ abstract class AbstractLegacyOperationOutput
         ?string $status = null,
         ?string $endpoint = null,
         ?string $received_at = null,
+        ?string $c_stat_receita = null,
+        ?string $xml_autorizado = null,
+        ?string $caminho_danfe = null,
+        ?string $danfe_base64 = null,
     ) {
         $this->resultado = $resultado;
         $this->mensagem = $this->normalizeMensagem($resultado, $mensagem);
@@ -27,6 +35,10 @@ abstract class AbstractLegacyOperationOutput
         $this->status = $status ?? $this->extractString($resultado, 'status');
         $this->endpoint = $endpoint ?? $this->extractString($resultado, 'endpoint');
         $this->received_at = $received_at ?? $this->extractString($resultado, 'received_at');
+        $this->c_stat_receita = $c_stat_receita;
+        $this->xml_autorizado = $xml_autorizado;
+        $this->caminho_danfe = $caminho_danfe;
+        $this->danfe_base64 = $danfe_base64;
     }
 
     private function normalizeMensagem(?array $resultado, ?string $mensagem): ?string

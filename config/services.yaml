@@ -40,6 +40,10 @@ services:
     arguments:
       $auditConnection: '@app.audit_connection'
 
+  App\Repository\ApiSuccessParameterRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
   App\Repository\ExecutionConfigRepository:
     arguments:
       $auditConnection: '@app.audit_connection'

@@ -42,7 +42,17 @@ assertSameValue($xmlPath, $locator->locateAuthorizedXmlPath($key), 'locator shou
 $pdfPath = $locator->extractPdfPath("Arquivo salvo em {$baseDir}/danfe/teste.pdf");
 assertSameValue("{$baseDir}/danfe/teste.pdf", $pdfPath, 'locator should extract the PDF path from legacy output.');
 
+$inlinePdf = "%PDF-1.3\n1 0 obj\n<<>>\nendobj\n";
+$inlinePdfBase64 = base64_encode($inlinePdf);
+assertSameValue($inlinePdf, $locator->extractPdfBinary($inlinePdfBase64), 'locator should decode inline base64 PDF payloads returned by ACBr.');
+assertSameValue(
+    $baseDir . '/danfes/32260406013812000158550030001955901308939122-danfe.pdf',
+    $locator->buildDanfePath($key),
+    'locator should build the dedicated DANFE output path from the access key.'
+);
+
 assertNullValue($locator->extractPdfPath('sem caminho de arquivo'), 'locator should return null when no PDF path is present.');
+assertNullValue($locator->extractPdfBinary('sem pdf em base64'), 'locator should return null when no inline PDF payload is present.');
 
 @unlink($xmlPath);
 @rmdir(dirname($xmlPath));

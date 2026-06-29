@@ -81,6 +81,33 @@ final class NfeAuthorizedArtifactLocator
         return null;
     }
 
+    public function extractPdfBinary(string $message): ?string
+    {
+        $message = trim($message);
+        if ($message === '') {
+            return null;
+        }
+
+        $normalized = preg_replace('/\s+/', '', $message);
+        if (!is_string($normalized) || $normalized === '') {
+            return null;
+        }
+
+        $decoded = base64_decode($normalized, true);
+        if (!is_string($decoded) || $decoded === '' || !str_starts_with($decoded, '%PDF-')) {
+            return null;
+        }
+
+        return $decoded;
+    }
+
+    public function buildDanfePath(string $accessKey): string
+    {
+        $accessKey = preg_replace('/\D+/', '', $accessKey) ?? '';
+
+        return rtrim($this->basePath, '/\\') . '/danfes/' . $accessKey . '-danfe.pdf';
+    }
+
     /**
      * @param array<string, mixed> $result
      * @return list<string>

@@ -63,23 +63,41 @@ final class NfeAuthorizedArtifactService
             $pdfResult = $this->executor->execute('NFe/MT/ACBrNFeServicosMT.php', 'SalvarPDF', [
                 'AeArquivoXmlNFe' => $xmlPath,
             ]);
-            $pdfPath = $this->artifactLocator->extractPdfPath((string) ($pdfResult['mensagem'] ?? ''));
-            if ($pdfPath === null || !is_file($pdfPath)) {
-                return $artifacts + ['xml_autorizado' => $xml];
+            $pdfMessage = (string) ($pdfResult['mensagem'] ?? '');
+            $pdfPath = $this->artifactLocator->extractPdfPath($pdfMessage);
+            $pdfBinary = null;
+
+            if ($pdfPath !== null && is_file($pdfPath)) {
+                $pdfBinary = @file_get_contents($pdfPath);
+            } else {
+                $pdfBinary = $this->artifactLocator->extractPdfBinary($pdfMessage);
+                if (is_string($pdfBinary) && $pdfBinary !== '') {
+                    $pdfPath = $this->artifactLocator->buildDanfePath($accessKey);
+                    $pdfDirectory = dirname($pdfPath);
+                    if (!is_dir($pdfDirectory) && !@mkdir($pdfDirectory, 0777, true) && !is_dir($pdfDirectory)) {
+                        $pdfPath = null;
+                    } elseif (@file_put_contents($pdfPath, $pdfBinary) === false) {
+                        $pdfPath = null;
+                    }
+                }
             }
 
-            $pdfBinary = @file_get_contents($pdfPath);
             if (!is_string($pdfBinary) || $pdfBinary === '') {
                 return $artifacts + ['xml_autorizado' => $xml];
             }
 
             $this->extractionRepository->upsertAuthorizedNfeArtifacts($accessKey, $xml, $pdfPath);
 
-            return $artifacts + [
+            $response = [
                 'xml_autorizado' => $xml,
-                'caminho_danfe' => $pdfPath,
                 'danfe_base64' => base64_encode($pdfBinary),
             ];
+
+            if (is_string($pdfPath) && $pdfPath !== '') {
+                $response['caminho_danfe'] = $pdfPath;
+            }
+
+            return $artifacts + $response;
         } catch (\Throwable) {
             return $artifacts + ['xml_autorizado' => $xml];
         }

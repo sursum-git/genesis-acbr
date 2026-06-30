@@ -72,11 +72,8 @@ final class NfeAuthorizedArtifactService
             } else {
                 $pdfBinary = $this->artifactLocator->extractPdfBinary($pdfMessage);
                 if (is_string($pdfBinary) && $pdfBinary !== '') {
-                    $pdfPath = $this->artifactLocator->buildDanfePath($accessKey);
-                    $pdfDirectory = dirname($pdfPath);
-                    if (!is_dir($pdfDirectory) && !@mkdir($pdfDirectory, 0777, true) && !is_dir($pdfDirectory)) {
-                        $pdfPath = null;
-                    } elseif (@file_put_contents($pdfPath, $pdfBinary) === false) {
+                    $pdfPath = $this->artifactLocator->resolveDanfePath($accessKey, $xmlPath);
+                    if (@file_put_contents($pdfPath, $pdfBinary) === false) {
                         $pdfPath = null;
                     }
                 }

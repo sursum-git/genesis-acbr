@@ -51,10 +51,18 @@ assertSameValue(
     'locator should build the dedicated DANFE output path from the access key.'
 );
 
+file_put_contents($baseDir . '/danfes', 'blocked');
+assertSameValue(
+    $baseDir . '/12345678000199/danfes/32260406013812000158550030001955901308939122-danfe.pdf',
+    $locator->resolveDanfePath($key, $xmlPath),
+    'locator should fall back to a writable danfes directory near the authorized XML when the default path is unavailable.'
+);
+
 assertNullValue($locator->extractPdfPath('sem caminho de arquivo'), 'locator should return null when no PDF path is present.');
 assertNullValue($locator->extractPdfBinary('sem pdf em base64'), 'locator should return null when no inline PDF payload is present.');
 
 @unlink($xmlPath);
+@unlink($baseDir . '/danfes');
 @rmdir(dirname($xmlPath));
 @rmdir(dirname(dirname($xmlPath)));
 @rmdir(dirname(dirname(dirname($xmlPath))));

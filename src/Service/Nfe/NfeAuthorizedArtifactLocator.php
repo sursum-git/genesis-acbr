@@ -6,9 +6,12 @@ namespace App\Service\Nfe;
 
 final class NfeAuthorizedArtifactLocator
 {
+    private readonly string $basePath;
+
     public function __construct(
-        private readonly string $basePath = __DIR__ . '/../../../NFe/arqs',
+        ?string $basePath = null,
     ) {
+        $this->basePath = $basePath ?? dirname(__DIR__, 3) . '/NFe/arqs';
     }
 
     /**
@@ -106,6 +109,43 @@ final class NfeAuthorizedArtifactLocator
         $accessKey = preg_replace('/\D+/', '', $accessKey) ?? '';
 
         return rtrim($this->basePath, '/\\') . '/danfes/' . $accessKey . '-danfe.pdf';
+    }
+
+    public function resolveDanfePath(string $accessKey, string $xmlPath): string
+    {
+        $preferredPath = $this->buildDanfePath($accessKey);
+        if ($this->ensureDirectory(dirname($preferredPath))) {
+            return $preferredPath;
+        }
+
+        $scopedPath = $this->buildScopedDanfePath($xmlPath, $accessKey);
+        if ($this->ensureDirectory(dirname($scopedPath))) {
+            return $scopedPath;
+        }
+
+        return $preferredPath;
+    }
+
+    private function buildScopedDanfePath(string $xmlPath, string $accessKey): string
+    {
+        $accessKey = preg_replace('/\D+/', '', $accessKey) ?? '';
+        $xmlPath = str_replace('\\', '/', $xmlPath);
+        $anchor = '/NFe/';
+        $position = strpos($xmlPath, $anchor);
+        $baseDirectory = $position === false
+            ? dirname($xmlPath)
+            : substr($xmlPath, 0, $position);
+
+        return rtrim($baseDirectory, '/\\') . '/danfes/' . $accessKey . '-danfe.pdf';
+    }
+
+    private function ensureDirectory(string $directory): bool
+    {
+        if (is_dir($directory)) {
+            return is_writable($directory);
+        }
+
+        return @mkdir($directory, 0777, true) || is_dir($directory);
     }
 
     /**

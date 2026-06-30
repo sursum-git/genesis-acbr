@@ -64,6 +64,10 @@ services:
     arguments:
       $auditConnection: '@app.audit_connection'
 
+  App\Repository\NfeMonitorRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
   App\Service\Api\ApiExecutionModeResolver:
     arguments:
       $defaultMode: '%env(string:API_EXECUTION_MODE_DEFAULT)%'

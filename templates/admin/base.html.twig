@@ -98,6 +98,12 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{{ app.request.basePath ~ '/index.php/monitor-envios-nfe' }}" class="nav-link{% if currentRoute == 'app_nfe_monitor' or currentRoute == 'app_nfe_monitor_output' %} active{% endif %}">
+                            <i class="nav-icon bi bi-receipt-cutoff"></i>
+                            <p>Monitor de envios NFe</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{{ app.request.basePath ~ '/index.php/assinantes' }}" class="nav-link{% if currentRoute == 'app_subscribers' %} active{% endif %}">
                             <i class="nav-icon bi bi-people"></i>
                             <p>Assinantes</p>

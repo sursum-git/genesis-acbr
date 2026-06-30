@@ -33,6 +33,11 @@
 */
 header('Content-Type: application/json; charset=UTF-8');
 
+function NovoBufferMensagem(int $size = 131072)
+{
+    return FFI::new(sprintf('char[%d]', $size));
+}
+
 function Inicializar($ffi, $iniPath)
 {
     $retorno = $ffi->NFE_Inicializar($iniPath, "");
@@ -112,7 +117,8 @@ function UltimoRetorno($ffi, $retornolib, &$sMensagem, $msgErro, $retMensagem = 
 {
     if (($retornolib !== 0) || ($retMensagem == 1)) {
         $esTamanho = FFI::new("long");
-        $esTamanho->cdata = 9048;
+        $esTamanho->cdata = 131072;
+        $sMensagem = NovoBufferMensagem((int) $esTamanho->cdata);
         $resposta = $ffi->NFE_UltimoRetorno($sMensagem, FFI::addr($esTamanho));
 
         if ($retornolib !== 0) {
@@ -752,8 +758,8 @@ function ImprimirPDF($ffi, &$retornoGeral)
 function SalvarPDF($ffi, &$retornoGeral)
 {
     $esTamanho = FFI::new("long");
-    $esTamanho->cdata = 9048;
-    $sMensagem = FFI::new("char[535]");
+    $esTamanho->cdata = 131072;
+    $sMensagem = NovoBufferMensagem((int) $esTamanho->cdata);
     $retorno = $ffi->NFE_SalvarPDF($sMensagem, FFI::addr($esTamanho));
 
     if ($retorno !== 0) {

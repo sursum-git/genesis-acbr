@@ -32,6 +32,8 @@ Estado atual consolidado:
 - os endpoints de envio e consulta de NFe ja alimentam as tabelas novas da nota
 - houve reorganizacao dos XMLs de amostra em `nfe_xmls/`
 - os XMLs convertidos para homologacao foram limpos para uso como XML de envio, sem autorizacao acoplada
+- o enriquecimento de envio autorizado ja retorna `xml_autorizado`, `danfe_base64` e `caminho_danfe`
+- o DANFE do fluxo sincrono voltou a ser salvo como PDF valido apos corrigir truncamento de buffer no wrapper `ACBr`
 
 ## Bancos de dados em uso
 
@@ -141,6 +143,14 @@ Observacao critica:
 - antes disso ele estava ligado na conexao errada e nao encontrava itens pendentes
 
 ## Fluxo operacional atual da API
+
+### Observacao recente sobre DANFE
+
+- o PDF do DANFE autorizado e salvo em `NFe/arqs/danfes/`
+- o XML autorizado continua salvo na estrutura padrao do `ACBr` em `NFe/arqs/<cnpj>/NFe/<yyyymm>/NFe/`
+- havia um defeito no wrapper `NFe/MT/ACBrNFeMT.php` e no equivalente `ST`: o codigo informava buffer de `9048` bytes ao `ACBr`, mas alocava apenas `535`
+- esse defeito truncava o retorno do `SalvarPDF`, gerando arquivo sem `startxref` e sem `%%EOF`
+- a correcao aumentou e alinhou o buffer para `131072`, eliminando o truncamento no retorno do DANFE
 
 ### Requisicao sincronica
 

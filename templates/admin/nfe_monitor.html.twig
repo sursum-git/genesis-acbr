@@ -1,0 +1,44 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Monitor de envios NFe{% endblock %}
+{% block page_heading %}Monitor de envios NFe{% endblock %}
+{% block heading_text %}Visao operacional dos ultimos 100 envios de NFe com status, erros, detalhe rapido e tela de saida.{% endblock %}
+
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ app.request.basePath ~ '/catalog-assets/kendo/styles/default-main.css' }}">
+    <link rel="stylesheet" href="{{ app.request.basePath ~ '/catalog-assets/monitor/nfe-monitor.css' }}">
+{% endblock %}
+
+{% block body %}
+    <section class="card border-0 shadow-sm">
+        <div class="card-body">
+            <div class="d-flex flex-column flex-lg-row align-items-lg-center justify-content-between gap-3 mb-4">
+                <div>
+                    <h2 class="h4 mb-1">Ultimos 100 registros de envio</h2>
+                    <p class="text-muted mb-0">A atualizacao desta tela e manual, via recarregamento da pagina.</p>
+                </div>
+                <div class="monitor-legend">
+                    <span class="badge text-bg-success">envio</span>
+                    <span class="badge text-bg-warning">processando</span>
+                    <span class="badge text-bg-danger">erro</span>
+                </div>
+            </div>
+
+            <div
+                id="nfe-monitor-app"
+                data-data-url="{{ dataUrl }}"
+                data-detail-url-template="{{ detailUrlTemplate }}"
+                data-output-url-template="{{ outputUrlTemplate }}"
+            >
+                <div id="nfe-monitor-grid"></div>
+                <div id="nfe-monitor-window" hidden></div>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="{{ app.request.basePath ~ '/catalog-assets/kendo/js/kendo.all.min.js' }}"></script>
+    <script src="{{ app.request.basePath ~ '/catalog-assets/monitor/nfe-monitor.js' }}"></script>
+{% endblock %}

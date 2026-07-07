@@ -121,6 +121,14 @@
                             <p>Auditoria analítica</p>
                         </a>
                     </li>
+
+                    <li class="nav-header">Monitores</li>
+                    <li class="nav-item">
+                        <a href="{{ app.request.basePath ~ '/index.php/monitor-saida-nfe' }}" class="nav-link{% if currentRoute == 'app_nfe_output_monitor' or currentRoute == 'app_nfe_output_monitor_detail' or currentRoute == 'app_nfe_output_monitor_danfe' or currentRoute == 'app_nfe_output_monitor_technical_detail' %} active{% endif %}">
+                            <i class="nav-icon bi bi-file-earmark-text"></i>
+                            <p>Monitor de saída NFe</p>
+                        </a>
+                    </li>
                 </ul>
             </nav>
         </div>

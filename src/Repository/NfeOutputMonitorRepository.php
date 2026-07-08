@@ -604,11 +604,11 @@ final class NfeOutputMonitorRepository
 
     private function displayClientName(string $name, string $document): string
     {
-        if ($this->isHomologationPlaceholder($name)) {
-            return $document;
+        if ($name !== '') {
+            return $name;
         }
 
-        return $name;
+        return $document;
     }
 
     private function displayIssuerName(string $name, string $document, string $subscriberName, string $subscriberIdentifier): string

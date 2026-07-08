@@ -275,6 +275,7 @@
     $grid.kendoGrid({
         dataSource: dataSource,
         height: gridHeight(),
+        toolbar: ['search'],
         sortable: true,
         groupable: true,
         resizable: true,
@@ -282,7 +283,7 @@
         scrollable: true,
         columnMenu: true,
         filterable: {
-            mode: 'row',
+            mode: 'menu, row',
             operators: {
                 string: {
                     contains: 'Contém'
@@ -311,6 +312,15 @@
         },
         noRecords: {
             template: 'Nenhuma nota encontrada para os filtros informados.'
+        },
+        search: {
+            fields: [
+                'numero_nota',
+                'cliente',
+                'emitente_nome',
+                'status_envio',
+                'chave_nfe'
+            ]
         },
         columns: [
             {

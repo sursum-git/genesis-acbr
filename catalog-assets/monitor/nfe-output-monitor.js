@@ -280,12 +280,7 @@
         resizable: true,
         reorderable: true,
         scrollable: true,
-        columnMenu: {
-            componentType: 'tabbed',
-            filterable: true,
-            sortable: true,
-            columns: true
-        },
+        columnMenu: true,
         filterable: {
             mode: 'row',
             operators: {

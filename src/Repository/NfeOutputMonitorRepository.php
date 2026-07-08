@@ -9,6 +9,7 @@ use Doctrine\DBAL\ParameterType;
 final class NfeOutputMonitorRepository
 {
     private const MAX_RECORDS = 100;
+    private const HOMOLOGATION_PLACEHOLDER = 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL';
 
     /**
      * @var array<string, bool>
@@ -72,6 +73,66 @@ final class NfeOutputMonitorRepository
         $detail['resposta_bruta'] = $this->stringOrEmpty($row['t_corpo_resposta'] ?? null);
 
         return $detail;
+    }
+
+    /**
+     * @return array{clientes:list<string>,emissores:list<string>,assinantes:list<string>}
+     */
+    public function filterOptions(): array
+    {
+        if (!$this->tableExists('t99001')) {
+            return [
+                'clientes' => [],
+                'emissores' => [],
+                'assinantes' => [],
+            ];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            $this->buildBaseSql() . "
+                WHERE t.c_cod_programa = :programa
+                  AND t.c_caminho LIKE :caminho
+                ORDER BY t.dt_hr_recebimento DESC, t.id_t99001 DESC
+                LIMIT " . self::MAX_RECORDS,
+            [
+                'programa' => 'nfe',
+                'caminho' => '/nfe/envio/%',
+            ]
+        );
+
+        $clientes = [];
+        $emissores = [];
+        $assinantes = [];
+
+        foreach ($rows as $row) {
+            $assinante = $this->extractSubscriber($row['t_assinante_json'] ?? null);
+            $cliente = $this->displayClientName(
+                $this->stringOrEmpty($row['cliente'] ?? null),
+                $this->stringOrEmpty($row['cliente_documento'] ?? null)
+            );
+            $emitente = $this->displayIssuerName(
+                $this->stringOrEmpty($row['emitente_nome'] ?? null),
+                $this->stringOrEmpty($row['emitente_documento'] ?? null),
+                $assinante['nome'],
+                $assinante['identificador']
+            );
+
+            $this->appendOption($clientes, $cliente);
+            $this->appendOption($emissores, $emitente);
+            $this->appendOption($assinantes, $assinante['nome']);
+            $this->appendOption($assinantes, $assinante['identificador']);
+        }
+
+        sort($clientes);
+        sort($emissores);
+        sort($assinantes);
+
+        return [
+            'clientes' => array_values(array_unique($clientes)),
+            'emissores' => array_values(array_unique($emissores)),
+            'assinantes' => array_values(array_unique($assinantes)),
+        ];
     }
 
     /**
@@ -147,7 +208,7 @@ final class NfeOutputMonitorRepository
 
         $issuer = trim((string) ($filters['emissor'] ?? ''));
         if ($issuer !== '') {
-            $where[] = '(COALESCE(emit.nome_razao_social, \'\') LIKE :emissor OR COALESCE(emit.cnpj, \'\') LIKE :emissor)';
+            $where[] = '(COALESCE(emit.nome_razao_social, \'\') LIKE :emissor OR COALESCE(emit.cnpj, \'\') LIKE :emissor OR COALESCE(t.t_assinante_json, \'\') LIKE :emissor)';
             $params['emissor'] = '%' . $issuer . '%';
         }
 
@@ -278,14 +339,26 @@ final class NfeOutputMonitorRepository
         $xmlCompleto = $this->extractAuthorizedXml($row['xml_autorizado'] ?? null, $row['t_corpo_resposta'] ?? null);
         $danfeBase64 = $this->extractDanfeBase64($row['t_corpo_resposta'] ?? null);
         $hasDanfe = $this->stringOrEmpty($row['caminho_danfe'] ?? null) !== '' || $danfeBase64 !== '';
+        $clienteDocumento = $this->stringOrEmpty($row['cliente_documento'] ?? null);
+        $emitenteDocumento = $this->stringOrEmpty($row['emitente_documento'] ?? null);
+        $cliente = $this->displayClientName(
+            $this->stringOrEmpty($row['cliente'] ?? null),
+            $clienteDocumento
+        );
+        $emitente = $this->displayIssuerName(
+            $this->stringOrEmpty($row['emitente_nome'] ?? null),
+            $emitenteDocumento,
+            $assinante['nome'],
+            $assinante['identificador']
+        );
 
         return [
             'request_id' => $requestId,
             'numero_nota' => $this->stringOrEmpty($row['numero_nota'] ?? null),
-            'cliente' => $this->stringOrEmpty($row['cliente'] ?? null),
-            'cliente_documento' => $this->stringOrEmpty($row['cliente_documento'] ?? null),
-            'emitente_nome' => $this->stringOrEmpty($row['emitente_nome'] ?? null),
-            'emitente_documento' => $this->stringOrEmpty($row['emitente_documento'] ?? null),
+            'cliente' => $cliente,
+            'cliente_documento' => $clienteDocumento,
+            'emitente_nome' => $emitente,
+            'emitente_documento' => $emitenteDocumento,
             'assinante_identificador' => $assinante['identificador'],
             'assinante_nome' => $assinante['nome'],
             'chave_nfe' => $this->stringOrEmpty($row['chave_nfe'] ?? null),
@@ -527,6 +600,46 @@ final class NfeOutputMonitorRepository
             ApiRequestStatus::NAO_AUTORIZADA => 'Nao autorizada',
             default => 'Recebida',
         };
+    }
+
+    private function displayClientName(string $name, string $document): string
+    {
+        if ($this->isHomologationPlaceholder($name)) {
+            return $document;
+        }
+
+        return $name;
+    }
+
+    private function displayIssuerName(string $name, string $document, string $subscriberName, string $subscriberIdentifier): string
+    {
+        if ($this->isHomologationPlaceholder($name)) {
+            return $subscriberName !== '' ? $subscriberName : $subscriberIdentifier;
+        }
+
+        if ($name !== '') {
+            return $name;
+        }
+
+        return $document;
+    }
+
+    private function isHomologationPlaceholder(string $value): bool
+    {
+        return mb_strtoupper(trim($value)) === self::HOMOLOGATION_PLACEHOLDER;
+    }
+
+    /**
+     * @param array<int, string> $options
+     */
+    private function appendOption(array &$options, string $value): void
+    {
+        $trimmed = trim($value);
+        if ($trimmed === '') {
+            return;
+        }
+
+        $options[] = $trimmed;
     }
 
     private function stringOrEmpty(mixed $value): string

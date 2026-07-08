@@ -20,7 +20,8 @@
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <span class="badge text-bg-primary">{{ detail.status_envio }}</span>
-                    <a class="btn btn-outline-secondary btn-sm" href="{{ app.request.basePath ~ '/index.php/monitor-saida-nfe/nota/' ~ detail.request_id }}">Voltar à visão do usuário</a>
+                    <a class="btn btn-outline-secondary btn-sm" href="{{ backUrl }}">Voltar</a>
+                    <a class="btn btn-outline-secondary btn-sm" href="{{ detailUrl }}">Visão do usuário</a>
                     {% if detail.xml_url %}
                         <a class="btn btn-primary btn-sm" href="{{ app.request.basePath ~ '/index.php' ~ detail.xml_url }}">XML completo</a>
                     {% endif %}

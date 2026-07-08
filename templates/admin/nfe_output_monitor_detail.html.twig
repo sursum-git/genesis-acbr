@@ -2,7 +2,7 @@
 
 {% block title %}Saída da NFe {{ detail.numero_nota ?: detail.request_id }}{% endblock %}
 {% block page_heading %}Saída da NFe{% endblock %}
-{% block heading_text %}Visualização da nota em HTML para consulta do usuário final.{% endblock %}
+{% block heading_text %}{% endblock %}
 
 {% block page_styles %}
     <link rel="stylesheet" href="{{ app.request.basePath ~ '/catalog-assets/kendo/styles/default-main.css' }}">
@@ -19,10 +19,8 @@
                     <p class="text-muted mb-0">{{ detail.cliente ?: 'Destinatário não identificado' }}</p>
                 </div>
                 <div class="d-flex flex-wrap align-items-center gap-2">
+                    <a class="btn btn-outline-secondary btn-sm" href="{{ backUrl }}">Voltar</a>
                     <span class="badge text-bg-primary">{{ detail.status_envio }}</span>
-                    {% if detail.danfe_url %}
-                        <a class="btn btn-outline-primary btn-sm" href="{{ app.request.basePath ~ '/index.php' ~ detail.danfe_url }}" target="_blank" rel="noreferrer">DANFE</a>
-                    {% endif %}
                     {% if detail.xml_url %}
                         <a class="btn btn-primary btn-sm" href="{{ app.request.basePath ~ '/index.php' ~ detail.xml_url }}">XML</a>
                     {% endif %}
@@ -40,7 +38,7 @@
                     <dl class="row mb-0 monitor-dl">
                         <dt class="col-sm-4">Razão social</dt><dd class="col-sm-8">{{ detail.emitente_nome ?: '-' }}</dd>
                         <dt class="col-sm-4">Documento</dt><dd class="col-sm-8">{{ detail.emitente_documento ?: '-' }}</dd>
-                        <dt class="col-sm-4">Emissão</dt><dd class="col-sm-8">{{ detail.data_emissao ?: '-' }}</dd>
+                        <dt class="col-sm-4">Emissão</dt><dd class="col-sm-8">{% if detail.data_emissao %}{{ detail.data_emissao|date('d/m/Y H:i') }}{% else %}-{% endif %}</dd>
                     </dl>
                 </div>
             </section>
@@ -66,8 +64,8 @@
                 <div class="card-body">
                     <dl class="row mb-0 monitor-dl">
                         <dt class="col-sm-5">Número</dt><dd class="col-sm-7">{{ detail.numero_nota ?: '-' }}</dd>
-                        <dt class="col-sm-5">Envio</dt><dd class="col-sm-7">{{ detail.data_envio ?: '-' }}</dd>
-                        <dt class="col-sm-5">Valor total</dt><dd class="col-sm-7">{{ detail.valor_total ?: '-' }}</dd>
+                        <dt class="col-sm-5">Envio</dt><dd class="col-sm-7">{% if detail.data_envio %}{{ detail.data_envio|date('d/m/Y H:i') }}{% else %}-{% endif %}</dd>
+                        <dt class="col-sm-5">Valor total</dt><dd class="col-sm-7">{% if detail.valor_total %}{{ detail.valor_total|number_format(2, ',', '.') }}{% else %}-{% endif %}</dd>
                         <dt class="col-sm-5">Assinante</dt><dd class="col-sm-7">{{ detail.assinante_nome ?: detail.assinante_identificador ?: '-' }}</dd>
                     </dl>
                 </div>
@@ -82,9 +80,7 @@
                             {% if imposto %}
                                 <div class="monitor-tax-card">
                                     <div class="monitor-tax-title">{{ nome }}</div>
-                                    <div>Base: {{ imposto.base_calculo ?: '-' }}</div>
-                                    <div>Alíquota: {{ imposto.aliquota ?: '-' }}</div>
-                                    <div>Valor: {{ imposto.valor ?: '-' }}</div>
+                                    <div>Valor: {% if imposto.valor %}{{ imposto.valor|number_format(2, ',', '.') }}{% else %}-{% endif %}</div>
                                 </div>
                             {% endif %}
                         {% endfor %}

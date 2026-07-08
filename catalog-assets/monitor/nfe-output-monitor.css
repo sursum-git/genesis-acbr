@@ -103,6 +103,11 @@
     z-index: 20050 !important;
 }
 
+.k-grid-columnmenu-popup,
+.k-column-menu.k-popup {
+    min-width: 18rem;
+}
+
 .monitor-filter-open .k-animation-container,
 .monitor-filter-open .k-popup,
 .monitor-filter-open .k-calendar-container {

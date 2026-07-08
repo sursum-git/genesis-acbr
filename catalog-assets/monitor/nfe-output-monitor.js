@@ -281,7 +281,16 @@
         resizable: true,
         reorderable: true,
         scrollable: true,
-        columnMenu: true,
+        columnMenu: {
+            componentType: 'modern',
+            columns: true,
+            sortable: true,
+            filterable: true,
+            groupable: true,
+            reorderable: true,
+            autoSize: true,
+            clearAllFilters: true
+        },
         filterable: {
             mode: 'menu, row',
             operators: {

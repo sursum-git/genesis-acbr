@@ -108,8 +108,12 @@ final class NfeOutputMonitorRepository
         foreach ($rows as $row) {
             $assinante = $this->extractSubscriber($row['t_assinante_json'] ?? null);
             $cliente = $this->displayClientName(
+                $this->stringOrEmpty($row['cliente_xml_nome'] ?? null),
                 $this->stringOrEmpty($row['cliente'] ?? null),
-                $this->stringOrEmpty($row['cliente_documento'] ?? null)
+                $this->firstNonEmpty(
+                    $this->stringOrEmpty($row['cliente_xml_documento'] ?? null),
+                    $this->stringOrEmpty($row['cliente_documento'] ?? null)
+                )
             );
             $emitente = $this->displayIssuerName(
                 $this->stringOrEmpty($row['emitente_nome'] ?? null),
@@ -171,7 +175,7 @@ final class NfeOutputMonitorRepository
 
         $cliente = trim((string) ($filters['cliente'] ?? ''));
         if ($cliente !== '') {
-            $where[] = '(COALESCE(dest.nome_razao_social, \'\') LIKE :cliente OR COALESCE(dest.cnpj, \'\') LIKE :cliente)';
+            $where[] = "(COALESCE(dest_xml.x_nome, '') LIKE :cliente OR COALESCE(dest.nome_razao_social, '') LIKE :cliente OR COALESCE(dest_xml.cnpj, '') LIKE :cliente OR COALESCE(dest_xml.cpf, '') LIKE :cliente OR COALESCE(dest.cnpj, '') LIKE :cliente)";
             $params['cliente'] = '%' . $cliente . '%';
         }
 
@@ -221,6 +225,7 @@ final class NfeOutputMonitorRepository
         $hasT99019 = $this->tableExists('t99019');
         $hasT99020 = $this->tableExists('t99020');
         $hasT99021 = $this->tableExists('t99021');
+        $hasT99012 = $this->tableExists('t99012');
         $hasT99023 = $this->tableExists('t99023');
         $hasT99024 = $this->tableExists('t99024');
         $hasT99032 = $this->tableExists('t99032');
@@ -240,8 +245,11 @@ final class NfeOutputMonitorRepository
         $issuerJoin = $hasT99020 ? 'LEFT JOIN t99020 emit ON emit.id_t99020 = rel_emit.t99020_id' : '';
         $destPivotJoin = $hasT99024 ? 'LEFT JOIN t99024 rel_dest ON rel_dest.t99019_id = n.id_t99019' : '';
         $destJoin = $hasT99021 ? 'LEFT JOIN t99021 dest ON dest.id_t99021 = rel_dest.t99021_id' : '';
+        $destExtractJoin = $hasT99012 ? 'LEFT JOIN t99012 dest_xml ON dest_xml.t99008_id = last_doc.last_t99008_id' : '';
         $issuerNameSelect = ($hasT99020 && $hasT99023) ? 'emit.nome_razao_social AS emitente_nome' : "'' AS emitente_nome";
         $issuerDocumentSelect = ($hasT99020 && $hasT99023) ? 'emit.cnpj AS emitente_documento' : "'' AS emitente_documento";
+        $clientExtractNameSelect = $hasT99012 ? 'dest_xml.x_nome AS cliente_xml_nome' : "'' AS cliente_xml_nome";
+        $clientExtractDocumentSelect = $hasT99012 ? "COALESCE(dest_xml.cnpj, dest_xml.cpf, dest_xml.id_estrangeiro, '') AS cliente_xml_documento" : "'' AS cliente_xml_documento";
         $taxJoin = ($hasT99032 && $hasT99033) ? <<<'SQL'
             LEFT JOIN (
                 SELECT
@@ -294,6 +302,8 @@ final class NfeOutputMonitorRepository
                 n.caminho_danfe,
                 {$issuerNameSelect},
                 {$issuerDocumentSelect},
+                {$clientExtractNameSelect},
+                {$clientExtractDocumentSelect},
                 dest.nome_razao_social AS cliente,
                 dest.cnpj AS cliente_documento,
                 taxes.icms_valor,
@@ -324,6 +334,7 @@ final class NfeOutputMonitorRepository
             {$issuerJoin}
             {$destPivotJoin}
             {$destJoin}
+            {$destExtractJoin}
             {$taxJoin}
         SQL;
     }
@@ -339,9 +350,13 @@ final class NfeOutputMonitorRepository
         $xmlCompleto = $this->extractAuthorizedXml($row['xml_autorizado'] ?? null, $row['t_corpo_resposta'] ?? null);
         $danfeBase64 = $this->extractDanfeBase64($row['t_corpo_resposta'] ?? null);
         $hasDanfe = $this->stringOrEmpty($row['caminho_danfe'] ?? null) !== '' || $danfeBase64 !== '';
-        $clienteDocumento = $this->stringOrEmpty($row['cliente_documento'] ?? null);
+        $clienteDocumento = $this->firstNonEmpty(
+            $this->stringOrEmpty($row['cliente_xml_documento'] ?? null),
+            $this->stringOrEmpty($row['cliente_documento'] ?? null)
+        );
         $emitenteDocumento = $this->stringOrEmpty($row['emitente_documento'] ?? null);
         $cliente = $this->displayClientName(
+            $this->stringOrEmpty($row['cliente_xml_nome'] ?? null),
             $this->stringOrEmpty($row['cliente'] ?? null),
             $clienteDocumento
         );
@@ -602,10 +617,22 @@ final class NfeOutputMonitorRepository
         };
     }
 
-    private function displayClientName(string $name, string $document): string
+    private function displayClientName(string $xmlName, string $linkedName, string $document): string
     {
-        if ($name !== '') {
-            return $name;
+        if ($xmlName !== '' && !$this->isHomologationPlaceholder($xmlName)) {
+            return $xmlName;
+        }
+
+        if ($linkedName !== '' && !$this->isHomologationPlaceholder($linkedName)) {
+            return $linkedName;
+        }
+
+        if ($xmlName !== '') {
+            return $xmlName;
+        }
+
+        if ($linkedName !== '') {
+            return $linkedName;
         }
 
         return $document;
@@ -640,6 +667,17 @@ final class NfeOutputMonitorRepository
         }
 
         $options[] = $trimmed;
+    }
+
+    private function firstNonEmpty(string ...$values): string
+    {
+        foreach ($values as $value) {
+            if (trim($value) !== '') {
+                return trim($value);
+            }
+        }
+
+        return '';
     }
 
     private function stringOrEmpty(mixed $value): string

@@ -30,6 +30,7 @@ $connection->executeStatement('CREATE TABLE t99008 (id_t99008 INTEGER PRIMARY KE
 $connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, t99008_id INTEGER, ch_nfe TEXT, n_nf TEXT, dh_emi TEXT, v_nf TEXT, xml_autorizado TEXT, caminho_danfe TEXT)');
 $connection->executeStatement('CREATE TABLE t99020 (id_t99020 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
 $connection->executeStatement('CREATE TABLE t99021 (id_t99021 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
+$connection->executeStatement('CREATE TABLE t99012 (t99008_id INTEGER PRIMARY KEY, cnpj TEXT, cpf TEXT, id_estrangeiro TEXT, x_nome TEXT)');
 $connection->executeStatement('CREATE TABLE t99023 (id_t99023 INTEGER PRIMARY KEY AUTOINCREMENT, t99019_id INTEGER, t99020_id INTEGER)');
 $connection->executeStatement('CREATE TABLE t99024 (id_t99024 INTEGER PRIMARY KEY AUTOINCREMENT, t99019_id INTEGER, t99021_id INTEGER)');
 $connection->executeStatement('CREATE TABLE t99026 (id_t99026 INTEGER PRIMARY KEY AUTOINCREMENT, t99019_id INTEGER, num INTEGER, descricao TEXT, qtd TEXT, quantidade_comercial TEXT, unidade_comercial TEXT, valor TEXT, valor_unitario_comercializacao TEXT, codigo_produto TEXT, codigo_ncm TEXT, cfop TEXT, valor_desconto TEXT, valor_total_frete TEXT, valor_seguro TEXT, valor_aproximado_tributos TEXT)');
@@ -42,7 +43,8 @@ $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (1, 'req-ok', 'procNFe')");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (1, 1, '35123456789012345678901234567890123456789012', '123', '2026-07-03 09:59:00', '155.40', '<xml>ok</xml>', '/tmp/danfe-ok.pdf')");
 $connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (1, 'EMITENTE A', '11111111000111')");
-$connection->executeStatement("INSERT INTO t99021 (id_t99021, nome_razao_social, cnpj) VALUES (1, 'ACME LTDA', '12345678000199')");
+$connection->executeStatement("INSERT INTO t99021 (id_t99021, nome_razao_social, cnpj) VALUES (1, 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL', '12345678000199')");
+$connection->executeStatement("INSERT INTO t99012 (t99008_id, cnpj, x_nome) VALUES (1, '12345678000199', 'ACME LTDA')");
 $connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (1, 1)");
 $connection->executeStatement("INSERT INTO t99024 (t99019_id, t99021_id) VALUES (1, 1)");
 $connection->executeStatement("INSERT INTO t99026 (id_t99026, t99019_id, num, descricao, quantidade_comercial, unidade_comercial, valor, valor_unitario_comercializacao, codigo_produto, codigo_ncm, cfop, valor_aproximado_tributos) VALUES (1, 1, 1, 'Produto teste', '2.0000', 'UN', '155.40', '77.70', 'SKU1', '1234', '5102', '12.34')");
@@ -92,6 +94,7 @@ assertSameValue('FOO SA', $rows[1]['cliente'], 'Grid should expose customer.');
 assertSameValue('Falha', $rows[1]['status_envio'], 'Grid should expose failed transmission status.');
 assertSameValue('', $rows[1]['danfe_url'], 'Grid should expose empty DANFE link when unavailable.');
 assertSameValue('18.00', $rows[2]['impostos']['ICMS']['valor'] ?? null, 'Grid should expose ICMS total.');
+assertSameValue('ACME LTDA', $rows[2]['cliente'], 'Grid should prefer extracted customer name when link table contains homologation placeholder.');
 assertSameValue('7.60', $rows[2]['impostos']['COFINS']['valor'] ?? null, 'Grid should expose COFINS total.');
 assertSameValue('1.65', $rows[2]['impostos']['PIS']['valor'] ?? null, 'Grid should expose PIS total.');
 assertSameValue('0.30', $rows[2]['impostos']['IBS']['valor'] ?? null, 'Grid should expose IBS total aggregated from IBSUF and IBSMUN.');
@@ -113,6 +116,7 @@ assertSameValue('/monitor-saida-nfe/xml/req-ok', $detail['xml_url'], 'Detail sho
 assertSameValue('<xml>ok</xml>', $detail['xml_autorizado'], 'Detail should expose XML content.');
 assertSameValue('18.00', $detail['impostos']['ICMS']['valor'] ?? null, 'Detail should expose ICMS total.');
 assertSameValue('EMITENTE A', $detail['emitente_nome'], 'Detail should expose issuer.');
+assertSameValue('ACME LTDA', $detail['cliente'], 'Detail should prefer extracted customer name.');
 assertSameValue('Cliente A', $detail['assinante_nome'], 'Detail should expose subscriber name.');
 assertSameValue(1, count($detail['itens'] ?? []), 'Detail should expose note items.');
 assertSameValue('Produto teste', $detail['itens'][0]['descricao'] ?? null, 'Detail should expose item description.');

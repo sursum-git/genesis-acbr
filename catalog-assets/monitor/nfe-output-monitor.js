@@ -17,6 +17,10 @@
     const $openFilters = $('#open-nfe-output-filters');
     const $clearFilters = $('#clear-nfe-output-filters');
     let cachedFilterOptions = null;
+    let activeColumnField = '';
+    let activeColumnTitle = '';
+    let activeColumnHeader = null;
+    let columnPopup = null;
 
     function buildDetailUrl(requestId) {
         return detailUrlTemplate.replace('__REQUEST_ID__', encodeURIComponent(requestId));
@@ -233,6 +237,143 @@
         return Math.max(460, viewportHeight - topOffset - 36);
     }
 
+    function currentGridColumns(grid) {
+        return grid.columns.filter(function (column) {
+            return !!column.field && column.columnMenu !== false;
+        });
+    }
+
+    function findGridColumn(grid, field) {
+        return currentGridColumns(grid).find(function (column) {
+            return column.field === field;
+        }) || null;
+    }
+
+    function renderColumnPopup(grid) {
+        const groupedFields = (grid.dataSource.group() || []).map(function (group) {
+            return group.field;
+        });
+        const columnsMarkup = currentGridColumns(grid).map(function (column) {
+            const title = escapeHtml(column.title || column.field || '');
+            const field = escapeHtml(column.field || '');
+            const hidden = column.hidden ? '' : ' checked';
+            return '<label class="monitor-column-menu-check"><input type="checkbox" data-column-field="' + field + '"' + hidden + '> ' + title + '</label>';
+        }).join('');
+        const isGrouped = groupedFields.indexOf(activeColumnField) >= 0;
+
+        return '' +
+            '<div class="monitor-column-menu">' +
+                '<div class="monitor-column-menu-title">' + escapeHtml(activeColumnTitle) + '</div>' +
+                '<div class="monitor-column-menu-actions">' +
+                    '<button type="button" class="k-button k-button-flat k-button-flat-base monitor-column-action" data-action="sort-asc">Ordenar ascendente</button>' +
+                    '<button type="button" class="k-button k-button-flat k-button-flat-base monitor-column-action" data-action="sort-desc">Ordenar descendente</button>' +
+                    '<button type="button" class="k-button k-button-flat k-button-flat-base monitor-column-action" data-action="' + (isGrouped ? 'ungroup' : 'group') + '">' + (isGrouped ? 'Remover agrupamento' : 'Agrupar por coluna') + '</button>' +
+                    '<button type="button" class="k-button k-button-flat k-button-flat-base monitor-column-action" data-action="move-prev">Mover para a esquerda</button>' +
+                    '<button type="button" class="k-button k-button-flat k-button-flat-base monitor-column-action" data-action="move-next">Mover para a direita</button>' +
+                '</div>' +
+                '<div class="monitor-column-menu-section">' +
+                    '<div class="monitor-column-menu-subtitle">Colunas visíveis</div>' +
+                    '<div class="monitor-column-menu-columns">' + columnsMarkup + '</div>' +
+                '</div>' +
+            '</div>';
+    }
+
+    function ensureColumnPopup() {
+        if (columnPopup) {
+            return columnPopup;
+        }
+
+        if (!document.getElementById('nfe-output-column-popup')) {
+            $('body').append('<div id="nfe-output-column-popup" style="display:none;"></div>');
+        }
+
+        columnPopup = $('#nfe-output-column-popup').kendoPopup({
+            animation: false,
+            anchor: $('body'),
+            origin: 'top right',
+            position: 'bottom right'
+        }).data('kendoPopup');
+
+        if (columnPopup && columnPopup.wrapper) {
+            columnPopup.wrapper.addClass('monitor-column-popup-wrapper');
+        }
+
+        return columnPopup;
+    }
+
+    function updateGrouping(grid, field, shouldGroup) {
+        const groups = (grid.dataSource.group() || []).slice();
+        const existingIndex = groups.findIndex(function (group) {
+            return group.field === field;
+        });
+
+        if (shouldGroup && existingIndex === -1) {
+            groups.push({ field: field });
+        }
+
+        if (!shouldGroup && existingIndex >= 0) {
+            groups.splice(existingIndex, 1);
+        }
+
+        grid.dataSource.group(groups);
+    }
+
+    function moveActiveColumn(grid, shouldMovePrev) {
+        if (!activeColumnHeader || typeof grid._moveColumn !== 'function') {
+            return;
+        }
+
+        grid._moveColumn(activeColumnHeader, shouldMovePrev);
+    }
+
+    function openColumnPopup(grid, trigger, field, title, headerElement) {
+        activeColumnField = field;
+        activeColumnTitle = title;
+        activeColumnHeader = headerElement;
+
+        const popup = ensureColumnPopup();
+        popup.element.html(renderColumnPopup(grid));
+        popup.setOptions({
+            anchor: trigger
+        });
+        popup.open();
+    }
+
+    function attachHeaderColumnMenus(grid) {
+        const headerCells = grid.thead.find('th[data-field]');
+        headerCells.each(function () {
+            const $header = $(this);
+            const field = $header.data('field');
+            if (!field || $header.find('.monitor-column-trigger').length) {
+                return;
+            }
+
+            const column = findGridColumn(grid, field);
+            if (!column || column.columnMenu === false) {
+                return;
+            }
+
+            let $inner = $header.find('.k-cell-inner');
+            if (!$inner.length) {
+                $header.wrapInner('<span class="k-cell-inner"></span>');
+                $inner = $header.find('.k-cell-inner');
+            }
+
+            const title = column.title || field;
+            const buttonHtml = '' +
+                '<button type="button" class="k-button k-button-flat k-button-flat-base k-icon-button monitor-column-trigger" aria-label="Menu da coluna">' +
+                    window.kendo.ui.icon('more-vertical') +
+                '</button>';
+            $inner.append(buttonHtml);
+
+            $inner.find('.monitor-column-trigger').last().on('click', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                openColumnPopup(grid, $(this), field, title, $header);
+            });
+        });
+    }
+
     const filterWindow = initializeFilterWindow();
 
     const dataSource = new window.kendo.data.DataSource({
@@ -281,16 +422,7 @@
         resizable: true,
         reorderable: true,
         scrollable: true,
-        columnMenu: {
-            componentType: 'modern',
-            columns: true,
-            sortable: true,
-            filterable: true,
-            groupable: true,
-            reorderable: true,
-            autoSize: true,
-            clearAllFilters: true
-        },
+        columnMenu: false,
         filterable: {
             mode: 'menu, row',
             operators: {
@@ -330,6 +462,9 @@
                 'status_envio',
                 'chave_nfe'
             ]
+        },
+        dataBound: function () {
+            attachHeaderColumnMenus(this);
         },
         columns: [
             {
@@ -390,6 +525,60 @@
     });
 
     const grid = $grid.data('kendoGrid');
+
+    $(document).on('click', '.monitor-column-action', function (event) {
+        event.preventDefault();
+        const action = $(this).data('action');
+
+        if (!activeColumnField) {
+            return;
+        }
+
+        if (action === 'sort-asc') {
+            grid.dataSource.sort([{ field: activeColumnField, dir: 'asc' }]);
+        } else if (action === 'sort-desc') {
+            grid.dataSource.sort([{ field: activeColumnField, dir: 'desc' }]);
+        } else if (action === 'group') {
+            updateGrouping(grid, activeColumnField, true);
+        } else if (action === 'ungroup') {
+            updateGrouping(grid, activeColumnField, false);
+        } else if (action === 'move-prev') {
+            moveActiveColumn(grid, true);
+        } else if (action === 'move-next') {
+            moveActiveColumn(grid, false);
+        }
+
+        if (columnPopup) {
+            columnPopup.close();
+        }
+    });
+
+    $(document).on('change', '[data-column-field]', function () {
+        const field = $(this).data('column-field');
+        const column = findGridColumn(grid, field);
+        if (!column) {
+            return;
+        }
+
+        if (this.checked) {
+            grid.showColumn(column);
+        } else {
+            grid.hideColumn(column);
+        }
+    });
+
+    $(document).on('click', function (event) {
+        if (!columnPopup || !columnPopup.visible()) {
+            return;
+        }
+
+        const $target = $(event.target);
+        if ($target.closest('#nfe-output-column-popup').length || $target.closest('.monitor-column-trigger').length) {
+            return;
+        }
+
+        columnPopup.close();
+    });
 
     $(window).on('resize', function () {
         grid.setOptions({

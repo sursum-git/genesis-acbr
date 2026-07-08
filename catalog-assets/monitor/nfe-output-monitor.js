@@ -20,7 +20,6 @@
     let activeColumnField = '';
     let activeColumnTitle = '';
     let activeColumnHeader = null;
-    let columnPopup = null;
 
     function buildDetailUrl(requestId) {
         return detailUrlTemplate.replace('__REQUEST_ID__', encodeURIComponent(requestId));
@@ -279,26 +278,11 @@
     }
 
     function ensureColumnPopup() {
-        if (columnPopup) {
-            return columnPopup;
-        }
-
         if (!document.getElementById('nfe-output-column-popup')) {
             $('body').append('<div id="nfe-output-column-popup" style="display:none;"></div>');
         }
 
-        columnPopup = $('#nfe-output-column-popup').kendoPopup({
-            animation: false,
-            anchor: $('body'),
-            origin: 'top right',
-            position: 'bottom right'
-        }).data('kendoPopup');
-
-        if (columnPopup && columnPopup.wrapper) {
-            columnPopup.wrapper.addClass('monitor-column-popup-wrapper');
-        }
-
-        return columnPopup;
+        return $('#nfe-output-column-popup');
     }
 
     function updateGrouping(grid, field, shouldGroup) {
@@ -331,12 +315,22 @@
         activeColumnTitle = title;
         activeColumnHeader = headerElement;
 
-        const popup = ensureColumnPopup();
-        popup.element.html(renderColumnPopup(grid));
-        popup.setOptions({
-            anchor: trigger
+        const $popup = ensureColumnPopup();
+        const triggerOffset = trigger.offset();
+        const triggerHeight = trigger.outerHeight() || 0;
+        const triggerWidth = trigger.outerWidth() || 0;
+
+        $popup.html(renderColumnPopup(grid));
+        $popup.css({
+            display: 'block',
+            position: 'absolute',
+            top: (triggerOffset.top + triggerHeight + 6) + 'px',
+            left: Math.max(12, triggerOffset.left + triggerWidth - 304) + 'px'
         });
-        popup.open();
+    }
+
+    function closeColumnPopup() {
+        ensureColumnPopup().hide().empty();
     }
 
     function attachHeaderColumnMenus(grid) {
@@ -548,9 +542,7 @@
             moveActiveColumn(grid, false);
         }
 
-        if (columnPopup) {
-            columnPopup.close();
-        }
+        closeColumnPopup();
     });
 
     $(document).on('change', '[data-column-field]', function () {
@@ -568,7 +560,8 @@
     });
 
     $(document).on('click', function (event) {
-        if (!columnPopup || !columnPopup.visible()) {
+        const $popup = $('#nfe-output-column-popup');
+        if (!$popup.length || !$popup.is(':visible')) {
             return;
         }
 
@@ -577,7 +570,7 @@
             return;
         }
 
-        columnPopup.close();
+        closeColumnPopup();
     });
 
     $(window).on('resize', function () {

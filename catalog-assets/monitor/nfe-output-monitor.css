@@ -115,12 +115,10 @@
     padding: 0;
 }
 
-.monitor-column-popup-wrapper {
-    z-index: 20070 !important;
-}
-
 #nfe-output-column-popup {
     min-width: 19rem;
+    max-width: 22rem;
+    z-index: 20070;
 }
 
 .monitor-column-menu {

@@ -330,7 +330,7 @@ final class NfeOutputMonitorRepository
      */
     private function searchSubscriberOptions(string $query): array
     {
-        if (!$this->tableExists('t99001')) {
+        if (!$this->tableExists('t00002')) {
             return [];
         }
 
@@ -340,29 +340,24 @@ final class NfeOutputMonitorRepository
         /** @var list<array<string, mixed>> $rows */
         $rows = $this->auditConnection->fetchAllAssociative(
             "
-                SELECT t_assinante_json
-                FROM t99001
-                WHERE c_cod_programa = :programa
-                  AND c_caminho LIKE :caminho
-                  AND COALESCE(t_assinante_json, '') <> ''
-                  AND COALESCE(t_assinante_json, '') LIKE :query
-                ORDER BY dt_hr_recebimento DESC, id_t99001 DESC
-                LIMIT 50
+                SELECT c_nome, c_identificador
+                FROM public.t00002
+                WHERE COALESCE(c_nome, '') LIKE :query
+                   OR COALESCE(c_identificador, '') LIKE :query
+                ORDER BY c_nome ASC, c_identificador ASC
+                LIMIT 20
             ",
             [
-                'programa' => 'nfe',
-                'caminho' => '/nfe/envio/%',
                 'query' => $like,
             ]
         );
 
         foreach ($rows as $row) {
-            $assinante = $this->extractSubscriber($row['t_assinante_json'] ?? null);
-            $this->appendOption($options, $assinante['nome']);
-            $this->appendOption($options, $assinante['identificador']);
+            $this->appendOption($options, $this->stringOrEmpty($row['c_nome'] ?? null));
+            $this->appendOption($options, $this->stringOrEmpty($row['c_identificador'] ?? null));
         }
 
-        return array_slice(array_values(array_unique($options)), 0, 20);
+        return array_values(array_unique($options));
     }
 
     private function buildBaseSql(): string

@@ -17,10 +17,14 @@
     const $filterWindow = $('#nfe-output-filter-window');
     const $openFilters = $('#open-nfe-output-filters');
     const $clearFilters = $('#clear-nfe-output-filters');
-    let cachedFilterOptions = null;
     let activeColumnField = '';
     let activeColumnTitle = '';
     let activeColumnHeader = null;
+    let lookupWindow = null;
+    let lookupGrid = null;
+    let lookupActiveTarget = null;
+    let lookupActiveType = '';
+    let lookupWindowInitialized = false;
 
     function buildDetailUrl(requestId) {
         return detailUrlTemplate.replace('__REQUEST_ID__', encodeURIComponent(requestId));
@@ -74,9 +78,9 @@
             date_from: dateFromPicker && dateFromPicker.value() ? window.kendo.toString(dateFromPicker.value(), 'yyyy-MM-dd') : '',
             date_to: dateToPicker && dateToPicker.value() ? window.kendo.toString(dateToPicker.value(), 'yyyy-MM-dd') : '',
             numero_nota: $('#filter-numero-nota').val() || '',
-            cliente: $('#filter-cliente').data('kendoAutoComplete') ? $('#filter-cliente').data('kendoAutoComplete').value() : ($('#filter-cliente').val() || ''),
-            assinante: $('#filter-assinante').data('kendoAutoComplete') ? $('#filter-assinante').data('kendoAutoComplete').value() : ($('#filter-assinante').val() || ''),
-            emissor: $('#filter-emissor').data('kendoAutoComplete') ? $('#filter-emissor').data('kendoAutoComplete').value() : ($('#filter-emissor').val() || ''),
+            cliente: $('#filter-cliente').val() || '',
+            assinante: $('#filter-assinante').val() || '',
+            emissor: $('#filter-emissor').val() || '',
             chave: $('#filter-chave').val() || '',
             status: Array.from(form.querySelectorAll('input[name="status"]:checked')).map(function (input) {
                 return input.value;
@@ -105,97 +109,139 @@
         });
     }
 
-    function ensureFilterOptions() {
-        if (!filterOptionsUrl) {
-            return $.Deferred().resolve({
-                clientes: [],
-                emissores: [],
-                assinantes: []
-            }).promise();
+    function openLookupWindow(type, targetSelector) {
+        if (!lookupWindow) {
+            return;
         }
 
-        if (cachedFilterOptions !== null) {
-            return $.Deferred().resolve(cachedFilterOptions).promise();
+        lookupActiveType = type;
+        lookupActiveTarget = targetSelector;
+
+        const targetValue = $(targetSelector).val() || '';
+        $('#monitor-lookup-query').data('kendoTextBox').value(targetValue);
+        lookupWindow.title('Buscar ' + (type === 'cliente' ? 'cliente' : type === 'emissor' ? 'emissor' : 'assinante'));
+        lookupWindow.center().open();
+        loadLookupResults(targetValue);
+    }
+
+    function loadLookupResults(query) {
+        if (!lookupGrid || !filterLookupUrl || !lookupActiveType) {
+            return;
         }
 
-        return $.getJSON(filterOptionsUrl).then(function (response) {
-            cachedFilterOptions = response || {
-                clientes: [],
-                emissores: [],
-                assinantes: []
-            };
+        $.getJSON(filterLookupUrl, {
+            type: lookupActiveType,
+            q: String(query || '').trim()
+        }).done(function (response) {
+            const items = Array.isArray(response.items) ? response.items.map(function (item) {
+                return { value: item };
+            }) : [];
 
-            return cachedFilterOptions;
+            lookupGrid.dataSource.data(items);
+            if (items.length > 0) {
+                lookupGrid.select(lookupGrid.tbody.find('tr:first'));
+            }
+        }).fail(function () {
+            lookupGrid.dataSource.data([]);
         });
     }
 
-    function buildSearchField(selector, values, placeholder) {
-        $(selector).kendoAutoComplete({
-            dataSource: Array.isArray(values) ? values : [],
-            filter: 'contains',
-            minLength: 1,
-            placeholder: placeholder,
-            clearButton: true
-        });
+    function applyLookupSelection() {
+        if (!lookupGrid || !lookupActiveTarget) {
+            return;
+        }
+
+        const selected = lookupGrid.select();
+        const dataItem = lookupGrid.dataItem(selected);
+        if (!dataItem || !dataItem.value) {
+            return;
+        }
+
+        $(lookupActiveTarget).val(dataItem.value).trigger('change');
+        lookupWindow.close();
     }
 
-    function buildRemoteSearchField(selector, type, placeholder) {
-        let latestRequestId = 0;
-        const widget = $(selector).kendoAutoComplete({
-            minLength: 2,
-            enforceMinLength: true,
-            filter: 'contains',
-            placeholder: placeholder,
-            clearButton: true,
+    function initializeLookupWindow() {
+        if (lookupWindowInitialized) {
+            return;
+        }
+
+        $('#monitor-lookup-query').kendoTextBox();
+        $('#monitor-lookup-search').kendoButton();
+        $('#monitor-lookup-select').kendoButton({
+            themeColor: 'primary'
+        });
+        $('#monitor-lookup-cancel').kendoButton();
+
+        lookupWindow = $('#monitor-lookup-window').kendoWindow({
+            title: 'Buscar',
+            modal: true,
+            visible: false,
+            width: 960,
+            height: 700,
+            actions: ['Close'],
+            open: function () {
+                window.setTimeout(function () {
+                    const textBox = $('#monitor-lookup-query').data('kendoTextBox');
+                    if (textBox) {
+                        textBox.focus();
+                    }
+                }, 0);
+            }
+        }).data('kendoWindow');
+
+        $('#monitor-lookup-grid').kendoGrid({
             dataSource: [],
-            noDataTemplate: 'Nenhum resultado encontrado',
-            popup: {
-                appendTo: filterWindowElement
+            height: 500,
+            selectable: 'row',
+            sortable: true,
+            pageable: false,
+            noRecords: {
+                template: 'Nenhum resultado encontrado.'
             },
-            filtering: function (event) {
-                const term = String(event.filter && event.filter.value ? event.filter.value : '').trim();
-
-                if (!filterLookupUrl || term.length < 2) {
-                    this.dataSource.data([]);
-                    this.close();
-                    return;
+            columns: [
+                { field: 'value', title: 'Resultado' }
+            ],
+            change: function () {
+                const selected = this.select();
+                const dataItem = this.dataItem(selected);
+                if (dataItem && dataItem.value) {
+                    $('#monitor-lookup-query').data('kendoTextBox').value(dataItem.value);
                 }
-
-                event.preventDefault();
-                latestRequestId += 1;
-                const requestId = latestRequestId;
-                const autoComplete = this;
-
-                $.getJSON(filterLookupUrl, {
-                    type: type,
-                    q: term
-                }).done(function (response) {
-                    if (requestId !== latestRequestId) {
-                        return;
-                    }
-
-                    const items = Array.isArray(response.items) ? response.items : [];
-                    autoComplete.dataSource.data(items);
-
-                    if (items.length > 0) {
-                        autoComplete.suggest(term);
-                        autoComplete.search(term);
-                        autoComplete.open();
-                    } else {
-                        autoComplete.close();
-                    }
-                }).fail(function () {
-                    if (requestId !== latestRequestId) {
-                        return;
-                    }
-
-                    autoComplete.dataSource.data([]);
-                    autoComplete.close();
+            },
+            dataBound: function () {
+                this.tbody.find('tr').off('dblclick').on('dblclick', function () {
+                    lookupGrid.select(this);
+                    applyLookupSelection();
                 });
             }
-        }).data('kendoAutoComplete');
+        });
 
-        return widget;
+        lookupGrid = $('#monitor-lookup-grid').data('kendoGrid');
+
+        $('#monitor-lookup-search').on('click', function () {
+            const textBox = $('#monitor-lookup-query').data('kendoTextBox');
+            loadLookupResults(textBox ? textBox.value() : '');
+        });
+
+        $('#monitor-lookup-query').on('keydown', function (event) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                const textBox = $('#monitor-lookup-query').data('kendoTextBox');
+                loadLookupResults(textBox ? textBox.value() : '');
+            }
+        });
+
+        $('#monitor-lookup-select').on('click', applyLookupSelection);
+        $('#monitor-lookup-cancel').on('click', function () {
+            lookupWindow.close();
+        });
+
+        $(document).on('click', '.monitor-lookup-open', function () {
+            openLookupWindow($(this).data('lookup-type'), $(this).data('lookup-target'));
+        });
+
+        lookupWindowInitialized = true;
     }
 
     function configureDatePicker(selector) {
@@ -244,6 +290,9 @@
         configureDatePicker('#filter-date-to');
         $('#filter-numero-nota').kendoTextBox();
         $('#filter-chave').kendoTextBox();
+        $('#filter-cliente').kendoTextBox();
+        $('#filter-assinante').kendoTextBox();
+        $('#filter-emissor').kendoTextBox();
 
         $(form.querySelectorAll('input[type="checkbox"]')).each(function () {
             $(this).kendoCheckBox();
@@ -263,22 +312,7 @@
             }
         }).data('kendoWindow');
 
-        if (filterLookupUrl) {
-            buildRemoteSearchField('#filter-cliente', 'cliente', 'Buscar cliente');
-            buildRemoteSearchField('#filter-assinante', 'assinante', 'Buscar assinante');
-            buildRemoteSearchField('#filter-emissor', 'emissor', 'Buscar emissor');
-        } else {
-            ensureFilterOptions().done(function (response) {
-                const options = response || cachedFilterOptions || {};
-                buildSearchField('#filter-cliente', options.clientes || [], 'Buscar cliente');
-                buildSearchField('#filter-assinante', options.assinantes || [], 'Buscar assinante');
-                buildSearchField('#filter-emissor', options.emissores || [], 'Buscar emissor');
-            }).fail(function () {
-                buildSearchField('#filter-cliente', [], 'Buscar cliente');
-                buildSearchField('#filter-assinante', [], 'Buscar assinante');
-                buildSearchField('#filter-emissor', [], 'Buscar emissor');
-            });
-        }
+        initializeLookupWindow();
 
         $openFilters.on('click', function () {
             syncWindowSize(filterWindow);
@@ -660,9 +694,9 @@
             $('#filter-date-to').data('kendoDatePicker').value(null);
 
             ['#filter-cliente', '#filter-assinante', '#filter-emissor'].forEach(function (selector) {
-                const autoComplete = $(selector).data('kendoAutoComplete');
-                if (autoComplete) {
-                    autoComplete.value('');
+                const textBox = $(selector).data('kendoTextBox');
+                if (textBox) {
+                    textBox.value('');
                 }
             });
 

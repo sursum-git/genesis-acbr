@@ -147,7 +147,7 @@ final class NfeOutputMonitorRepository
         $normalizedType = trim($type);
         $normalizedQuery = trim($query);
 
-        if ($normalizedType === '' || $normalizedQuery === '') {
+        if ($normalizedType === '') {
             return [];
         }
 
@@ -245,7 +245,7 @@ final class NfeOutputMonitorRepository
     private function searchClientOptions(string $query): array
     {
         $options = [];
-        $like = '%' . $query . '%';
+        $like = '%' . trim($query) . '%';
 
         if ($this->tableExists('t99021')) {
             /** @var list<array<string, mixed>> $rows */
@@ -301,7 +301,7 @@ final class NfeOutputMonitorRepository
             return [];
         }
 
-        $like = '%' . $query . '%';
+        $like = '%' . trim($query) . '%';
         $options = [];
 
         /** @var list<array<string, mixed>> $rows */
@@ -334,7 +334,7 @@ final class NfeOutputMonitorRepository
             return [];
         }
 
-        $like = '%' . $query . '%';
+        $like = '%' . trim($query) . '%';
         $options = [];
 
         /** @var list<array<string, mixed>> $rows */

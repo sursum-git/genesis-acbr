@@ -55,15 +55,24 @@
                 </div>
                 <div>
                     <label class="form-label" for="filter-cliente">Cliente / Documento</label>
-                    <input type="text" id="filter-cliente" name="cliente" placeholder="Nome ou CNPJ">
+                    <div class="monitor-lookup-field">
+                        <input type="text" id="filter-cliente" name="cliente" placeholder="Nome ou CNPJ">
+                        <button type="button" class="btn btn-outline-secondary monitor-lookup-open" data-lookup-type="cliente" data-lookup-target="#filter-cliente">Buscar</button>
+                    </div>
                 </div>
                 <div>
                     <label class="form-label" for="filter-assinante">Assinante</label>
-                    <input type="text" id="filter-assinante" name="assinante" placeholder="Identificador ou nome">
+                    <div class="monitor-lookup-field">
+                        <input type="text" id="filter-assinante" name="assinante" placeholder="Identificador ou nome">
+                        <button type="button" class="btn btn-outline-secondary monitor-lookup-open" data-lookup-type="assinante" data-lookup-target="#filter-assinante">Buscar</button>
+                    </div>
                 </div>
                 <div>
                     <label class="form-label" for="filter-emissor">Emissor</label>
-                    <input type="text" id="filter-emissor" name="emissor" placeholder="Razão social ou CNPJ">
+                    <div class="monitor-lookup-field">
+                        <input type="text" id="filter-emissor" name="emissor" placeholder="Razão social ou CNPJ">
+                        <button type="button" class="btn btn-outline-secondary monitor-lookup-open" data-lookup-type="emissor" data-lookup-target="#filter-emissor">Buscar</button>
+                    </div>
                 </div>
                 <div class="monitor-filter-span-2">
                     <label class="form-label" for="filter-chave">Chave de acesso</label>
@@ -86,6 +95,20 @@
                 <button class="btn btn-outline-secondary" type="reset">Limpar</button>
             </div>
         </form>
+    </div>
+
+    <div id="monitor-lookup-window" style="display: none;">
+        <div class="monitor-lookup-layout">
+            <div class="monitor-lookup-toolbar">
+                <input type="text" id="monitor-lookup-query" placeholder="Digite para pesquisar">
+                <button type="button" id="monitor-lookup-search">Pesquisar</button>
+            </div>
+            <div id="monitor-lookup-grid"></div>
+            <div class="monitor-lookup-actions">
+                <button type="button" id="monitor-lookup-select">Selecionar</button>
+                <button type="button" id="monitor-lookup-cancel">Cancelar</button>
+            </div>
+        </div>
     </div>
 {% endblock %}
 

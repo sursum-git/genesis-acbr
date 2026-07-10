@@ -29,6 +29,7 @@ final class NfeOutputMonitorController extends AbstractController
         return $this->render('admin/nfe_output_monitor.html.twig', [
             'dataUrl' => $this->generateUrl('app_nfe_output_monitor_data'),
             'filterOptionsUrl' => $this->generateUrl('app_nfe_output_monitor_filter_options'),
+            'filterLookupUrl' => $this->generateUrl('app_nfe_output_monitor_filter_lookup'),
             'detailUrlTemplate' => $this->generateUrl('app_nfe_output_monitor_detail', ['requestId' => '__REQUEST_ID__']),
             'technicalDetailUrlTemplate' => $this->generateUrl('app_nfe_output_monitor_technical_detail', ['requestId' => '__REQUEST_ID__']),
         ]);
@@ -38,6 +39,17 @@ final class NfeOutputMonitorController extends AbstractController
     public function filterOptions(): JsonResponse
     {
         return $this->json($this->monitorRepository->filterOptions());
+    }
+
+    #[Route('/monitor-saida-nfe/filtros/busca', name: 'app_nfe_output_monitor_filter_lookup', methods: ['GET'])]
+    public function filterLookup(Request $request): JsonResponse
+    {
+        return $this->json([
+            'items' => $this->monitorRepository->searchFilterOptions(
+                $request->query->getString('type'),
+                $request->query->getString('q')
+            ),
+        ]);
     }
 
     #[Route('/monitor-saida-nfe/dados', name: 'app_nfe_output_monitor_data', methods: ['GET'])]

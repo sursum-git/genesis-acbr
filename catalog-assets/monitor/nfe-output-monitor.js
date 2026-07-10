@@ -10,6 +10,7 @@
     const basePath = root.dataset.basePath || '';
     const dataUrl = root.dataset.dataUrl || '';
     const filterOptionsUrl = root.dataset.filterOptionsUrl || '';
+    const filterLookupUrl = root.dataset.filterLookupUrl || '';
     const detailUrlTemplate = root.dataset.detailUrlTemplate || '';
     const appBaseUrl = basePath + '/index.php';
     const $grid = $('#nfe-output-monitor-grid');
@@ -138,6 +139,44 @@
         });
     }
 
+    function buildRemoteSearchField(selector, type, placeholder) {
+        $(selector).kendoAutoComplete({
+            minLength: 2,
+            enforceMinLength: true,
+            filter: 'contains',
+            placeholder: placeholder,
+            clearButton: true,
+            dataTextField: 'value',
+            dataSource: new window.kendo.data.DataSource({
+                serverFiltering: true,
+                transport: {
+                    read: function (options) {
+                        const term = (options.data && options.data.filter && options.data.filter.filters && options.data.filter.filters[0] && options.data.filter.filters[0].value)
+                            ? options.data.filter.filters[0].value
+                            : '';
+
+                        if (!filterLookupUrl || String(term).trim().length < 2) {
+                            options.success([]);
+                            return;
+                        }
+
+                        $.getJSON(filterLookupUrl, {
+                            type: type,
+                            q: term
+                        }).done(function (response) {
+                            const items = Array.isArray(response.items) ? response.items.map(function (item) {
+                                return { value: item };
+                            }) : [];
+                            options.success(items);
+                        }).fail(function () {
+                            options.success([]);
+                        });
+                    }
+                }
+            })
+        });
+    }
+
     function configureDatePicker(selector) {
         const widget = $(selector).kendoDatePicker({
             culture: 'pt-BR',
@@ -203,16 +242,22 @@
             }
         }).data('kendoWindow');
 
-        ensureFilterOptions().done(function (response) {
-            const options = response || cachedFilterOptions || {};
-            buildSearchField('#filter-cliente', options.clientes || [], 'Buscar cliente');
-            buildSearchField('#filter-assinante', options.assinantes || [], 'Buscar assinante');
-            buildSearchField('#filter-emissor', options.emissores || [], 'Buscar emissor');
-        }).fail(function () {
-            buildSearchField('#filter-cliente', [], 'Buscar cliente');
-            buildSearchField('#filter-assinante', [], 'Buscar assinante');
-            buildSearchField('#filter-emissor', [], 'Buscar emissor');
-        });
+        if (filterLookupUrl) {
+            buildRemoteSearchField('#filter-cliente', 'cliente', 'Buscar cliente');
+            buildRemoteSearchField('#filter-assinante', 'assinante', 'Buscar assinante');
+            buildRemoteSearchField('#filter-emissor', 'emissor', 'Buscar emissor');
+        } else {
+            ensureFilterOptions().done(function (response) {
+                const options = response || cachedFilterOptions || {};
+                buildSearchField('#filter-cliente', options.clientes || [], 'Buscar cliente');
+                buildSearchField('#filter-assinante', options.assinantes || [], 'Buscar assinante');
+                buildSearchField('#filter-emissor', options.emissores || [], 'Buscar emissor');
+            }).fail(function () {
+                buildSearchField('#filter-cliente', [], 'Buscar cliente');
+                buildSearchField('#filter-assinante', [], 'Buscar assinante');
+                buildSearchField('#filter-emissor', [], 'Buscar emissor');
+            });
+        }
 
         $openFilters.on('click', function () {
             syncWindowSize(filterWindow);

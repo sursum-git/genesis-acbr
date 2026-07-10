@@ -140,6 +140,26 @@ final class NfeOutputMonitorRepository
     }
 
     /**
+     * @return list<string>
+     */
+    public function searchFilterOptions(string $type, string $query): array
+    {
+        $normalizedType = trim($type);
+        $normalizedQuery = trim($query);
+
+        if ($normalizedType === '' || $normalizedQuery === '') {
+            return [];
+        }
+
+        return match ($normalizedType) {
+            'cliente' => $this->searchClientOptions($normalizedQuery),
+            'emissor' => $this->searchIssuerOptions($normalizedQuery),
+            'assinante' => $this->searchSubscriberOptions($normalizedQuery),
+            default => [],
+        };
+    }
+
+    /**
      * @param array<string, mixed> $filters
      * @return array{0:string,1:array<string,mixed>,2:array<string,int>}
      */
@@ -217,6 +237,132 @@ final class NfeOutputMonitorRepository
         }
 
         return [' WHERE ' . implode(' AND ', $where), $params, $types];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchClientOptions(string $query): array
+    {
+        $options = [];
+        $like = '%' . $query . '%';
+
+        if ($this->tableExists('t99021')) {
+            /** @var list<array<string, mixed>> $rows */
+            $rows = $this->auditConnection->fetchAllAssociative(
+                "
+                    SELECT nome_razao_social AS nome, cnpj AS documento
+                    FROM t99021
+                    WHERE COALESCE(nome_razao_social, '') LIKE :query
+                       OR COALESCE(cnpj, '') LIKE :query
+                    ORDER BY nome_razao_social ASC
+                    LIMIT 20
+                ",
+                ['query' => $like]
+            );
+
+            foreach ($rows as $row) {
+                $this->appendOption($options, $this->stringOrEmpty($row['nome'] ?? null));
+                $this->appendOption($options, $this->stringOrEmpty($row['documento'] ?? null));
+            }
+        }
+
+        if ($this->tableExists('t99012')) {
+            /** @var list<array<string, mixed>> $rows */
+            $rows = $this->auditConnection->fetchAllAssociative(
+                "
+                    SELECT x_nome AS nome, cnpj, cpf
+                    FROM t99012
+                    WHERE COALESCE(x_nome, '') LIKE :query
+                       OR COALESCE(cnpj, '') LIKE :query
+                       OR COALESCE(cpf, '') LIKE :query
+                    ORDER BY x_nome ASC
+                    LIMIT 20
+                ",
+                ['query' => $like]
+            );
+
+            foreach ($rows as $row) {
+                $this->appendOption($options, $this->stringOrEmpty($row['nome'] ?? null));
+                $this->appendOption($options, $this->stringOrEmpty($row['cnpj'] ?? null));
+                $this->appendOption($options, $this->stringOrEmpty($row['cpf'] ?? null));
+            }
+        }
+
+        return array_slice(array_values(array_unique($options)), 0, 20);
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchIssuerOptions(string $query): array
+    {
+        if (!$this->tableExists('t99020')) {
+            return [];
+        }
+
+        $like = '%' . $query . '%';
+        $options = [];
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            "
+                SELECT nome_razao_social AS nome, cnpj AS documento
+                FROM t99020
+                WHERE COALESCE(nome_razao_social, '') LIKE :query
+                   OR COALESCE(cnpj, '') LIKE :query
+                ORDER BY nome_razao_social ASC
+                LIMIT 20
+            ",
+            ['query' => $like]
+        );
+
+        foreach ($rows as $row) {
+            $this->appendOption($options, $this->stringOrEmpty($row['nome'] ?? null));
+            $this->appendOption($options, $this->stringOrEmpty($row['documento'] ?? null));
+        }
+
+        return array_values(array_unique($options));
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function searchSubscriberOptions(string $query): array
+    {
+        if (!$this->tableExists('t99001')) {
+            return [];
+        }
+
+        $like = '%' . $query . '%';
+        $options = [];
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            "
+                SELECT t_assinante_json
+                FROM t99001
+                WHERE c_cod_programa = :programa
+                  AND c_caminho LIKE :caminho
+                  AND COALESCE(t_assinante_json, '') <> ''
+                  AND COALESCE(t_assinante_json, '') LIKE :query
+                ORDER BY dt_hr_recebimento DESC, id_t99001 DESC
+                LIMIT 50
+            ",
+            [
+                'programa' => 'nfe',
+                'caminho' => '/nfe/envio/%',
+                'query' => $like,
+            ]
+        );
+
+        foreach ($rows as $row) {
+            $assinante = $this->extractSubscriber($row['t_assinante_json'] ?? null);
+            $this->appendOption($options, $assinante['nome']);
+            $this->appendOption($options, $assinante['identificador']);
+        }
+
+        return array_slice(array_values(array_unique($options)), 0, 20);
     }
 
     private function buildBaseSql(): string

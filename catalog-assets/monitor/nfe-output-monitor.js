@@ -143,7 +143,14 @@
             culture: 'pt-BR',
             format: 'dd/MM/yyyy',
             parseFormats: ['ddMMyyyy', 'dd/MM/yyyy', 'yyyy-MM-dd'],
-            dateInput: {
+            dateInput: true,
+            popup: {
+                appendTo: filterWindowElement
+            }
+        }).data('kendoDatePicker');
+
+        if (widget && widget.dateInput) {
+            widget.dateInput.setOptions({
                 messages: {
                     year: 'aaaa',
                     month: 'mm',
@@ -155,13 +162,7 @@
                     month: 'mm',
                     year: 'aaaa'
                 }
-            },
-            popup: {
-                appendTo: filterWindowElement
-            }
-        }).data('kendoDatePicker');
-
-        if (widget && widget.dateInput) {
+            });
             widget.element.attr('placeholder', 'dd/mm/aaaa');
             widget.dateInput.element.attr('placeholder', 'dd/mm/aaaa');
         }

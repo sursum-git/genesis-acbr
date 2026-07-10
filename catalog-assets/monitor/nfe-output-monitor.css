@@ -37,10 +37,25 @@
 }
 
 .monitor-lookup-field {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 0.5rem;
+    display: flex;
     align-items: center;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.monitor-lookup-field > .k-input,
+.monitor-lookup-field > .k-textbox,
+.monitor-lookup-field > input,
+.monitor-lookup-field .k-input.k-textbox {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.monitor-lookup-open {
+    flex: 0 0 auto;
+    padding: 0.35rem 0.7rem;
+    font-size: 0.82rem;
+    line-height: 1.2;
 }
 
 .monitor-lookup-layout {

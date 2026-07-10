@@ -140,41 +140,62 @@
     }
 
     function buildRemoteSearchField(selector, type, placeholder) {
-        $(selector).kendoAutoComplete({
+        let latestRequestId = 0;
+        const widget = $(selector).kendoAutoComplete({
             minLength: 2,
             enforceMinLength: true,
             filter: 'contains',
             placeholder: placeholder,
             clearButton: true,
-            dataTextField: 'value',
-            dataSource: new window.kendo.data.DataSource({
-                serverFiltering: true,
-                transport: {
-                    read: function (options) {
-                        const term = (options.data && options.data.filter && options.data.filter.filters && options.data.filter.filters[0] && options.data.filter.filters[0].value)
-                            ? options.data.filter.filters[0].value
-                            : '';
+            dataSource: [],
+            noDataTemplate: 'Nenhum resultado encontrado',
+            popup: {
+                appendTo: filterWindowElement
+            },
+            filtering: function (event) {
+                const term = String(event.filter && event.filter.value ? event.filter.value : '').trim();
 
-                        if (!filterLookupUrl || String(term).trim().length < 2) {
-                            options.success([]);
-                            return;
-                        }
-
-                        $.getJSON(filterLookupUrl, {
-                            type: type,
-                            q: term
-                        }).done(function (response) {
-                            const items = Array.isArray(response.items) ? response.items.map(function (item) {
-                                return { value: item };
-                            }) : [];
-                            options.success(items);
-                        }).fail(function () {
-                            options.success([]);
-                        });
-                    }
+                if (!filterLookupUrl || term.length < 2) {
+                    this.dataSource.data([]);
+                    this.close();
+                    return;
                 }
-            })
-        });
+
+                event.preventDefault();
+                latestRequestId += 1;
+                const requestId = latestRequestId;
+                const autoComplete = this;
+
+                $.getJSON(filterLookupUrl, {
+                    type: type,
+                    q: term
+                }).done(function (response) {
+                    if (requestId !== latestRequestId) {
+                        return;
+                    }
+
+                    const items = Array.isArray(response.items) ? response.items : [];
+                    autoComplete.dataSource.data(items);
+
+                    if (items.length > 0) {
+                        autoComplete.suggest(term);
+                        autoComplete.search(term);
+                        autoComplete.open();
+                    } else {
+                        autoComplete.close();
+                    }
+                }).fail(function () {
+                    if (requestId !== latestRequestId) {
+                        return;
+                    }
+
+                    autoComplete.dataSource.data([]);
+                    autoComplete.close();
+                });
+            }
+        }).data('kendoAutoComplete');
+
+        return widget;
     }
 
     function configureDatePicker(selector) {

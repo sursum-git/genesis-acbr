@@ -377,14 +377,16 @@ final class NfeInputMonitorRepository
             $this->stringOrEmpty($row['emitente_cnpj'] ?? null),
             $this->stringOrEmpty($row['emitente_cpf'] ?? null)
         );
-        $cliente = $this->firstNonEmpty(
-            $this->stringOrEmpty($row['cliente_nome'] ?? null),
-            $this->stringOrEmpty($row['cliente_resumo_nome'] ?? null),
-            $clienteDocumento
-        );
         $emitente = $this->firstNonEmpty(
             $this->stringOrEmpty($row['emitente_nome'] ?? null),
+            $this->stringOrEmpty($row['cliente_resumo_nome'] ?? null),
             $emitenteDocumento
+        );
+        $cliente = $this->firstNonEmpty(
+            $this->stringOrEmpty($row['cliente_nome'] ?? null),
+            $assinante['nome'],
+            $assinante['identificador'],
+            $clienteDocumento
         );
         $chaveNfe = $this->firstNonEmpty(
             $this->stringOrEmpty($row['chave_nfe_proc'] ?? null),

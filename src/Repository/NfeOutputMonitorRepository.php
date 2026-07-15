@@ -768,15 +768,11 @@ final class NfeOutputMonitorRepository
             return $linkedName;
         }
 
-        if ($xmlName !== '') {
-            return $xmlName;
+        if ($document !== '') {
+            return $document;
         }
 
-        if ($linkedName !== '') {
-            return $linkedName;
-        }
-
-        return $document;
+        return $this->firstNonEmpty($xmlName, $linkedName);
     }
 
     private function displayIssuerName(string $name, string $document, string $subscriberName, string $subscriberIdentifier): string

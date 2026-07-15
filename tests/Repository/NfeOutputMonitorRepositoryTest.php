@@ -76,6 +76,15 @@ $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe,
 $connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (3, 'EMITENTE C', '33333333000133')");
 $connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (3, 3)");
 
+$connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-homolog-placeholder', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 200, '2026-07-03 13:00:00', NULL, NULL, '{\"c_identificador\":\"TECNO-FLEX\",\"c_nome\":\"TECNO-FLEX IND. E COM. LTDA.\"}')");
+$connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (4, 'req-homolog-placeholder', 'procNFe')");
+$connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (4, 4, '32260606013812000158550030001972461604403624', '197246', '2026-07-03 12:59:00', '5317.75', '', '')");
+$connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (4, 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL', '06013812000158')");
+$connection->executeStatement("INSERT INTO t99021 (id_t99021, nome_razao_social, cnpj) VALUES (4, 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL', '40456687000199')");
+$connection->executeStatement("INSERT INTO t99012 (t99008_id, cnpj, x_nome) VALUES (4, '40456687000199', 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL')");
+$connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (4, 4)");
+$connection->executeStatement("INSERT INTO t99024 (t99019_id, t99021_id) VALUES (4, 4)");
+
 $repository = new NfeOutputMonitorRepository($connection);
 
 $rows = $repository->search([
@@ -83,22 +92,25 @@ $rows = $repository->search([
     'date_to' => '2026-07-03',
 ]);
 
-assertSameValue(3, count($rows), 'search should return all NFe send attempts in the fixture.');
-assertSameValue('req-base64', $rows[0]['request_id'], 'Newest send attempt should come first.');
-assertSameValue('/monitor-saida-nfe/danfe/req-base64', $rows[0]['danfe_url'], 'Grid should expose DANFE route when only base64 is available.');
-assertSameValue('/monitor-saida-nfe/xml/req-base64', $rows[0]['xml_url'], 'Grid should expose XML route extracted from response body.');
-assertSameValue('EMITENTE C', $rows[0]['emitente_nome'], 'Grid should expose issuer name.');
-assertSameValue('req-fail', $rows[1]['request_id'], 'Failed send should come after the base64 fixture.');
-assertSameValue('999', $rows[1]['numero_nota'], 'Grid should expose note number.');
-assertSameValue('FOO SA', $rows[1]['cliente'], 'Grid should expose customer.');
-assertSameValue('Falha', $rows[1]['status_envio'], 'Grid should expose failed transmission status.');
-assertSameValue('', $rows[1]['danfe_url'], 'Grid should expose empty DANFE link when unavailable.');
-assertSameValue('18.00', $rows[2]['impostos']['ICMS']['valor'] ?? null, 'Grid should expose ICMS total.');
-assertSameValue('ACME LTDA', $rows[2]['cliente'], 'Grid should prefer extracted customer name when link table contains homologation placeholder.');
-assertSameValue('7.60', $rows[2]['impostos']['COFINS']['valor'] ?? null, 'Grid should expose COFINS total.');
-assertSameValue('1.65', $rows[2]['impostos']['PIS']['valor'] ?? null, 'Grid should expose PIS total.');
-assertSameValue('0.30', $rows[2]['impostos']['IBS']['valor'] ?? null, 'Grid should expose IBS total aggregated from IBSUF and IBSMUN.');
-assertSameValue('0.90', $rows[2]['impostos']['CBS']['valor'] ?? null, 'Grid should expose CBS total.');
+assertSameValue(4, count($rows), 'search should return all NFe send attempts in the fixture.');
+assertSameValue('req-homolog-placeholder', $rows[0]['request_id'], 'Newest send attempt should come first.');
+assertSameValue('40456687000199', $rows[0]['cliente'], 'Grid should not expose homologation placeholder as customer name.');
+assertSameValue('TECNO-FLEX IND. E COM. LTDA.', $rows[0]['emitente_nome'], 'Grid should not expose homologation placeholder as issuer name.');
+assertSameValue('req-base64', $rows[1]['request_id'], 'Base64 send should come after the homologation placeholder fixture.');
+assertSameValue('/monitor-saida-nfe/danfe/req-base64', $rows[1]['danfe_url'], 'Grid should expose DANFE route when only base64 is available.');
+assertSameValue('/monitor-saida-nfe/xml/req-base64', $rows[1]['xml_url'], 'Grid should expose XML route extracted from response body.');
+assertSameValue('EMITENTE C', $rows[1]['emitente_nome'], 'Grid should expose issuer name.');
+assertSameValue('req-fail', $rows[2]['request_id'], 'Failed send should come after the base64 fixture.');
+assertSameValue('999', $rows[2]['numero_nota'], 'Grid should expose note number.');
+assertSameValue('FOO SA', $rows[2]['cliente'], 'Grid should expose customer.');
+assertSameValue('Falha', $rows[2]['status_envio'], 'Grid should expose failed transmission status.');
+assertSameValue('', $rows[2]['danfe_url'], 'Grid should expose empty DANFE link when unavailable.');
+assertSameValue('18.00', $rows[3]['impostos']['ICMS']['valor'] ?? null, 'Grid should expose ICMS total.');
+assertSameValue('ACME LTDA', $rows[3]['cliente'], 'Grid should prefer extracted customer name when link table contains homologation placeholder.');
+assertSameValue('7.60', $rows[3]['impostos']['COFINS']['valor'] ?? null, 'Grid should expose COFINS total.');
+assertSameValue('1.65', $rows[3]['impostos']['PIS']['valor'] ?? null, 'Grid should expose PIS total.');
+assertSameValue('0.30', $rows[3]['impostos']['IBS']['valor'] ?? null, 'Grid should expose IBS total aggregated from IBSUF and IBSMUN.');
+assertSameValue('0.90', $rows[3]['impostos']['CBS']['valor'] ?? null, 'Grid should expose CBS total.');
 
 $filteredRows = $repository->search([
     'assinante' => 'cliente_a',

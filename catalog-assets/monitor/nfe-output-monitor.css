@@ -145,11 +145,25 @@
     justify-content: space-between;
     gap: 0.35rem;
     width: 100%;
+    min-height: 2.6rem;
 }
 
 #nfe-output-monitor-grid .k-grid-header .k-table-th .k-link,
 #nfe-output-monitor-grid .k-grid-header .k-table-th .k-column-title {
     min-width: 0;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+#nfe-output-monitor-grid .k-grid-header .k-table-th .k-link {
+    flex: 1 1 auto;
+    line-height: 1.15;
+}
+
+#nfe-output-monitor-grid .k-grid-header .k-table-th .k-column-title {
+    display: inline-block;
+    overflow-wrap: normal;
 }
 
 .monitor-column-trigger {

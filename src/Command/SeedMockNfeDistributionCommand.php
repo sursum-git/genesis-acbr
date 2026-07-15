@@ -123,8 +123,9 @@ final class SeedMockNfeDistributionCommand extends Command
         $baseDate = new \DateTimeImmutable('2026-07-14 09:00:00-03:00');
 
         for ($index = 1; $index <= $count; $index++) {
-            $numeroNota = 1000 + $index;
-            $nsu = str_pad((string) $index, 15, '0', STR_PAD_LEFT);
+            $nsuNumber = ((int) $ultNsu) + $index;
+            $numeroNota = $nsuNumber;
+            $nsu = str_pad((string) $nsuNumber, 15, '0', STR_PAD_LEFT);
             $cnpjEmitente = str_pad((string) (11111111000000 + $index), 14, '0', STR_PAD_LEFT);
             $chave = $this->buildAccessKey($cnpjEmitente, $numeroNota, $index);
             $dhEmi = $baseDate->modify('+' . $index . ' minutes');
@@ -136,7 +137,7 @@ final class SeedMockNfeDistributionCommand extends Command
 <resNFe versao="1.01" xmlns="http://www.portalfiscal.inf.br/nfe">
   <chNFe>{$chave}</chNFe>
   <CNPJ>{$cnpjEmitente}</CNPJ>
-  <xNome>EMISSOR MOCK {$index} LTDA</xNome>
+  <xNome>FORNECEDOR MOCK {$index} LTDA</xNome>
   <IE>08234567{$index}</IE>
   <dhEmi>{$dhEmi->format('Y-m-d\\TH:i:sP')}</dhEmi>
   <tpNF>1</tpNF>
@@ -154,7 +155,7 @@ XML;
             );
         }
 
-        $lastNsu = str_pad((string) $count, 15, '0', STR_PAD_LEFT);
+        $lastNsu = str_pad((string) (((int) $ultNsu) + $count), 15, '0', STR_PAD_LEFT);
         $dhResp = $baseDate->modify('+20 minutes')->format('Y-m-d\\TH:i:sP');
 
         return <<<XML

@@ -327,10 +327,11 @@ final class NfeInputMonitorRepository
                 d.ch_nfe,
                 d.nsu,
                 d.n_prot,
+                d.emit_cnpj_cpf,
                 d.xml_descompactado,
                 d.dt_hr_processado_em,
                 nfe_proc.n_nf AS numero_nota,
-                nfe_proc.dh_emi AS data_emissao,
+                COALESCE(nfe_proc.dh_emi, nfe_resumo.dh_emi) AS data_emissao,
                 nfe_proc.ch_nfe AS chave_nfe_proc,
                 nfe_proc.n_prot AS protocolo_nfe,
                 nfe_resumo.x_nome AS cliente_resumo_nome,
@@ -373,12 +374,16 @@ final class NfeInputMonitorRepository
             $this->stringOrEmpty($row['cliente_cnpj'] ?? null),
             $this->stringOrEmpty($row['cliente_cpf'] ?? null),
             $this->stringOrEmpty($row['cliente_id_estrangeiro'] ?? null),
+            $this->stringOrEmpty($row['documento_consulta'] ?? null),
             $this->stringOrEmpty($row['cliente_resumo_cnpj'] ?? null),
             $this->stringOrEmpty($row['cliente_resumo_cpf'] ?? null)
         );
         $emitenteDocumento = $this->firstNonEmpty(
+            $this->stringOrEmpty($row['cliente_resumo_cnpj'] ?? null),
+            $this->stringOrEmpty($row['cliente_resumo_cpf'] ?? null),
             $this->stringOrEmpty($row['emitente_cnpj'] ?? null),
-            $this->stringOrEmpty($row['emitente_cpf'] ?? null)
+            $this->stringOrEmpty($row['emitente_cpf'] ?? null),
+            $this->stringOrEmpty($row['emit_cnpj_cpf'] ?? null)
         );
         $emitente = $this->firstNonEmpty(
             $this->stringOrEmpty($row['emitente_nome'] ?? null),
@@ -399,7 +404,10 @@ final class NfeInputMonitorRepository
 
         return [
             'request_id' => $documentId,
-            'numero_nota' => $this->stringOrEmpty($row['numero_nota'] ?? null),
+            'numero_nota' => $this->firstNonEmpty(
+                $this->stringOrEmpty($row['numero_nota'] ?? null),
+                $this->extractNoteNumberFromAccessKey($chaveNfe)
+            ),
             'cliente' => $cliente,
             'cliente_documento' => $clienteDocumento,
             'emitente_nome' => $emitente,
@@ -581,6 +589,18 @@ final class NfeInputMonitorRepository
         }
 
         return trim((string) $value);
+    }
+
+    private function extractNoteNumberFromAccessKey(string $accessKey): string
+    {
+        $digits = preg_replace('/\D+/', '', $accessKey) ?? '';
+        if (strlen($digits) !== 44) {
+            return '';
+        }
+
+        $number = ltrim(substr($digits, 25, 9), '0');
+
+        return $number === '' ? '0' : $number;
     }
 
     private function tableExists(string $table): bool

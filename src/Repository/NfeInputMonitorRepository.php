@@ -151,7 +151,10 @@ final class NfeInputMonitorRepository
         $statusList = array_values(array_filter(
             array_map(
                 static fn (mixed $value): int => (int) $value,
-                is_array($filters['status'] ?? null) ? $filters['status'] : [$filters['status'] ?? '']
+                array_filter(
+                    is_array($filters['status'] ?? null) ? $filters['status'] : [$filters['status'] ?? ''],
+                    static fn (mixed $value): bool => trim((string) $value) !== ''
+                )
             ),
             static fn (int $value): bool => $value >= 0
         ));

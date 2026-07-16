@@ -56,6 +56,7 @@ final class NfeInputMonitorRepository
         $row = $this->auditConnection->fetchAssociative(
             $this->buildBaseSql() . '
                 WHERE d.id_t99008 = :document_id
+                  AND COALESCE(d.schema_family, \'\') = \'resNFe\'
                 LIMIT 1
             ',
             ['document_id' => $documentId],
@@ -115,7 +116,7 @@ final class NfeInputMonitorRepository
         $where = [
             't.c_cod_programa = :programa',
             "(COALESCE(t.c_caminho, '') LIKE :caminho OR COALESCE(e.caminho_origem, '') LIKE :caminho)",
-            "COALESCE(d.schema_family, '') IN ('procNFe', 'resNFe')",
+            "COALESCE(d.schema_family, '') = 'resNFe'",
         ];
         $params = [
             'programa' => 'nfe',
@@ -144,7 +145,7 @@ final class NfeInputMonitorRepository
 
         $numeroNota = trim((string) ($filters['numero_nota'] ?? ''));
         if ($numeroNota !== '') {
-            $where[] = "COALESCE(nfe_proc.n_nf, '') LIKE :numero_nota";
+            $where[] = "(COALESCE(nfe_proc.n_nf, '') LIKE :numero_nota OR COALESCE(d.ch_nfe, '') LIKE :numero_nota OR COALESCE(d.nsu, '') LIKE :numero_nota)";
             $params['numero_nota'] = '%' . $numeroNota . '%';
         }
 

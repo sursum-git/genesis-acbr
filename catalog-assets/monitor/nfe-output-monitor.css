@@ -168,10 +168,29 @@
 
 .monitor-column-trigger {
     flex: 0 0 auto;
-    width: 1.75rem;
-    height: 1.75rem;
-    min-width: 1.75rem;
+    width: 1.45rem;
+    height: 1.45rem;
+    min-width: 1.45rem;
     padding: 0;
+}
+
+.monitor-env-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-right: 0.5rem;
+}
+
+.monitor-env-label {
+    color: #64748b;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.monitor-env-toggle .k-button {
+    min-width: 7.25rem;
 }
 
 #nfe-output-column-popup {

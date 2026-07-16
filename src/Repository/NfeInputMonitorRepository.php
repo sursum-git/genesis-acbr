@@ -123,6 +123,13 @@ final class NfeInputMonitorRepository
         ];
         $types = [];
 
+        $environment = (int) trim((string) ($filters['ambiente'] ?? ''));
+        if (in_array($environment, [1, 2], true)) {
+            $where[] = 'COALESCE(d.tp_amb, e.tp_amb, 0) = :ambiente';
+            $params['ambiente'] = $environment;
+            $types['ambiente'] = ParameterType::INTEGER;
+        }
+
         $dateFrom = trim((string) ($filters['date_from'] ?? ''));
         if ($dateFrom !== '') {
             $where[] = 'COALESCE(d.dt_hr_processado_em, e.dh_resp, t.dt_hr_recebimento) >= :date_from';
@@ -322,6 +329,7 @@ final class NfeInputMonitorRepository
                 e.q_doc_zip,
                 e.xml_envelope,
                 e.dh_resp,
+                COALESCE(d.tp_amb, e.tp_amb) AS ambiente,
                 d.schema_name,
                 d.schema_family,
                 d.ch_nfe,
@@ -418,6 +426,7 @@ final class NfeInputMonitorRepository
             'data_envio' => $row['dt_hr_processado_em'] ?? $row['dh_resp'] ?? $row['dt_hr_recebimento'] ?? null,
             'data_emissao' => $row['data_emissao'] ?? null,
             'valor_total' => $this->decimalOrEmpty($row['valor_total'] ?? null),
+            'ambiente' => $this->stringOrEmpty($row['ambiente'] ?? null),
             'status_envio' => $this->mapStatus((int) ($row['si_status_extracao'] ?? 0)),
             'status_http' => isset($row['si_status_http']) ? (int) $row['si_status_http'] : null,
             'erro' => $this->stringOrEmpty($row['t_erro_extracao'] ?? null),

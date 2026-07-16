@@ -175,6 +175,13 @@ final class NfeOutputMonitorRepository
         ];
         $types = [];
 
+        $environment = (int) trim((string) ($filters['ambiente'] ?? ''));
+        if (in_array($environment, [1, 2], true) && $this->tableExists('t99010')) {
+            $where[] = 'COALESCE(nfe_proc.tp_amb, 0) = :ambiente';
+            $params['ambiente'] = $environment;
+            $types['ambiente'] = ParameterType::INTEGER;
+        }
+
         $dateFrom = trim((string) ($filters['date_from'] ?? ''));
         if ($dateFrom !== '') {
             $where[] = 't.dt_hr_recebimento >= :date_from';
@@ -363,6 +370,7 @@ final class NfeOutputMonitorRepository
     private function buildBaseSql(): string
     {
         $hasT99008 = $this->tableExists('t99008');
+        $hasT99010 = $this->tableExists('t99010');
         $hasT99019 = $this->tableExists('t99019');
         $hasT99020 = $this->tableExists('t99020');
         $hasT99021 = $this->tableExists('t99021');
@@ -382,6 +390,8 @@ final class NfeOutputMonitorRepository
         SQL : '';
 
         $noteJoin = $hasT99019 ? 'LEFT JOIN t99019 n ON n.t99008_id = last_doc.last_t99008_id' : '';
+        $processedNfeJoin = $hasT99010 ? 'LEFT JOIN t99010 nfe_proc ON nfe_proc.t99008_id = last_doc.last_t99008_id' : '';
+        $environmentSelect = $hasT99010 ? 'nfe_proc.tp_amb AS ambiente' : 'NULL AS ambiente';
         $issuerPivotJoin = $hasT99023 ? 'LEFT JOIN t99023 rel_emit ON rel_emit.t99019_id = n.id_t99019' : '';
         $issuerJoin = $hasT99020 ? 'LEFT JOIN t99020 emit ON emit.id_t99020 = rel_emit.t99020_id' : '';
         $destPivotJoin = $hasT99024 ? 'LEFT JOIN t99024 rel_dest ON rel_dest.t99019_id = n.id_t99019' : '';
@@ -441,6 +451,7 @@ final class NfeOutputMonitorRepository
                 n.v_nf AS valor_total,
                 n.xml_autorizado,
                 n.caminho_danfe,
+                {$environmentSelect},
                 {$issuerNameSelect},
                 {$issuerDocumentSelect},
                 {$clientExtractNameSelect},
@@ -471,6 +482,7 @@ final class NfeOutputMonitorRepository
             FROM t99001 t
             {$docJoin}
             {$noteJoin}
+            {$processedNfeJoin}
             {$issuerPivotJoin}
             {$issuerJoin}
             {$destPivotJoin}
@@ -521,6 +533,7 @@ final class NfeOutputMonitorRepository
             'data_envio' => $row['dt_hr_recebimento'] ?? null,
             'data_emissao' => $row['data_emissao'] ?? null,
             'valor_total' => $this->decimalOrEmpty($row['valor_total'] ?? null),
+            'ambiente' => $this->stringOrEmpty($row['ambiente'] ?? null),
             'status_envio' => $this->mapStatus((int) ($row['si_status_processamento'] ?? 0)),
             'status_http' => isset($row['si_status_http']) ? (int) $row['si_status_http'] : null,
             'erro' => $this->stringOrEmpty($row['t_erro'] ?? null),

@@ -27,6 +27,7 @@ $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' =
 
 $connection->executeStatement('CREATE TABLE t99001 (id_t99001 INTEGER PRIMARY KEY AUTOINCREMENT, u_c_request_id TEXT, c_caminho TEXT, c_cod_programa TEXT, si_status_processamento INTEGER, si_status_http INTEGER, dt_hr_recebimento TEXT, t_erro TEXT, t_corpo_resposta TEXT, t_assinante_json TEXT)');
 $connection->executeStatement('CREATE TABLE t99008 (id_t99008 INTEGER PRIMARY KEY AUTOINCREMENT, u_c_request_id TEXT, schema_family TEXT)');
+$connection->executeStatement('CREATE TABLE t99010 (t99008_id INTEGER PRIMARY KEY, tp_amb INTEGER)');
 $connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, t99008_id INTEGER, ch_nfe TEXT, n_nf TEXT, dh_emi TEXT, v_nf TEXT, xml_autorizado TEXT, caminho_danfe TEXT)');
 $connection->executeStatement('CREATE TABLE t99020 (id_t99020 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
 $connection->executeStatement('CREATE TABLE t99021 (id_t99021 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
@@ -41,6 +42,7 @@ $connection->executeStatement('CREATE TABLE t99033 (id_t99033 INTEGER PRIMARY KE
 
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-ok', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 200, '2026-07-03 10:00:00', NULL, NULL, '{\"c_identificador\":\"cliente_a\",\"c_nome\":\"Cliente A\"}')");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (1, 'req-ok', 'procNFe')");
+$connection->executeStatement("INSERT INTO t99010 (t99008_id, tp_amb) VALUES (1, 1)");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (1, 1, '35123456789012345678901234567890123456789012', '123', '2026-07-03 09:59:00', '155.40', '<xml>ok</xml>', '/tmp/danfe-ok.pdf')");
 $connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (1, 'EMITENTE A', '11111111000111')");
 $connection->executeStatement("INSERT INTO t99021 (id_t99021, nome_razao_social, cnpj) VALUES (1, 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL', '12345678000199')");
@@ -62,6 +64,7 @@ $connection->executeStatement("INSERT INTO t99033 (t99032_id, nome_imposto, cst,
 
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-fail', '/nfe/envio/enviar-sincrono-xml', 'nfe', 4, 500, '2026-07-03 11:00:00', 'Falha na transmissao', NULL, '{\"c_identificador\":\"cliente_b\",\"c_nome\":\"Cliente B\"}')");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (2, 'req-fail', 'procNFe')");
+$connection->executeStatement("INSERT INTO t99010 (t99008_id, tp_amb) VALUES (2, 2)");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (2, 2, '44123456789012345678901234567890123456789012', '999', '2026-07-03 10:59:00', '42.00', '', '')");
 $connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (2, 'EMITENTE B', '22222222000122')");
 $connection->executeStatement("INSERT INTO t99021 (id_t99021, nome_razao_social, cnpj) VALUES (2, 'FOO SA', '99887766000155')");
@@ -72,12 +75,14 @@ $connection->executeStatement("INSERT INTO t99033 (t99032_id, nome_imposto, cst,
 
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-base64', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 200, '2026-07-03 12:00:00', NULL, '{\"danfe_base64\":\"UERG\",\"xml_autorizado\":\"<xml>base64</xml>\",\"resultado\":{\"XML\":\"<protNFe>evento</protNFe>\"}}', '{\"c_identificador\":\"cliente_b\",\"c_nome\":\"Cliente B\"}')");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (3, 'req-base64', 'procNFe')");
+$connection->executeStatement("INSERT INTO t99010 (t99008_id, tp_amb) VALUES (3, 1)");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (3, 3, '55123456789012345678901234567890123456789012', '777', '2026-07-03 11:59:00', '99.90', '', '')");
 $connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (3, 'EMITENTE C', '33333333000133')");
 $connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (3, 3)");
 
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-homolog-placeholder', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 200, '2026-07-03 13:00:00', NULL, NULL, '{\"c_identificador\":\"TECNO-FLEX\",\"c_nome\":\"TECNO-FLEX IND. E COM. LTDA.\"}')");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (4, 'req-homolog-placeholder', 'procNFe')");
+$connection->executeStatement("INSERT INTO t99010 (t99008_id, tp_amb) VALUES (4, 2)");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (4, 4, '32260606013812000158550030001972461604403624', '197246', '2026-07-03 12:59:00', '5317.75', '', '')");
 $connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (4, 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL', '06013812000158')");
 $connection->executeStatement("INSERT INTO t99021 (id_t99021, nome_razao_social, cnpj) VALUES (4, 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL', '40456687000199')");
@@ -111,6 +116,24 @@ assertSameValue('7.60', $rows[3]['impostos']['COFINS']['valor'] ?? null, 'Grid s
 assertSameValue('1.65', $rows[3]['impostos']['PIS']['valor'] ?? null, 'Grid should expose PIS total.');
 assertSameValue('0.30', $rows[3]['impostos']['IBS']['valor'] ?? null, 'Grid should expose IBS total aggregated from IBSUF and IBSMUN.');
 assertSameValue('0.90', $rows[3]['impostos']['CBS']['valor'] ?? null, 'Grid should expose CBS total.');
+
+$productionRows = $repository->search([
+    'date_from' => '2026-07-03',
+    'date_to' => '2026-07-03',
+    'ambiente' => '1',
+]);
+assertSameValue(2, count($productionRows), 'search should filter production output notes.');
+assertSameValue('req-base64', $productionRows[0]['request_id'], 'Newest production output note should come first.');
+assertSameValue('1', $productionRows[0]['ambiente'], 'Production output row should expose environment.');
+
+$homologationRows = $repository->search([
+    'date_from' => '2026-07-03',
+    'date_to' => '2026-07-03',
+    'ambiente' => '2',
+]);
+assertSameValue(2, count($homologationRows), 'search should filter homologation output notes.');
+assertSameValue('req-homolog-placeholder', $homologationRows[0]['request_id'], 'Newest homologation output note should come first.');
+assertSameValue('2', $homologationRows[0]['ambiente'], 'Homologation output row should expose environment.');
 
 $filteredRows = $repository->search([
     'assinante' => 'cliente_a',

@@ -57,6 +57,7 @@ final class NfeInputMonitorController extends AbstractController
             'chave' => $request->query->getString('chave'),
             'assinante' => $request->query->getString('assinante'),
             'emissor' => $request->query->getString('emissor'),
+            'ambiente' => $request->query->getString('ambiente'),
         ];
 
         return $this->json([

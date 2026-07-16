@@ -17,6 +17,7 @@
     const $filterWindow = $('#nfe-output-filter-window');
     const $openFilters = $('#open-nfe-output-filters');
     const $clearFilters = $('#clear-nfe-output-filters');
+    let currentEnvironment = '1';
     let activeColumnField = '';
     let activeColumnTitle = '';
     let activeColumnHeader = null;
@@ -82,6 +83,7 @@
             assinante: $('#filter-assinante').val() || '',
             emissor: $('#filter-emissor').val() || '',
             chave: $('#filter-chave').val() || '',
+            ambiente: currentEnvironment,
             status: Array.from(form.querySelectorAll('input[name="status"]:checked')).map(function (input) {
                 return input.value;
             })
@@ -470,6 +472,55 @@
         });
     }
 
+    function updateEnvironmentButtons($buttons) {
+        $buttons.each(function () {
+            const $button = $(this);
+            const selected = String($button.data('environment')) === currentEnvironment;
+            $button
+                .toggleClass('k-selected k-button-solid-primary', selected)
+                .toggleClass('k-button-solid-base', !selected)
+                .attr('aria-pressed', selected ? 'true' : 'false');
+        });
+    }
+
+    function initializeEnvironmentToggle(grid) {
+        const $toolbar = $grid.find('.k-grid-toolbar');
+        if (!$toolbar.length || $toolbar.find('.monitor-env-toggle').length) {
+            return;
+        }
+
+        const markup = '' +
+            '<div class="monitor-env-toggle" role="group" aria-label="Ambiente da nota">' +
+                '<span class="monitor-env-label">Ambiente</span>' +
+                '<button type="button" class="monitor-env-button" data-environment="1" aria-pressed="true">Produção</button>' +
+                '<button type="button" class="monitor-env-button" data-environment="2" aria-pressed="false">Homologação</button>' +
+            '</div>';
+        const $searchItem = $toolbar.find('.k-grid-search').closest('.k-toolbar-item');
+        const $toggle = $(markup);
+
+        if ($searchItem.length) {
+            $searchItem.before($toggle);
+        } else {
+            $toolbar.append($toggle);
+        }
+
+        const $buttons = $toggle.find('.monitor-env-button');
+        $buttons.kendoButton();
+        updateEnvironmentButtons($buttons);
+
+        $buttons.on('click', function () {
+            const nextEnvironment = String($(this).data('environment'));
+            if (nextEnvironment === currentEnvironment) {
+                return;
+            }
+
+            currentEnvironment = nextEnvironment;
+            updateEnvironmentButtons($buttons);
+            grid.dataSource.page(1);
+            grid.dataSource.read();
+        });
+    }
+
     const filterWindow = initializeFilterWindow();
 
     const dataSource = new window.kendo.data.DataSource({
@@ -592,13 +643,13 @@
             { field: 'valor_total_num', title: 'Valor', width: 140, template: function (row) { return formatDecimal(row.valor_total_num); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
             { field: 'status_envio', title: 'Status', width: 155, filterable: { cell: { operator: 'contains', showOperators: false } } },
             { field: 'chave_nfe', title: 'Chave', width: 310, template: '<span class="small">#= chave_nfe || "" #</span>', filterable: { cell: { operator: 'contains', showOperators: false } } },
-            { field: 'icms_valor', title: 'ICMS', width: 120, template: function (row) { return formatDecimal(row.icms_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
-            { field: 'cofins_valor', title: 'COFINS', width: 140, template: function (row) { return formatDecimal(row.cofins_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
-            { field: 'pis_valor', title: 'PIS', width: 115, template: function (row) { return formatDecimal(row.pis_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
-            { field: 'ipi_valor', title: 'IPI', width: 115, template: function (row) { return formatDecimal(row.ipi_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
-            { field: 'ibs_valor', title: 'IBS', width: 115, template: function (row) { return formatDecimal(row.ibs_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
-            { field: 'cbs_valor', title: 'CBS', width: 115, template: function (row) { return formatDecimal(row.cbs_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
-            { field: 'is_valor', title: 'IS', width: 105, template: function (row) { return formatDecimal(row.is_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
+            { field: 'icms_valor', title: 'ICMS', width: 150, template: function (row) { return formatDecimal(row.icms_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
+            { field: 'cofins_valor', title: 'COFINS', width: 175, template: function (row) { return formatDecimal(row.cofins_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
+            { field: 'pis_valor', title: 'PIS', width: 140, template: function (row) { return formatDecimal(row.pis_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
+            { field: 'ipi_valor', title: 'IPI', width: 140, template: function (row) { return formatDecimal(row.ipi_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
+            { field: 'ibs_valor', title: 'IBS', width: 140, template: function (row) { return formatDecimal(row.ibs_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
+            { field: 'cbs_valor', title: 'CBS', width: 140, template: function (row) { return formatDecimal(row.cbs_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
+            { field: 'is_valor', title: 'IS', width: 130, template: function (row) { return formatDecimal(row.is_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
             {
                 title: 'Arquivos',
                 width: 190,
@@ -621,6 +672,7 @@
     });
 
     const grid = $grid.data('kendoGrid');
+    initializeEnvironmentToggle(grid);
 
     $(document).on('click', '.monitor-column-action', function (event) {
         event.preventDefault();

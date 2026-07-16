@@ -67,8 +67,13 @@ final class NfeInputMonitorRepository
             return null;
         }
 
+        $itemsDocumentId = isset($row['documento_completo_id']) ? (int) $row['documento_completo_id'] : 0;
+        if ($itemsDocumentId <= 0) {
+            $itemsDocumentId = $documentId;
+        }
+
         $detail = $this->normalizeRow($row);
-        $detail['itens'] = $this->findItemsByDocumentId($documentId);
+        $detail['itens'] = $this->findItemsByDocumentId($itemsDocumentId);
         $detail['xml_evento_autorizacao'] = $this->stringOrEmpty($row['xml_evento_autorizacao'] ?? null);
         $detail['resposta_bruta'] = $this->stringOrEmpty($row['xml_envelope'] ?? null);
 
@@ -307,11 +312,21 @@ final class NfeInputMonitorRepository
         $hasT99015 = $this->tableExists('t99015');
 
         $nfeResumoJoin = $hasT99009 ? 'LEFT JOIN t99009 nfe_resumo ON nfe_resumo.t99008_id = d.id_t99008' : '';
-        $nfeProcJoin = $hasT99010 ? 'LEFT JOIN t99010 nfe_proc ON nfe_proc.t99008_id = d.id_t99008' : '';
-        $emitJoin = $hasT99011 ? 'LEFT JOIN t99011 emit ON emit.t99008_id = d.id_t99008' : '';
-        $destJoin = $hasT99012 ? 'LEFT JOIN t99012 dest ON dest.t99008_id = d.id_t99008' : '';
-        $totalsJoin = $hasT99014 ? 'LEFT JOIN t99014 tot ON tot.t99008_id = d.id_t99008' : '';
-        $eventJoin = $hasT99015 ? 'LEFT JOIN t99015 evt ON evt.t99008_id = d.id_t99008' : '';
+        $completeDocJoin = <<<'SQL'
+            LEFT JOIN (
+                SELECT ch_nfe, MAX(id_t99008) AS complete_t99008_id
+                FROM t99008
+                WHERE COALESCE(schema_family, '') = 'procNFe'
+                  AND COALESCE(ch_nfe, '') <> ''
+                GROUP BY ch_nfe
+            ) complete_link ON complete_link.ch_nfe = d.ch_nfe
+            LEFT JOIN t99008 complete_doc ON complete_doc.id_t99008 = complete_link.complete_t99008_id
+        SQL;
+        $nfeProcJoin = $hasT99010 ? 'LEFT JOIN t99010 nfe_proc ON nfe_proc.t99008_id = COALESCE(complete_doc.id_t99008, d.id_t99008)' : '';
+        $emitJoin = $hasT99011 ? 'LEFT JOIN t99011 emit ON emit.t99008_id = COALESCE(complete_doc.id_t99008, d.id_t99008)' : '';
+        $destJoin = $hasT99012 ? 'LEFT JOIN t99012 dest ON dest.t99008_id = COALESCE(complete_doc.id_t99008, d.id_t99008)' : '';
+        $totalsJoin = $hasT99014 ? 'LEFT JOIN t99014 tot ON tot.t99008_id = COALESCE(complete_doc.id_t99008, d.id_t99008)' : '';
+        $eventJoin = $hasT99015 ? 'LEFT JOIN t99015 evt ON evt.t99008_id = COALESCE(complete_doc.id_t99008, d.id_t99008)' : '';
 
         return <<<SQL
             SELECT
@@ -338,6 +353,8 @@ final class NfeInputMonitorRepository
                 d.n_prot,
                 d.emit_cnpj_cpf,
                 d.xml_descompactado,
+                complete_doc.id_t99008 AS documento_completo_id,
+                complete_doc.xml_descompactado AS xml_completo,
                 d.dt_hr_processado_em,
                 nfe_proc.n_nf AS numero_nota,
                 COALESCE(nfe_proc.dh_emi, nfe_resumo.dh_emi) AS data_emissao,
@@ -363,6 +380,7 @@ final class NfeInputMonitorRepository
             INNER JOIN t99007 e ON e.id_t99007 = d.t99007_id
             INNER JOIN t99001 t ON t.id_t99001 = e.t99001_id
             {$nfeResumoJoin}
+            {$completeDocJoin}
             {$nfeProcJoin}
             {$emitJoin}
             {$destJoin}
@@ -409,7 +427,10 @@ final class NfeInputMonitorRepository
             $this->stringOrEmpty($row['chave_nfe_proc'] ?? null),
             $this->stringOrEmpty($row['ch_nfe'] ?? null)
         );
-        $xmlCompleto = $this->stringOrEmpty($row['xml_descompactado'] ?? null);
+        $xmlCompleto = $this->firstNonEmpty(
+            $this->stringOrEmpty($row['xml_completo'] ?? null),
+            $this->stringOrEmpty($row['xml_descompactado'] ?? null)
+        );
 
         return [
             'request_id' => $documentId,

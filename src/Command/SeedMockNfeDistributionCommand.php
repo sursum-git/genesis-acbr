@@ -37,6 +37,7 @@ final class SeedMockNfeDistributionCommand extends Command
             ->addOption('ambiente', null, InputOption::VALUE_REQUIRED, '1 producao, 2 homologacao.', '1')
             ->addOption('assinante-id', null, InputOption::VALUE_REQUIRED, 'Identificador do assinante mock.', 'mock-nsu')
             ->addOption('assinante-nome', null, InputOption::VALUE_REQUIRED, 'Nome do assinante mock.', 'Assinante Mock NSU')
+            ->addOption('com-xml-completo', null, InputOption::VALUE_NONE, 'Inclui um procNFe completo de teste para cada resumo gerado.')
             ->addOption('somente-xml', null, InputOption::VALUE_NONE, 'Somente imprime o XML gerado, sem gravar no banco.');
     }
 
@@ -49,8 +50,9 @@ final class SeedMockNfeDistributionCommand extends Command
         $tpAmb = max(1, min(2, (int) $input->getOption('ambiente')));
         $assinanteId = trim((string) $input->getOption('assinante-id'));
         $assinanteNome = trim((string) $input->getOption('assinante-nome'));
+        $includeFullXml = (bool) $input->getOption('com-xml-completo');
 
-        $responseXml = $this->buildDistributionXml($count, $uf, $cnpjAutor, $ultNsu, $tpAmb);
+        $responseXml = $this->buildDistributionXml($count, $uf, $cnpjAutor, $ultNsu, $tpAmb, $includeFullXml);
 
         if ((bool) $input->getOption('somente-xml')) {
             $output->writeln($responseXml);
@@ -113,11 +115,12 @@ final class SeedMockNfeDistributionCommand extends Command
         $output->writeln('documentos_nsu: ' . (string) $counts['nsu_count']);
         $output->writeln('rota: /nfe/distribuicao-dfe/por-ult-nsu');
         $output->writeln('assinante: ' . $assinanteNome . ' (' . $assinanteId . ')');
+        $output->writeln('xml_completo: ' . ($includeFullXml ? 'sim' : 'nao'));
 
         return Command::SUCCESS;
     }
 
-    private function buildDistributionXml(int $count, string $uf, string $cnpjAutor, string $ultNsu, int $tpAmb): string
+    private function buildDistributionXml(int $count, string $uf, string $cnpjAutor, string $ultNsu, int $tpAmb, bool $includeFullXml): string
     {
         $docZips = [];
         $baseDate = new \DateTimeImmutable('2026-07-14 09:00:00-03:00');
@@ -153,9 +156,20 @@ XML;
                 $nsu,
                 base64_encode(gzencode($resumoXml))
             );
+
+            if ($includeFullXml) {
+                $procNfeXml = $this->buildProcNfeXml($chave, $cnpjEmitente, $cnpjAutor, $numeroNota, $dhEmi, $valor, $tpAmb, $index);
+                $procNsu = str_pad((string) (((int) $ultNsu) + $count + $index), 15, '0', STR_PAD_LEFT);
+                $docZips[] = sprintf(
+                    '  <docZip NSU="%s" schema="procNFe_v4.00.xsd">%s</docZip>',
+                    $procNsu,
+                    base64_encode(gzencode($procNfeXml))
+                );
+            }
         }
 
-        $lastNsu = str_pad((string) (((int) $ultNsu) + $count), 15, '0', STR_PAD_LEFT);
+        $lastNsuNumber = ((int) $ultNsu) + ($includeFullXml ? $count * 2 : $count);
+        $lastNsu = str_pad((string) $lastNsuNumber, 15, '0', STR_PAD_LEFT);
         $dhResp = $baseDate->modify('+20 minutes')->format('Y-m-d\\TH:i:sP');
 
         return <<<XML
@@ -172,6 +186,162 @@ XML;
 {$this->implodeLines($docZips)}
   </loteDistDFeInt>
 </retDistDFeInt>
+XML;
+    }
+
+    private function buildProcNfeXml(string $chave, string $cnpjEmitente, string $cnpjDestinatario, int $numeroNota, \DateTimeImmutable $dhEmi, string $valor, int $tpAmb, int $index): string
+    {
+        $protocolo = '1352600' . str_pad((string) $numeroNota, 8, '0', STR_PAD_LEFT);
+        $itemOneValue = number_format(((float) $valor) * 0.6, 2, '.', '');
+        $itemTwoValue = number_format(((float) $valor) * 0.4, 2, '.', '');
+        $icms = number_format(((float) $valor) * 0.04, 2, '.', '');
+        $pis = number_format(((float) $valor) * 0.0165, 2, '.', '');
+        $cofins = number_format(((float) $valor) * 0.076, 2, '.', '');
+
+        return <<<XML
+<nfeProc versao="4.00" xmlns="http://www.portalfiscal.inf.br/nfe">
+  <NFe>
+    <infNFe Id="NFe{$chave}" versao="4.00">
+      <ide>
+        <cUF>32</cUF>
+        <cNF>{$index}</cNF>
+        <natOp>Venda de mercadoria de teste</natOp>
+        <mod>55</mod>
+        <serie>3</serie>
+        <nNF>{$numeroNota}</nNF>
+        <dhEmi>{$dhEmi->format('Y-m-d\\TH:i:sP')}</dhEmi>
+        <tpNF>1</tpNF>
+        <idDest>1</idDest>
+        <cMunFG>3205309</cMunFG>
+        <tpImp>1</tpImp>
+        <tpEmis>1</tpEmis>
+        <tpAmb>{$tpAmb}</tpAmb>
+        <finNFe>1</finNFe>
+        <indFinal>0</indFinal>
+        <indPres>9</indPres>
+        <procEmi>0</procEmi>
+        <verProc>mock-monitor-entrada</verProc>
+      </ide>
+      <emit>
+        <CNPJ>{$cnpjEmitente}</CNPJ>
+        <xNome>FORNECEDOR MOCK {$index} LTDA</xNome>
+        <enderEmit>
+          <xLgr>Rua do Fornecedor</xLgr>
+          <nro>{$index}</nro>
+          <xBairro>Centro</xBairro>
+          <cMun>3205309</cMun>
+          <xMun>Vitoria</xMun>
+          <UF>ES</UF>
+          <CEP>29000000</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+        </enderEmit>
+        <IE>08234567{$index}</IE>
+        <CRT>3</CRT>
+      </emit>
+      <dest>
+        <CNPJ>{$cnpjDestinatario}</CNPJ>
+        <xNome>Mock Monitor Entrada</xNome>
+        <enderDest>
+          <xLgr>Rua do Destinatario</xLgr>
+          <nro>100</nro>
+          <xBairro>Centro</xBairro>
+          <cMun>3205309</cMun>
+          <xMun>Vitoria</xMun>
+          <UF>ES</UF>
+          <CEP>29000000</CEP>
+          <cPais>1058</cPais>
+          <xPais>Brasil</xPais>
+        </enderDest>
+        <indIEDest>1</indIEDest>
+        <IE>083000000</IE>
+      </dest>
+      <det nItem="1">
+        <prod>
+          <cProd>MOCK-{$index}-1</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>Produto completo mock {$index} A</xProd>
+          <NCM>39269090</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>1.0000</qCom>
+          <vUnCom>{$itemOneValue}</vUnCom>
+          <vProd>{$itemOneValue}</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>1.0000</qTrib>
+          <vUnTrib>{$itemOneValue}</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod>
+          <cProd>MOCK-{$index}-2</cProd>
+          <cEAN>SEM GTIN</cEAN>
+          <xProd>Produto completo mock {$index} B</xProd>
+          <NCM>54071029</NCM>
+          <CFOP>5102</CFOP>
+          <uCom>UN</uCom>
+          <qCom>2.0000</qCom>
+          <vUnCom>{$itemTwoValue}</vUnCom>
+          <vProd>{$itemTwoValue}</vProd>
+          <cEANTrib>SEM GTIN</cEANTrib>
+          <uTrib>UN</uTrib>
+          <qTrib>2.0000</qTrib>
+          <vUnTrib>{$itemTwoValue}</vUnTrib>
+          <indTot>1</indTot>
+        </prod>
+      </det>
+      <total>
+        <ICMSTot>
+          <vBC>{$valor}</vBC>
+          <vICMS>{$icms}</vICMS>
+          <vICMSDeson>0.00</vICMSDeson>
+          <vFCP>0.00</vFCP>
+          <vBCST>0.00</vBCST>
+          <vST>0.00</vST>
+          <vFCPST>0.00</vFCPST>
+          <vFCPSTRet>0.00</vFCPSTRet>
+          <vProd>{$valor}</vProd>
+          <vFrete>0.00</vFrete>
+          <vSeg>0.00</vSeg>
+          <vDesc>0.00</vDesc>
+          <vII>0.00</vII>
+          <vIPI>0.00</vIPI>
+          <vIPIDevol>0.00</vIPIDevol>
+          <vPIS>{$pis}</vPIS>
+          <vCOFINS>{$cofins}</vCOFINS>
+          <vOutro>0.00</vOutro>
+          <vNF>{$valor}</vNF>
+        </ICMSTot>
+      </total>
+      <transp>
+        <modFrete>9</modFrete>
+      </transp>
+      <pag>
+        <detPag>
+          <tPag>90</tPag>
+          <vPag>0.00</vPag>
+        </detPag>
+      </pag>
+      <infAdic>
+        <infCpl>XML completo de teste para monitor de entrada.</infCpl>
+      </infAdic>
+    </infNFe>
+  </NFe>
+  <protNFe versao="4.00">
+    <infProt>
+      <tpAmb>{$tpAmb}</tpAmb>
+      <verAplic>SVRS202607141030</verAplic>
+      <chNFe>{$chave}</chNFe>
+      <dhRecbto>{$dhEmi->modify('+2 minutes')->format('Y-m-d\\TH:i:sP')}</dhRecbto>
+      <nProt>{$protocolo}</nProt>
+      <digVal>mockDigestValue{$index}</digVal>
+      <cStat>100</cStat>
+      <xMotivo>Autorizado o uso da NF-e</xMotivo>
+    </infProt>
+  </protNFe>
+</nfeProc>
 XML;
     }
 

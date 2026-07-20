@@ -447,6 +447,8 @@ final class NfeOutputMonitorRepository
                 n.id_t99019,
                 n.n_nf AS numero_nota,
                 n.ch_nfe AS chave_nfe,
+                n.mod AS modelo_nota,
+                n.serie AS serie_nota,
                 n.dh_emi AS data_emissao,
                 n.v_nf AS valor_total,
                 n.xml_autorizado,
@@ -542,6 +544,7 @@ final class NfeOutputMonitorRepository
             'danfe_base64' => $danfeBase64,
             'danfe_url' => $hasDanfe ? '/monitor-saida-nfe/danfe/' . $requestId : '',
             'xml_url' => $xmlCompleto !== '' ? '/monitor-saida-nfe/xml/' . $requestId : '',
+            'acoes_nfe' => $this->buildNfeActionsPayload($row, $emitenteDocumento),
             'impostos' => [
                 'ICMS' => $this->taxPayload($row, 'icms'),
                 'COFINS' => $this->taxPayload($row, 'cofins'),
@@ -552,6 +555,48 @@ final class NfeOutputMonitorRepository
                 'IS' => $this->taxPayload($row, 'is'),
             ],
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, string>
+     */
+    private function buildNfeActionsPayload(array $row, string $issuerDocument): array
+    {
+        $numeroNota = $this->stringOrEmpty($row['numero_nota'] ?? null);
+        $dataEmissao = $this->stringOrEmpty($row['data_emissao'] ?? null);
+        $chave = $this->stringOrEmpty($row['chave_nfe'] ?? null);
+        $ano = $this->yearForInutilization($dataEmissao, $chave);
+
+        return [
+            'cancelar_url' => '/nfe/eventos/cancelar',
+            'inutilizar_url' => '/nfe/inutilizacao/inutilizar',
+            'chave' => $chave,
+            'cnpj_emitente' => preg_replace('/\D+/', '', $issuerDocument) ?? '',
+            'ano' => $ano,
+            'modelo' => $this->firstNonEmpty($this->stringOrEmpty($row['modelo_nota'] ?? null), '55'),
+            'serie' => $this->stringOrEmpty($row['serie_nota'] ?? null),
+            'numero_inicial' => $numeroNota,
+            'numero_final' => $numeroNota,
+            'lote' => '1',
+        ];
+    }
+
+    private function yearForInutilization(string $issueDate, string $accessKey): string
+    {
+        if ($issueDate !== '') {
+            try {
+                return (new \DateTimeImmutable($issueDate))->format('y');
+            } catch (\Throwable) {
+            }
+        }
+
+        $digits = preg_replace('/\D+/', '', $accessKey) ?? '';
+        if (strlen($digits) >= 4) {
+            return substr($digits, 2, 2);
+        }
+
+        return '';
     }
 
     /**

@@ -12,15 +12,19 @@
     const filterOptionsUrl = root.dataset.filterOptionsUrl || '';
     const filterLookupUrl = root.dataset.filterLookupUrl || '';
     const detailUrlTemplate = root.dataset.detailUrlTemplate || '';
+    const cancelUrl = root.dataset.cancelUrl || (basePath + '/index.php/nfe/eventos/cancelar');
+    const inutilizeUrl = root.dataset.inutilizeUrl || (basePath + '/index.php/nfe/inutilizacao/inutilizar');
     const appBaseUrl = basePath + '/index.php';
     const $grid = $('#nfe-output-monitor-grid');
     const $filterWindow = $('#nfe-output-filter-window');
     const $openFilters = $('#open-nfe-output-filters');
     const $clearFilters = $('#clear-nfe-output-filters');
-    let currentEnvironment = '1';
+    let currentEnvironment = '2';
     let activeColumnField = '';
     let activeColumnTitle = '';
     let activeColumnHeader = null;
+    let actionWindow = null;
+    let activeAction = null;
     let lookupWindow = null;
     let lookupGrid = null;
     let lookupActiveTarget = null;
@@ -69,6 +73,15 @@
 
     function formatDecimal(value) {
         return value === null || value === undefined || value === '' ? '' : window.kendo.toString(value, 'n2');
+    }
+
+    function requiredActionFields(row, action) {
+        const payload = row.acoes_nfe || {};
+        if (action === 'cancelar') {
+            return Boolean(payload.chave && payload.cnpj_emitente);
+        }
+
+        return Boolean(payload.cnpj_emitente && payload.ano && payload.modelo && payload.serie && payload.numero_inicial && payload.numero_final);
     }
 
     function currentFilters() {
@@ -244,6 +257,154 @@
         });
 
         lookupWindowInitialized = true;
+    }
+
+    function resetActionWindow() {
+        $('#nfe-action-justification').data('kendoTextArea').value('');
+        $('#nfe-action-result').removeClass('text-danger text-success').text('');
+        $('#nfe-action-confirm').data('kendoButton').enable(true);
+    }
+
+    function initializeActionWindow() {
+        $('#nfe-action-justification').kendoTextArea({
+            rows: 4,
+            maxLength: 255
+        });
+        $('#nfe-action-confirm').kendoButton({
+            themeColor: 'primary'
+        });
+        $('#nfe-action-close').kendoButton();
+
+        actionWindow = $('#nfe-action-window').kendoWindow({
+            title: 'Ação da NFe',
+            modal: true,
+            visible: false,
+            width: 680,
+            actions: ['Close'],
+            close: function () {
+                activeAction = null;
+            }
+        }).data('kendoWindow');
+
+        $('#nfe-action-close').on('click', function () {
+            actionWindow.close();
+        });
+
+        $('#nfe-action-form').on('submit', function (event) {
+            event.preventDefault();
+            submitNfeAction();
+        });
+    }
+
+    function openActionWindow(action, row) {
+        if (!actionWindow || !row) {
+            return;
+        }
+
+        activeAction = {
+            type: action,
+            row: row
+        };
+        resetActionWindow();
+
+        const title = action === 'cancelar' ? 'Cancelar NFe' : 'Inutilizar numeração';
+        const payload = row.acoes_nfe || {};
+        const summary = action === 'cancelar'
+            ? 'Cancelar a NFe ' + escapeHtml(row.numero_nota || '') + '<br>Chave: <span class="monitor-break">' + escapeHtml(payload.chave || row.chave_nfe || '') + '</span>'
+            : 'Inutilizar a numeração da NFe ' + escapeHtml(row.numero_nota || '') + '<br>Série: ' + escapeHtml(payload.serie || '') + ' | Modelo: ' + escapeHtml(payload.modelo || '55') + ' | Ano: ' + escapeHtml(payload.ano || '');
+
+        actionWindow.title(title);
+        $('#nfe-action-summary').html(summary);
+        actionWindow.center().open();
+
+        window.setTimeout(function () {
+            const textArea = $('#nfe-action-justification').data('kendoTextArea');
+            if (textArea) {
+                textArea.focus();
+            }
+        }, 0);
+    }
+
+    function actionResultMessage(response) {
+        if (!response) {
+            return 'Ação enviada.';
+        }
+
+        if (typeof response === 'string') {
+            return response;
+        }
+
+        return response.message ||
+            response.mensagem ||
+            (response.resultado && (response.resultado.mensagem || response.resultado.xMotivo)) ||
+            response['hydra:description'] ||
+            'Ação enviada.';
+    }
+
+    function submitNfeAction() {
+        if (!activeAction || !activeAction.row) {
+            return;
+        }
+
+        const textArea = $('#nfe-action-justification').data('kendoTextArea');
+        const justification = String(textArea ? textArea.value() : '').trim();
+        const $result = $('#nfe-action-result');
+        const confirmButton = $('#nfe-action-confirm').data('kendoButton');
+
+        if (justification.length < 15) {
+            $result.removeClass('text-success').addClass('text-danger').text('A justificativa deve ter no mínimo 15 caracteres.');
+            return;
+        }
+
+        const row = activeAction.row;
+        const payload = row.acoes_nfe || {};
+        confirmButton.enable(false);
+        $result.removeClass('text-danger text-success').text('Enviando...');
+
+        if (activeAction.type === 'cancelar') {
+            $.ajax({
+                url: cancelUrl,
+                method: 'POST',
+                contentType: 'application/ld+json',
+                dataType: 'json',
+                data: JSON.stringify({
+                    payload: {
+                        AeChave: payload.chave || row.chave_nfe || '',
+                        AeJustificativa: justification,
+                        AeCNPJCPF: payload.cnpj_emitente || '',
+                        ALote: payload.lote || '1'
+                    }
+                })
+            }).done(function (response) {
+                $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
+                $grid.data('kendoGrid').dataSource.read();
+            }).fail(function (xhr) {
+                $result.removeClass('text-success').addClass('text-danger').text(xhr.responseJSON ? actionResultMessage(xhr.responseJSON) : (xhr.responseText || 'Falha ao cancelar a NFe.'));
+                confirmButton.enable(true);
+            });
+            return;
+        }
+
+        $.ajax({
+            url: inutilizeUrl,
+            method: 'GET',
+            dataType: 'json',
+            data: {
+                ACNPJ: payload.cnpj_emitente || '',
+                AJustificativa: justification,
+                AAno: payload.ano || '',
+                AModelo: payload.modelo || '55',
+                ASerie: payload.serie || '',
+                ANumeroInicial: payload.numero_inicial || row.numero_nota || '',
+                ANumeroFinal: payload.numero_final || row.numero_nota || ''
+            }
+        }).done(function (response) {
+            $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
+            $grid.data('kendoGrid').dataSource.read();
+        }).fail(function (xhr) {
+            $result.removeClass('text-success').addClass('text-danger').text(xhr.responseJSON ? actionResultMessage(xhr.responseJSON) : (xhr.responseText || 'Falha ao inutilizar a numeração.'));
+            confirmButton.enable(true);
+        });
     }
 
     function configureDatePicker(selector) {
@@ -492,8 +653,8 @@
         const markup = '' +
             '<div class="monitor-env-toggle" role="group" aria-label="Ambiente da nota">' +
                 '<span class="monitor-env-label">Ambiente</span>' +
-                '<button type="button" class="monitor-env-button" data-environment="1" aria-pressed="true">Produção</button>' +
-                '<button type="button" class="monitor-env-button" data-environment="2" aria-pressed="false">Homologação</button>' +
+                '<button type="button" class="monitor-env-button" data-environment="1" aria-pressed="false">Produção</button>' +
+                '<button type="button" class="monitor-env-button" data-environment="2" aria-pressed="true">Homologação</button>' +
             '</div>';
         const $searchItem = $toolbar.find('.k-grid-search').closest('.k-toolbar-item');
         const $toggle = $(markup);
@@ -522,6 +683,7 @@
     }
 
     const filterWindow = initializeFilterWindow();
+    initializeActionWindow();
 
     const dataSource = new window.kendo.data.DataSource({
         transport: {
@@ -652,7 +814,7 @@
             { field: 'is_valor', title: 'IS', width: 130, template: function (row) { return formatDecimal(row.is_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
             {
                 title: 'Arquivos',
-                width: 190,
+                width: 360,
                 sortable: false,
                 filterable: false,
                 columnMenu: false,
@@ -665,6 +827,14 @@
                         buttons.push('<a class="btn btn-sm btn-primary" href="' + appBaseUrl + escapeHtml(row.xml_url) + '">XML</a>');
                     }
 
+                    if (requiredActionFields(row, 'cancelar')) {
+                        buttons.push('<button type="button" class="btn btn-sm btn-outline-danger monitor-nfe-action" data-action="cancelar" data-request-id="' + escapeHtml(row.request_id || '') + '">Cancelar</button>');
+                    }
+
+                    if (requiredActionFields(row, 'inutilizar')) {
+                        buttons.push('<button type="button" class="btn btn-sm btn-outline-warning monitor-nfe-action" data-action="inutilizar" data-request-id="' + escapeHtml(row.request_id || '') + '">Inutilizar</button>');
+                    }
+
                     return '<div class="d-flex flex-wrap gap-2">' + buttons.join('') + '</div>';
                 }
             }
@@ -673,6 +843,21 @@
 
     const grid = $grid.data('kendoGrid');
     initializeEnvironmentToggle(grid);
+
+    $(document).on('click', '.monitor-nfe-action', function () {
+        const action = $(this).data('action');
+        const requestId = String($(this).data('request-id') || '');
+        const data = grid.dataSource.data();
+        let row = null;
+        for (let index = 0; index < data.length; index += 1) {
+            if (String(data[index].request_id || '') === requestId) {
+                row = data[index];
+                break;
+            }
+        }
+
+        openActionWindow(action, row);
+    });
 
     $(document).on('click', '.monitor-column-action', function (event) {
         event.preventDefault();

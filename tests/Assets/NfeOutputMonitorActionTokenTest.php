@@ -16,4 +16,11 @@ if (!is_string($script) || !str_contains($script, "'X-Api-Token': token")) {
     exit(1);
 }
 
+foreach (['firstResponseValue', 'responseTextCandidates', 'cStat', 'nProt', 'Request ID'] as $expectedToken) {
+    if (!str_contains($script, $expectedToken)) {
+        fwrite(STDERR, "NFe action result should expose confirmation detail: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
 fwrite(STDOUT, "OK\n");

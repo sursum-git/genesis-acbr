@@ -327,20 +327,117 @@
         }, 0);
     }
 
+    function firstResponseValue(response, paths) {
+        for (const path of paths) {
+            const parts = path.split('.');
+            let value = response;
+
+            for (const part of parts) {
+                if (!value || typeof value !== 'object' || !(part in value)) {
+                    value = null;
+                    break;
+                }
+
+                value = value[part];
+            }
+
+            if (value !== null && value !== undefined && value !== '') {
+                return String(value);
+            }
+        }
+
+        return '';
+    }
+
+    function responseTextCandidates(response) {
+        return [
+            response.message,
+            response.mensagem,
+            response.raw,
+            response.resultado && response.resultado.message,
+            response.resultado && response.resultado.mensagem,
+            response.resultado && response.resultado.raw,
+            response.resultado && response.resultado.xml,
+            response.resultado && response.resultado.XML
+        ].filter(function (value) {
+            return typeof value === 'string' && value !== '';
+        });
+    }
+
+    function extractLineValue(texts, keys) {
+        for (const text of texts) {
+            for (const key of keys) {
+                const match = text.match(new RegExp('(?:^|\\n)\\s*' + key + '\\s*=\\s*([^\\r\\n<]+)', 'i'));
+                if (match && match[1]) {
+                    return match[1].trim();
+                }
+            }
+        }
+
+        return '';
+    }
+
     function actionResultMessage(response) {
         if (!response) {
-            return 'Ação enviada.';
+            return 'Ação enviada. Consulte a requisição gerada para confirmar o retorno da SEFAZ.';
         }
 
         if (typeof response === 'string') {
             return response;
         }
 
-        return response.message ||
-            response.mensagem ||
-            (response.resultado && (response.resultado.mensagem || response.resultado.xMotivo)) ||
-            response['hydra:description'] ||
-            'Ação enviada.';
+        const texts = responseTextCandidates(response);
+        const message = firstResponseValue(response, [
+            'message',
+            'mensagem',
+            'resultado.message',
+            'resultado.mensagem',
+            'resultado.xMotivo',
+            'resultado.XMotivo',
+            'resultado.motivo',
+            'hydra:description'
+        ]) || extractLineValue(texts, ['xMotivo', 'XMotivo', 'Motivo']);
+        const cStat = firstResponseValue(response, [
+            'c_stat_receita',
+            'cStat',
+            'CStat',
+            'resultado.c_stat_receita',
+            'resultado.cStat',
+            'resultado.CStat'
+        ]) || extractLineValue(texts, ['cStat', 'CStat']);
+        const nProt = firstResponseValue(response, [
+            'nProt',
+            'NProt',
+            'protocolo',
+            'resultado.nProt',
+            'resultado.NProt',
+            'resultado.protocolo'
+        ]) || extractLineValue(texts, ['nProt', 'NProt', 'Protocolo']);
+        const status = firstResponseValue(response, ['status', 'resultado.status']);
+        const requestId = firstResponseValue(response, ['request_id', 'resultado.request_id']);
+        const parts = [];
+
+        if (message) {
+            parts.push(message);
+        }
+
+        if (cStat) {
+            parts.push('cStat: ' + cStat);
+        }
+
+        if (nProt) {
+            parts.push('nProt: ' + nProt);
+        }
+
+        if (status) {
+            parts.push('Status: ' + status);
+        }
+
+        if (requestId) {
+            parts.push('Request ID: ' + requestId + ' (consulte em Consulta de requisições)');
+        }
+
+        return parts.length > 0 ? parts.join(' | ') : 'Ação enviada. Consulte a requisição gerada para confirmar o retorno da SEFAZ.';
     }
 
     function submitNfeAction() {

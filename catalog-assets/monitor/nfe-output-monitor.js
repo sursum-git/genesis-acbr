@@ -78,7 +78,7 @@
     function requiredActionFields(row, action) {
         const payload = row.acoes_nfe || {};
         if (action === 'cancelar') {
-            return Boolean(payload.chave && payload.cnpj_emitente);
+            return Boolean(payload.cancelar_url && payload.chave && payload.cnpj_emitente && !(row.cancelamento && row.cancelamento.cancelada));
         }
 
         return Boolean(payload.cnpj_emitente && payload.ano && payload.modelo && payload.serie && payload.numero_inicial && payload.numero_final);

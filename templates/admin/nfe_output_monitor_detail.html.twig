@@ -30,6 +30,21 @@
         </div>
     </section>
 
+    {% if detail.cancelamento.cancelada %}
+        <section class="card border-0 shadow-sm mb-4">
+            <div class="card-header"><h3 class="card-title">Cancelamento</h3></div>
+            <div class="card-body">
+                <dl class="row mb-0 monitor-dl">
+                    <dt class="col-sm-3">Situação</dt><dd class="col-sm-9">Cancelada</dd>
+                    <dt class="col-sm-3">Protocolo</dt><dd class="col-sm-9">{{ detail.cancelamento.protocolo ?: '-' }}</dd>
+                    <dt class="col-sm-3">Retorno SEFAZ</dt><dd class="col-sm-9">{% if detail.cancelamento.c_stat %}{{ detail.cancelamento.c_stat }} - {% endif %}{{ detail.cancelamento.motivo ?: '-' }}</dd>
+                    <dt class="col-sm-3">Data do evento</dt><dd class="col-sm-9">{% if detail.cancelamento.data %}{{ detail.cancelamento.data|date('d/m/Y H:i') }}{% else %}-{% endif %}</dd>
+                    <dt class="col-sm-3">Request ID</dt><dd class="col-sm-9"><code>{{ detail.cancelamento.request_id ?: '-' }}</code></dd>
+                </dl>
+            </div>
+        </section>
+    {% endif %}
+
     <div class="row g-4 mb-4">
         <div class="col-12 col-xl-6">
             <section class="card h-100">

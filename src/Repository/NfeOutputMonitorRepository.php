@@ -377,6 +377,7 @@ final class NfeOutputMonitorRepository
         $hasT99012 = $this->tableExists('t99012');
         $hasT99023 = $this->tableExists('t99023');
         $hasT99024 = $this->tableExists('t99024');
+        $hasT99016 = $this->tableExists('t99016');
         $hasT99032 = $this->tableExists('t99032');
         $hasT99033 = $this->tableExists('t99033');
 
@@ -401,6 +402,33 @@ final class NfeOutputMonitorRepository
         $issuerDocumentSelect = ($hasT99020 && $hasT99023) ? 'emit.cnpj AS emitente_documento' : "'' AS emitente_documento";
         $clientExtractNameSelect = $hasT99012 ? 'dest_xml.x_nome AS cliente_xml_nome' : "'' AS cliente_xml_nome";
         $clientExtractDocumentSelect = $hasT99012 ? "COALESCE(dest_xml.cnpj, dest_xml.cpf, dest_xml.id_estrangeiro, '') AS cliente_xml_documento" : "'' AS cliente_xml_documento";
+        $cancellationJoin = ($hasT99008 && $hasT99016) ? <<<'SQL'
+            LEFT JOIN (
+                SELECT
+                    evt.ch_nfe,
+                    MAX(evt.t99008_id) AS last_cancel_t99008_id
+                FROM t99016 evt
+                WHERE evt.tp_evento = '110111'
+                  AND evt.c_stat IN (101, 135, 155)
+                GROUP BY evt.ch_nfe
+            ) cancel_ref ON cancel_ref.ch_nfe = n.ch_nfe
+            LEFT JOIN t99016 cancel_evt ON cancel_evt.t99008_id = cancel_ref.last_cancel_t99008_id
+            LEFT JOIN t99008 cancel_doc ON cancel_doc.id_t99008 = cancel_ref.last_cancel_t99008_id
+            LEFT JOIN t99001 cancel_req ON cancel_req.u_c_request_id = cancel_doc.u_c_request_id
+        SQL : '';
+        $cancellationSelect = ($hasT99008 && $hasT99016) ? <<<'SQL'
+                cancel_req.u_c_request_id AS cancelamento_request_id,
+                cancel_evt.c_stat AS cancelamento_c_stat,
+                cancel_evt.x_motivo AS cancelamento_motivo,
+                cancel_evt.n_prot AS cancelamento_protocolo,
+                cancel_evt.dh_evento AS cancelamento_data,
+        SQL : <<<'SQL'
+                NULL AS cancelamento_request_id,
+                NULL AS cancelamento_c_stat,
+                NULL AS cancelamento_motivo,
+                NULL AS cancelamento_protocolo,
+                NULL AS cancelamento_data,
+        SQL;
         $taxJoin = ($hasT99032 && $hasT99033) ? <<<'SQL'
             LEFT JOIN (
                 SELECT
@@ -458,6 +486,7 @@ final class NfeOutputMonitorRepository
                 {$issuerDocumentSelect},
                 {$clientExtractNameSelect},
                 {$clientExtractDocumentSelect},
+                {$cancellationSelect}
                 dest.nome_razao_social AS cliente,
                 dest.cnpj AS cliente_documento,
                 taxes.icms_valor,
@@ -490,6 +519,7 @@ final class NfeOutputMonitorRepository
             {$destPivotJoin}
             {$destJoin}
             {$destExtractJoin}
+            {$cancellationJoin}
             {$taxJoin}
         SQL;
     }
@@ -536,7 +566,7 @@ final class NfeOutputMonitorRepository
             'data_emissao' => $row['data_emissao'] ?? null,
             'valor_total' => $this->decimalOrEmpty($row['valor_total'] ?? null),
             'ambiente' => $this->stringOrEmpty($row['ambiente'] ?? null),
-            'status_envio' => $this->mapStatus((int) ($row['si_status_processamento'] ?? 0)),
+            'status_envio' => $this->displayStatus($row),
             'status_http' => isset($row['si_status_http']) ? (int) $row['si_status_http'] : null,
             'erro' => $this->stringOrEmpty($row['t_erro'] ?? null),
             'xml_autorizado' => $xmlCompleto,
@@ -544,6 +574,7 @@ final class NfeOutputMonitorRepository
             'danfe_base64' => $danfeBase64,
             'danfe_url' => $hasDanfe ? '/monitor-saida-nfe/danfe/' . $requestId : '',
             'xml_url' => $xmlCompleto !== '' ? '/monitor-saida-nfe/xml/' . $requestId : '',
+            'cancelamento' => $this->cancellationPayload($row),
             'acoes_nfe' => $this->buildNfeActionsPayload($row, $emitenteDocumento),
             'impostos' => [
                 'ICMS' => $this->taxPayload($row, 'icms'),
@@ -567,9 +598,10 @@ final class NfeOutputMonitorRepository
         $dataEmissao = $this->stringOrEmpty($row['data_emissao'] ?? null);
         $chave = $this->stringOrEmpty($row['chave_nfe'] ?? null);
         $ano = $this->yearForInutilization($dataEmissao, $chave);
+        $isCanceled = $this->isCancellationSuccessful($row);
 
         return [
-            'cancelar_url' => '/nfe/eventos/cancelar',
+            'cancelar_url' => $isCanceled ? '' : '/nfe/eventos/cancelar',
             'inutilizar_url' => '/nfe/inutilizacao/inutilizar',
             'chave' => $chave,
             'cnpj_emitente' => preg_replace('/\D+/', '', $issuerDocument) ?? '',
@@ -580,6 +612,42 @@ final class NfeOutputMonitorRepository
             'numero_final' => $numeroNota,
             'lote' => '1',
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array{cancelada:bool,request_id:string,c_stat:string,motivo:string,protocolo:string,data:string}
+     */
+    private function cancellationPayload(array $row): array
+    {
+        return [
+            'cancelada' => $this->isCancellationSuccessful($row),
+            'request_id' => $this->stringOrEmpty($row['cancelamento_request_id'] ?? null),
+            'c_stat' => $this->stringOrEmpty($row['cancelamento_c_stat'] ?? null),
+            'motivo' => $this->stringOrEmpty($row['cancelamento_motivo'] ?? null),
+            'protocolo' => $this->stringOrEmpty($row['cancelamento_protocolo'] ?? null),
+            'data' => $this->stringOrEmpty($row['cancelamento_data'] ?? null),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function displayStatus(array $row): string
+    {
+        if ($this->isCancellationSuccessful($row)) {
+            return 'Cancelada';
+        }
+
+        return $this->mapStatus((int) ($row['si_status_processamento'] ?? 0));
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function isCancellationSuccessful(array $row): bool
+    {
+        return in_array((int) ($row['cancelamento_c_stat'] ?? 0), [101, 135, 155], true);
     }
 
     private function yearForInutilization(string $issueDate, string $accessKey): string

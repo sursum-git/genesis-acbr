@@ -47,6 +47,7 @@
                         <dt class="col-sm-3">Assinante</dt><dd class="col-sm-9">{{ detail.assinante_nome ?: detail.assinante_identificador ?: '-' }}</dd>
                         <dt class="col-sm-3">Emitente</dt><dd class="col-sm-9">{{ detail.emitente_nome ?: '-' }}{% if detail.emitente_documento %} ({{ detail.emitente_documento }}){% endif %}</dd>
                         <dt class="col-sm-3">Destinatário</dt><dd class="col-sm-9">{{ detail.cliente ?: '-' }}{% if detail.cliente_documento %} ({{ detail.cliente_documento }}){% endif %}</dd>
+                        <dt class="col-sm-3">Cancelamento</dt><dd class="col-sm-9">{% if detail.cancelamento.cancelada %}{{ detail.cancelamento.c_stat }} - {{ detail.cancelamento.motivo ?: 'Cancelada' }}{% if detail.cancelamento.protocolo %} | Protocolo {{ detail.cancelamento.protocolo }}{% endif %}{% else %}-{% endif %}</dd>
                     </dl>
                 </div>
                 <div>

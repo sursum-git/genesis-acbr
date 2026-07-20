@@ -106,10 +106,10 @@ assertSameValue(4, count($rows), 'search should return all NFe send attempts in 
 assertSameValue('req-homolog-placeholder', $rows[0]['request_id'], 'Newest send attempt should come first.');
 assertSameValue('40456687000199', $rows[0]['cliente'], 'Grid should not expose homologation placeholder as customer name.');
 assertSameValue('TECNO-FLEX IND. E COM. LTDA.', $rows[0]['emitente_nome'], 'Grid should not expose homologation placeholder as issuer name.');
-assertSameValue('Cancelada', $rows[0]['status_envio'], 'Grid should expose canceled note status when cancellation event exists.');
-assertSameValue(true, $rows[0]['cancelamento']['cancelada'] ?? null, 'Grid should expose cancellation flag.');
-assertSameValue('req-cancel', $rows[0]['cancelamento']['request_id'] ?? null, 'Grid should expose cancellation request id.');
-assertSameValue('135260000000001', $rows[0]['cancelamento']['protocolo'] ?? null, 'Grid should expose cancellation protocol.');
+assertSameValue('Transmitida', $rows[0]['status_envio'], 'Grid should keep transmission status even when cancellation event exists.');
+assertSameValue(true, $rows[0]['cancelamento']['cancelada'] ?? null, 'Repository should expose cancellation flag for detail view.');
+assertSameValue('req-cancel', $rows[0]['cancelamento']['request_id'] ?? null, 'Repository should expose cancellation request id for detail view.');
+assertSameValue('135260000000001', $rows[0]['cancelamento']['protocolo'] ?? null, 'Repository should expose cancellation protocol for detail view.');
 assertSameValue('', $rows[0]['acoes_nfe']['cancelar_url'] ?? null, 'Grid should hide cancel action for canceled note.');
 assertSameValue('/nfe/inutilizacao/inutilizar', $rows[0]['acoes_nfe']['inutilizar_url'] ?? null, 'Grid should expose NFe inutilization action endpoint.');
 assertSameValue('32260606013812000158550030001972461604403624', $rows[0]['acoes_nfe']['chave'] ?? null, 'Grid should expose access key for cancel action.');

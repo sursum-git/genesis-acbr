@@ -566,7 +566,7 @@ final class NfeOutputMonitorRepository
             'data_emissao' => $row['data_emissao'] ?? null,
             'valor_total' => $this->decimalOrEmpty($row['valor_total'] ?? null),
             'ambiente' => $this->stringOrEmpty($row['ambiente'] ?? null),
-            'status_envio' => $this->displayStatus($row),
+            'status_envio' => $this->mapStatus((int) ($row['si_status_processamento'] ?? 0)),
             'status_http' => isset($row['si_status_http']) ? (int) $row['si_status_http'] : null,
             'erro' => $this->stringOrEmpty($row['t_erro'] ?? null),
             'xml_autorizado' => $xmlCompleto,
@@ -628,18 +628,6 @@ final class NfeOutputMonitorRepository
             'protocolo' => $this->stringOrEmpty($row['cancelamento_protocolo'] ?? null),
             'data' => $this->stringOrEmpty($row['cancelamento_data'] ?? null),
         ];
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private function displayStatus(array $row): string
-    {
-        if ($this->isCancellationSuccessful($row)) {
-            return 'Cancelada';
-        }
-
-        return $this->mapStatus((int) ($row['si_status_processamento'] ?? 0));
     }
 
     /**

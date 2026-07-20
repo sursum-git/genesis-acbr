@@ -260,12 +260,14 @@
     }
 
     function resetActionWindow() {
+        $('#nfe-action-token').data('kendoTextBox').value('');
         $('#nfe-action-justification').data('kendoTextArea').value('');
         $('#nfe-action-result').removeClass('text-danger text-success').text('');
         $('#nfe-action-confirm').data('kendoButton').enable(true);
     }
 
     function initializeActionWindow() {
+        $('#nfe-action-token').kendoTextBox();
         $('#nfe-action-justification').kendoTextArea({
             rows: 4,
             maxLength: 255
@@ -318,9 +320,9 @@
         actionWindow.center().open();
 
         window.setTimeout(function () {
-            const textArea = $('#nfe-action-justification').data('kendoTextArea');
-            if (textArea) {
-                textArea.focus();
+            const tokenInput = $('#nfe-action-token').data('kendoTextBox');
+            if (tokenInput) {
+                tokenInput.focus();
             }
         }, 0);
     }
@@ -347,9 +349,16 @@
         }
 
         const textArea = $('#nfe-action-justification').data('kendoTextArea');
+        const tokenInput = $('#nfe-action-token').data('kendoTextBox');
+        const token = String(tokenInput ? tokenInput.value() : '').trim();
         const justification = String(textArea ? textArea.value() : '').trim();
         const $result = $('#nfe-action-result');
         const confirmButton = $('#nfe-action-confirm').data('kendoButton');
+
+        if (token === '') {
+            $result.removeClass('text-success').addClass('text-danger').text('Informe o token da API.');
+            return;
+        }
 
         if (justification.length < 15) {
             $result.removeClass('text-success').addClass('text-danger').text('A justificativa deve ter no mínimo 15 caracteres.');
@@ -367,6 +376,9 @@
                 method: 'POST',
                 contentType: 'application/ld+json',
                 dataType: 'json',
+                headers: {
+                    'X-Api-Token': token
+                },
                 data: JSON.stringify({
                     payload: {
                         AeChave: payload.chave || row.chave_nfe || '',
@@ -389,6 +401,9 @@
             url: inutilizeUrl,
             method: 'GET',
             dataType: 'json',
+            headers: {
+                'X-Api-Token': token
+            },
             data: {
                 ACNPJ: payload.cnpj_emitente || '',
                 AJustificativa: justification,

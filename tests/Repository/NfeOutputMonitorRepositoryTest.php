@@ -29,7 +29,8 @@ $connection->executeStatement('CREATE TABLE t99001 (id_t99001 INTEGER PRIMARY KE
 $connection->executeStatement('CREATE TABLE t99008 (id_t99008 INTEGER PRIMARY KEY AUTOINCREMENT, u_c_request_id TEXT, schema_family TEXT)');
 $connection->executeStatement('CREATE TABLE t99010 (t99008_id INTEGER PRIMARY KEY, tp_amb INTEGER)');
 $connection->executeStatement('CREATE TABLE t99016 (t99008_id INTEGER PRIMARY KEY, ch_nfe TEXT, tp_evento TEXT, dh_evento TEXT, c_stat INTEGER, x_motivo TEXT, n_prot TEXT)');
-$connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, t99008_id INTEGER, ch_nfe TEXT, n_nf TEXT, mod TEXT, serie TEXT, dh_emi TEXT, v_nf TEXT, xml_autorizado TEXT, caminho_danfe TEXT)');
+$connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, t99008_id INTEGER, ch_nfe TEXT, n_nf TEXT, mod TEXT, serie TEXT, dh_emi TEXT, v_nf TEXT, xml_autorizado TEXT, caminho_danfe TEXT, situacao_fiscal TEXT)');
+$connection->executeStatement('CREATE TABLE t99034 (id_t99034 INTEGER PRIMARY KEY AUTOINCREMENT, t99019_id INTEGER, u_c_request_id TEXT, tipo_evento TEXT, tipo_acao TEXT, situacao TEXT, ch_nfe TEXT, c_stat INTEGER, x_motivo TEXT, n_prot TEXT, dh_evento TEXT, t_payload_json TEXT, dt_hr_atu TEXT)');
 $connection->executeStatement('CREATE TABLE t99020 (id_t99020 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
 $connection->executeStatement('CREATE TABLE t99021 (id_t99021 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
 $connection->executeStatement('CREATE TABLE t99012 (t99008_id INTEGER PRIMARY KEY, cnpj TEXT, cpf TEXT, id_estrangeiro TEXT, x_nome TEXT)');
@@ -94,6 +95,8 @@ $connection->executeStatement("INSERT INTO t99024 (t99019_id, t99021_id) VALUES 
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-cancel', '/nfe/eventos/cancelar', 'nfe', 3, 200, '2026-07-03 13:05:00', NULL, NULL, '{\"c_identificador\":\"TECNO-FLEX\",\"c_nome\":\"TECNO-FLEX IND. E COM. LTDA.\"}')");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (5, 'req-cancel', 'procEventoNFe')");
 $connection->executeStatement("INSERT INTO t99016 (t99008_id, ch_nfe, tp_evento, dh_evento, c_stat, x_motivo, n_prot) VALUES (5, '32260606013812000158550030001972461604403624', '110111', '2026-07-03 13:04:00', 135, 'Evento registrado e vinculado a NF-e', '135260000000001')");
+$connection->executeStatement("INSERT INTO t99034 (t99019_id, u_c_request_id, tipo_evento, tipo_acao, situacao, ch_nfe, c_stat, x_motivo, n_prot, dh_evento, dt_hr_atu) VALUES (4, 'req-cancel', '110111', 'cancelamento', 'Cancelada', '32260606013812000158550030001972461604403624', 135, 'Evento registrado e vinculado a NF-e', '135260000000001', '2026-07-03 13:04:00', '2026-07-03 13:05:00')");
+$connection->executeStatement("UPDATE t99019 SET situacao_fiscal = 'Cancelada' WHERE id_t99019 = 4");
 
 $repository = new NfeOutputMonitorRepository($connection);
 
@@ -107,6 +110,8 @@ assertSameValue('req-homolog-placeholder', $rows[0]['request_id'], 'Newest send 
 assertSameValue('40456687000199', $rows[0]['cliente'], 'Grid should not expose homologation placeholder as customer name.');
 assertSameValue('TECNO-FLEX IND. E COM. LTDA.', $rows[0]['emitente_nome'], 'Grid should not expose homologation placeholder as issuer name.');
 assertSameValue('Transmitida', $rows[0]['status_envio'], 'Grid should keep transmission status even when cancellation event exists.');
+assertSameValue('Cancelada', $rows[0]['situacao_nfe'], 'Grid should expose fiscal situation independently from transmission status.');
+assertSameValue(1, count($rows[0]['eventos_nfe'] ?? []), 'Grid should expose fiscal events for status window.');
 assertSameValue(true, $rows[0]['cancelamento']['cancelada'] ?? null, 'Repository should expose cancellation flag for detail view.');
 assertSameValue('req-cancel', $rows[0]['cancelamento']['request_id'] ?? null, 'Repository should expose cancellation request id for detail view.');
 assertSameValue('135260000000001', $rows[0]['cancelamento']['protocolo'] ?? null, 'Repository should expose cancellation protocol for detail view.');

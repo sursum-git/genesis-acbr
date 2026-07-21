@@ -11,6 +11,7 @@
     const dataUrl = root.dataset.dataUrl || '';
     const filterOptionsUrl = root.dataset.filterOptionsUrl || '';
     const filterLookupUrl = root.dataset.filterLookupUrl || '';
+    const actionEventUrl = root.dataset.actionEventUrl || '';
     const detailUrlTemplate = root.dataset.detailUrlTemplate || '';
     const cancelUrl = root.dataset.cancelUrl || (basePath + '/index.php/nfe/eventos/cancelar');
     const inutilizeUrl = root.dataset.inutilizeUrl || (basePath + '/index.php/nfe/inutilizacao/inutilizar');
@@ -30,6 +31,8 @@
     let lookupActiveTarget = null;
     let lookupActiveType = '';
     let lookupWindowInitialized = false;
+    let fiscalEventWindow = null;
+    let fiscalEventGrid = null;
 
     function buildDetailUrl(requestId) {
         return detailUrlTemplate.replace('__REQUEST_ID__', encodeURIComponent(requestId));
@@ -174,6 +177,59 @@
 
         $(lookupActiveTarget).val(dataItem.value).trigger('change');
         lookupWindow.close();
+    }
+
+    function initializeFiscalEventWindow() {
+        if (fiscalEventWindow) {
+            return;
+        }
+
+        const markup = '' +
+            '<div id="nfe-fiscal-events-window" style="display: none;">' +
+                '<div class="mb-3">' +
+                    '<div class="small text-muted text-uppercase">Situação fiscal da NFe</div>' +
+                    '<h3 id="nfe-fiscal-events-title" class="h5 mb-0"></h3>' +
+                '</div>' +
+                '<div id="nfe-fiscal-events-grid"></div>' +
+            '</div>';
+        $('body').append(markup);
+
+        fiscalEventWindow = $('#nfe-fiscal-events-window').kendoWindow({
+            title: 'Eventos da nota fiscal',
+            modal: true,
+            visible: false,
+            width: 980,
+            height: 620,
+            actions: ['Close']
+        }).data('kendoWindow');
+
+        $('#nfe-fiscal-events-grid').kendoGrid({
+            dataSource: [],
+            height: 470,
+            sortable: true,
+            noRecords: {
+                template: 'Nenhum evento fiscal registrado para esta nota.'
+            },
+            columns: [
+                { field: 'data', title: 'Data', width: 155 },
+                { field: 'tipo_acao', title: 'Tipo', width: 145 },
+                { field: 'situacao', title: 'Situação', width: 170 },
+                { field: 'c_stat', title: 'cStat', width: 90 },
+                { field: 'motivo', title: 'Motivo', width: 280 },
+                { field: 'protocolo', title: 'Protocolo', width: 150 },
+                { field: 'request_id', title: 'Request ID', width: 230 }
+            ]
+        });
+
+        fiscalEventGrid = $('#nfe-fiscal-events-grid').data('kendoGrid');
+    }
+
+    function openFiscalEventWindow(row) {
+        initializeFiscalEventWindow();
+
+        $('#nfe-fiscal-events-title').text((row.situacao_nfe || 'Sem situação') + ' - Nota ' + (row.numero_nota || row.request_id || ''));
+        fiscalEventGrid.dataSource.data(Array.isArray(row.eventos_nfe) ? row.eventos_nfe : []);
+        fiscalEventWindow.center().open();
     }
 
     function initializeLookupWindow() {
@@ -440,6 +496,34 @@
         return parts.length > 0 ? parts.join(' | ') : 'Ação enviada. Consulte a requisição gerada para confirmar o retorno da SEFAZ.';
     }
 
+    function actionResponseRequestId(response) {
+        if (!response || typeof response !== 'object') {
+            return '';
+        }
+
+        return firstResponseValue(response, ['request_id', 'resultado.request_id']);
+    }
+
+    function recordFiscalEvent(action, row, actionPayload, response) {
+        if (!actionEventUrl || !row || !row.request_id) {
+            return $.Deferred().resolve().promise();
+        }
+
+        return $.ajax({
+            url: actionEventUrl,
+            method: 'POST',
+            contentType: 'application/json',
+            dataType: 'json',
+            data: JSON.stringify({
+                nota_request_id: row.request_id,
+                action: action,
+                request_id: actionResponseRequestId(response),
+                payload: actionPayload,
+                response: response && typeof response === 'object' ? response : { mensagem: String(response || '') }
+            })
+        });
+    }
+
     function submitNfeAction() {
         if (!activeAction || !activeAction.row) {
             return;
@@ -468,6 +552,13 @@
         $result.removeClass('text-danger text-success').text('Enviando...');
 
         if (activeAction.type === 'cancelar') {
+            const actionPayload = {
+                AeChave: payload.chave || row.chave_nfe || '',
+                AeJustificativa: justification,
+                AeCNPJCPF: payload.cnpj_emitente || '',
+                ALote: payload.lote || '1'
+            };
+
             $.ajax({
                 url: cancelUrl,
                 method: 'POST',
@@ -477,22 +568,35 @@
                     'X-Api-Token': token
                 },
                 data: JSON.stringify({
-                    payload: {
-                        AeChave: payload.chave || row.chave_nfe || '',
-                        AeJustificativa: justification,
-                        AeCNPJCPF: payload.cnpj_emitente || '',
-                        ALote: payload.lote || '1'
-                    }
+                    payload: actionPayload
                 })
             }).done(function (response) {
-                $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
-                $grid.data('kendoGrid').dataSource.read();
+                recordFiscalEvent(activeAction.type, row, actionPayload, response)
+                    .done(function () {
+                        $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
+                    })
+                    .fail(function () {
+                        $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response) + ' Evento fiscal não foi gravado automaticamente.');
+                    })
+                    .always(function () {
+                        $grid.data('kendoGrid').dataSource.read();
+                    });
             }).fail(function (xhr) {
                 $result.removeClass('text-success').addClass('text-danger').text(xhr.responseJSON ? actionResultMessage(xhr.responseJSON) : (xhr.responseText || 'Falha ao cancelar a NFe.'));
                 confirmButton.enable(true);
             });
             return;
         }
+
+        const actionPayload = {
+            ACNPJ: payload.cnpj_emitente || '',
+            AJustificativa: justification,
+            AAno: payload.ano || '',
+            AModelo: payload.modelo || '55',
+            ASerie: payload.serie || '',
+            ANumeroInicial: payload.numero_inicial || row.numero_nota || '',
+            ANumeroFinal: payload.numero_final || row.numero_nota || ''
+        };
 
         $.ajax({
             url: inutilizeUrl,
@@ -501,18 +605,18 @@
             headers: {
                 'X-Api-Token': token
             },
-            data: {
-                ACNPJ: payload.cnpj_emitente || '',
-                AJustificativa: justification,
-                AAno: payload.ano || '',
-                AModelo: payload.modelo || '55',
-                ASerie: payload.serie || '',
-                ANumeroInicial: payload.numero_inicial || row.numero_nota || '',
-                ANumeroFinal: payload.numero_final || row.numero_nota || ''
-            }
+            data: actionPayload
         }).done(function (response) {
-            $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
-            $grid.data('kendoGrid').dataSource.read();
+            recordFiscalEvent(activeAction.type, row, actionPayload, response)
+                .done(function () {
+                    $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
+                })
+                .fail(function () {
+                    $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response) + ' Evento fiscal não foi gravado automaticamente.');
+                })
+                .always(function () {
+                    $grid.data('kendoGrid').dataSource.read();
+                });
         }).fail(function (xhr) {
             $result.removeClass('text-success').addClass('text-danger').text(xhr.responseJSON ? actionResultMessage(xhr.responseJSON) : (xhr.responseText || 'Falha ao inutilizar a numeração.'));
             confirmButton.enable(true);
@@ -881,6 +985,7 @@
                 'cliente',
                 'emitente_nome',
                 'status_envio',
+                'situacao_nfe',
                 'chave_nfe'
             ]
         },
@@ -916,6 +1021,15 @@
             { field: 'emitente_nome', title: 'Emissor', width: 280, filterable: { cell: { operator: 'contains', showOperators: false } } },
             { field: 'valor_total_num', title: 'Valor', width: 140, template: function (row) { return formatDecimal(row.valor_total_num); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
             { field: 'status_envio', title: 'Status', width: 155, filterable: { cell: { operator: 'contains', showOperators: false } } },
+            {
+                field: 'situacao_nfe',
+                title: 'Situação NFe',
+                width: 190,
+                template: function (row) {
+                    return '<button type="button" class="btn btn-sm btn-link p-0 monitor-nfe-situation" data-request-id="' + escapeHtml(row.request_id || '') + '">' + escapeHtml(row.situacao_nfe || 'Sem situação') + '</button>';
+                },
+                filterable: { cell: { operator: 'contains', showOperators: false } }
+            },
             { field: 'chave_nfe', title: 'Chave', width: 310, template: '<span class="small">#= chave_nfe || "" #</span>', filterable: { cell: { operator: 'contains', showOperators: false } } },
             { field: 'icms_valor', title: 'ICMS', width: 150, template: function (row) { return formatDecimal(row.icms_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
             { field: 'cofins_valor', title: 'COFINS', width: 175, template: function (row) { return formatDecimal(row.cofins_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
@@ -969,6 +1083,22 @@
         }
 
         openActionWindow(action, row);
+    });
+
+    $(document).on('click', '.monitor-nfe-situation', function () {
+        const requestId = String($(this).data('request-id') || '');
+        const data = grid.dataSource.data();
+        let row = null;
+        for (let index = 0; index < data.length; index += 1) {
+            if (String(data[index].request_id || '') === requestId) {
+                row = data[index];
+                break;
+            }
+        }
+
+        if (row) {
+            openFiscalEventWindow(row);
+        }
     });
 
     $(document).on('click', '.monitor-column-action', function (event) {

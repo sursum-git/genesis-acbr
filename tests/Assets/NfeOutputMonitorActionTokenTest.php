@@ -23,4 +23,11 @@ foreach (['firstResponseValue', 'responseTextCandidates', 'cStat', 'nProt', 'Req
     }
 }
 
+foreach (['data-action-event-url', 'actionEventUrl', 'monitor-nfe-situation', 'nfe-fiscal-events-grid'] as $expectedToken) {
+    if (!str_contains($template . $script, $expectedToken)) {
+        fwrite(STDERR, "NFe monitor should expose fiscal event UI token: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
 fwrite(STDOUT, "OK\n");

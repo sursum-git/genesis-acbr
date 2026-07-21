@@ -3,6 +3,7 @@
 namespace App\Controller;
 
 use App\Repository\NfeOutputMonitorRepository;
+use App\Repository\NfeOutputFiscalEventRepository;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -13,8 +14,10 @@ use Symfony\Component\Routing\Attribute\Route;
 
 final class NfeOutputMonitorController extends AbstractController
 {
-    public function __construct(private readonly NfeOutputMonitorRepository $monitorRepository)
-    {
+    public function __construct(
+        private readonly NfeOutputMonitorRepository $monitorRepository,
+        private readonly NfeOutputFiscalEventRepository $fiscalEventRepository,
+    ) {
     }
 
     #[Route('/monitor-envios-nfe', name: 'app_nfe_output_monitor_legacy', methods: ['GET'])]
@@ -30,9 +33,35 @@ final class NfeOutputMonitorController extends AbstractController
             'dataUrl' => $this->generateUrl('app_nfe_output_monitor_data'),
             'filterOptionsUrl' => $this->generateUrl('app_nfe_output_monitor_filter_options'),
             'filterLookupUrl' => $this->generateUrl('app_nfe_output_monitor_filter_lookup'),
+            'actionEventUrl' => $this->generateUrl('app_nfe_output_monitor_record_fiscal_event'),
             'detailUrlTemplate' => $this->generateUrl('app_nfe_output_monitor_detail', ['requestId' => '__REQUEST_ID__']),
             'technicalDetailUrlTemplate' => $this->generateUrl('app_nfe_output_monitor_technical_detail', ['requestId' => '__REQUEST_ID__']),
         ]);
+    }
+
+    #[Route('/monitor-saida-nfe/eventos/registrar', name: 'app_nfe_output_monitor_record_fiscal_event', methods: ['POST'])]
+    public function recordFiscalEvent(Request $request): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload)) {
+            return $this->json(['message' => 'Payload inválido para registrar evento fiscal.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        $noteRequestId = trim((string) ($payload['nota_request_id'] ?? ''));
+        $detail = $this->monitorRepository->findByRequestId($noteRequestId);
+        if ($detail === null || (int) ($detail['note_id'] ?? 0) <= 0) {
+            return $this->json(['message' => 'Nota não encontrada para registrar o evento fiscal.'], Response::HTTP_NOT_FOUND);
+        }
+
+        $event = $this->fiscalEventRepository->recordActionResult(
+            (int) $detail['note_id'],
+            (string) ($payload['action'] ?? ''),
+            (string) ($payload['request_id'] ?? ''),
+            is_array($payload['payload'] ?? null) ? $payload['payload'] : [],
+            is_array($payload['response'] ?? null) ? $payload['response'] : []
+        );
+
+        return $this->json(['event' => $event]);
     }
 
     #[Route('/monitor-saida-nfe/filtros/opcoes', name: 'app_nfe_output_monitor_filter_options', methods: ['GET'])]

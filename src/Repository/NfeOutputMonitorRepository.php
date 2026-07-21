@@ -380,6 +380,7 @@ final class NfeOutputMonitorRepository
         $hasT99016 = $this->tableExists('t99016');
         $hasT99032 = $this->tableExists('t99032');
         $hasT99033 = $this->tableExists('t99033');
+        $hasFiscalSituation = $hasT99019 && $this->tableHasColumn('t99019', 'situacao_fiscal');
 
         $docJoin = $hasT99008 ? <<<'SQL'
             LEFT JOIN (
@@ -402,6 +403,7 @@ final class NfeOutputMonitorRepository
         $issuerDocumentSelect = ($hasT99020 && $hasT99023) ? 'emit.cnpj AS emitente_documento' : "'' AS emitente_documento";
         $clientExtractNameSelect = $hasT99012 ? 'dest_xml.x_nome AS cliente_xml_nome' : "'' AS cliente_xml_nome";
         $clientExtractDocumentSelect = $hasT99012 ? "COALESCE(dest_xml.cnpj, dest_xml.cpf, dest_xml.id_estrangeiro, '') AS cliente_xml_documento" : "'' AS cliente_xml_documento";
+        $fiscalSituationSelect = $hasFiscalSituation ? 'n.situacao_fiscal AS situacao_fiscal' : "'' AS situacao_fiscal";
         $cancellationJoin = ($hasT99008 && $hasT99016) ? <<<'SQL'
             LEFT JOIN (
                 SELECT
@@ -481,6 +483,7 @@ final class NfeOutputMonitorRepository
                 n.v_nf AS valor_total,
                 n.xml_autorizado,
                 n.caminho_danfe,
+                {$fiscalSituationSelect},
                 {$environmentSelect},
                 {$issuerNameSelect},
                 {$issuerDocumentSelect},
@@ -551,8 +554,11 @@ final class NfeOutputMonitorRepository
             $assinante['nome'],
             $assinante['identificador']
         );
+        $noteId = isset($row['id_t99019']) ? (int) $row['id_t99019'] : 0;
+        $fiscalEvents = $this->findFiscalEventsByNoteId($noteId);
 
         return [
+            'note_id' => $noteId,
             'request_id' => $requestId,
             'numero_nota' => $this->stringOrEmpty($row['numero_nota'] ?? null),
             'cliente' => $cliente,
@@ -567,6 +573,8 @@ final class NfeOutputMonitorRepository
             'valor_total' => $this->decimalOrEmpty($row['valor_total'] ?? null),
             'ambiente' => $this->stringOrEmpty($row['ambiente'] ?? null),
             'status_envio' => $this->mapStatus((int) ($row['si_status_processamento'] ?? 0)),
+            'situacao_nfe' => $this->displayFiscalSituation($row, $fiscalEvents),
+            'eventos_nfe' => $fiscalEvents,
             'status_http' => isset($row['si_status_http']) ? (int) $row['si_status_http'] : null,
             'erro' => $this->stringOrEmpty($row['t_erro'] ?? null),
             'xml_autorizado' => $xmlCompleto,
@@ -635,7 +643,65 @@ final class NfeOutputMonitorRepository
      */
     private function isCancellationSuccessful(array $row): bool
     {
-        return in_array((int) ($row['cancelamento_c_stat'] ?? 0), [101, 135, 155], true);
+        return $this->stringOrEmpty($row['situacao_fiscal'] ?? null) === 'Cancelada'
+            || in_array((int) ($row['cancelamento_c_stat'] ?? 0), [101, 135, 155], true);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @param list<array<string, mixed>> $events
+     */
+    private function displayFiscalSituation(array $row, array $events): string
+    {
+        $stored = $this->stringOrEmpty($row['situacao_fiscal'] ?? null);
+        if ($stored !== '') {
+            return $stored;
+        }
+
+        foreach ($events as $event) {
+            $situation = $this->stringOrEmpty($event['situacao'] ?? null);
+            if (in_array($situation, ['Cancelada', 'Inutilizada'], true)) {
+                return $situation;
+            }
+        }
+
+        return (int) ($row['si_status_processamento'] ?? 0) === ApiRequestStatus::CONCLUIDA ? 'Autorizada' : 'Sem situação';
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function findFiscalEventsByNoteId(int $noteId): array
+    {
+        if ($noteId <= 0 || !$this->tableExists('t99034')) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            <<<'SQL'
+            SELECT *
+            FROM t99034
+            WHERE t99019_id = :note_id
+            ORDER BY dh_evento DESC, id_t99034 DESC
+            SQL,
+            ['note_id' => $noteId]
+        );
+
+        return array_map(function (array $event): array {
+            return [
+                'id' => isset($event['id_t99034']) ? (int) $event['id_t99034'] : null,
+                'request_id' => $this->stringOrEmpty($event['u_c_request_id'] ?? null),
+                'tipo_evento' => $this->stringOrEmpty($event['tipo_evento'] ?? null),
+                'tipo_acao' => $this->stringOrEmpty($event['tipo_acao'] ?? null),
+                'situacao' => $this->stringOrEmpty($event['situacao'] ?? null),
+                'chave_nfe' => $this->stringOrEmpty($event['ch_nfe'] ?? null),
+                'c_stat' => $this->stringOrEmpty($event['c_stat'] ?? null),
+                'motivo' => $this->stringOrEmpty($event['x_motivo'] ?? null),
+                'protocolo' => $this->stringOrEmpty($event['n_prot'] ?? null),
+                'data' => $this->stringOrEmpty($event['dh_evento'] ?? null),
+            ];
+        }, $rows);
     }
 
     private function yearForInutilization(string $issueDate, string $accessKey): string
@@ -956,5 +1022,14 @@ final class NfeOutputMonitorRepository
         }
 
         return $this->tableExistsCache[$table] = $this->auditConnection->createSchemaManager()->tablesExist([$table]);
+    }
+
+    private function tableHasColumn(string $table, string $column): bool
+    {
+        if (!$this->tableExists($table)) {
+            return false;
+        }
+
+        return $this->auditConnection->createSchemaManager()->introspectTable($table)->hasColumn($column);
     }
 }

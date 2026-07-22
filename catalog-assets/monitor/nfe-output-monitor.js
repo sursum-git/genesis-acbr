@@ -504,6 +504,22 @@
         return firstResponseValue(response, ['request_id', 'resultado.request_id']);
     }
 
+    function fiscalEventErrorMessage(xhr) {
+        if (!xhr) {
+            return 'Evento fiscal não foi gravado automaticamente.';
+        }
+
+        if (xhr.responseJSON && xhr.responseJSON.message) {
+            return 'Evento fiscal não foi gravado automaticamente: ' + xhr.responseJSON.message;
+        }
+
+        if (xhr.responseText) {
+            return 'Evento fiscal não foi gravado automaticamente: ' + xhr.responseText;
+        }
+
+        return 'Evento fiscal não foi gravado automaticamente.';
+    }
+
     function recordFiscalEvent(action, row, actionPayload, response) {
         if (!actionEventUrl || !row || !row.request_id) {
             return $.Deferred().resolve().promise();
@@ -575,8 +591,8 @@
                     .done(function () {
                         $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
                     })
-                    .fail(function () {
-                        $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response) + ' Evento fiscal não foi gravado automaticamente.');
+                    .fail(function (xhr) {
+                        $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response) + ' ' + fiscalEventErrorMessage(xhr));
                     })
                     .always(function () {
                         $grid.data('kendoGrid').dataSource.read();
@@ -611,8 +627,8 @@
                 .done(function () {
                     $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
                 })
-                .fail(function () {
-                    $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response) + ' Evento fiscal não foi gravado automaticamente.');
+                .fail(function (xhr) {
+                    $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response) + ' ' + fiscalEventErrorMessage(xhr));
                 })
                 .always(function () {
                     $grid.data('kendoGrid').dataSource.read();

@@ -20,6 +20,7 @@ $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' =
 $connection->executeStatement('CREATE TABLE t99001 (id_t99001 INTEGER PRIMARY KEY AUTOINCREMENT, u_c_request_id TEXT, c_caminho TEXT, c_cod_programa TEXT, si_status_processamento INTEGER, si_status_http INTEGER, dt_hr_recebimento TEXT, t_erro TEXT, t_corpo_resposta TEXT, t_assinante_json TEXT)');
 $connection->executeStatement('CREATE TABLE t99008 (id_t99008 INTEGER PRIMARY KEY AUTOINCREMENT, u_c_request_id TEXT, schema_family TEXT)');
 $connection->executeStatement('CREATE TABLE t99010 (t99008_id INTEGER PRIMARY KEY, tp_amb INTEGER)');
+$connection->executeStatement('CREATE TABLE t99016 (t99008_id INTEGER PRIMARY KEY, ch_nfe TEXT, tp_evento TEXT, dh_evento TEXT, c_stat INTEGER, x_motivo TEXT, n_prot TEXT)');
 $connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, t99008_id INTEGER, ch_nfe TEXT, n_nf TEXT, mod TEXT, serie TEXT, dh_emi TEXT, v_nf TEXT, xml_autorizado TEXT, caminho_danfe TEXT)');
 $connection->executeStatement('CREATE TABLE t99020 (id_t99020 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
 $connection->executeStatement('CREATE TABLE t99021 (id_t99021 INTEGER PRIMARY KEY AUTOINCREMENT, nome_razao_social TEXT, cnpj TEXT)');
@@ -39,11 +40,16 @@ $connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social,
 $connection->executeStatement("INSERT INTO t99021 (id_t99021, nome_razao_social, cnpj) VALUES (1, 'CLIENTE A', '12345678000199')");
 $connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (1, 1)");
 $connection->executeStatement("INSERT INTO t99024 (t99019_id, t99021_id) VALUES (1, 1)");
+$connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-cancel', '/nfe/eventos/cancelar', 'nfe', 3, 200, '2026-07-03 10:05:00', NULL, NULL, '{\"c_identificador\":\"cliente_a\",\"c_nome\":\"Cliente A\"}')");
+$connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (2, 'req-cancel', 'procEventoNFe')");
+$connection->executeStatement("INSERT INTO t99016 (t99008_id, ch_nfe, tp_evento, dh_evento, c_stat, x_motivo, n_prot) VALUES (2, '35123456789012345678901234567890123456789012', '110111', '2026-07-03 10:04:00', 135, 'Evento registrado e vinculado a NF-e', '135260000000001')");
 
 $repository = new NfeOutputMonitorRepository($connection);
 $rows = $repository->search(['ambiente' => '2']);
 
 assertSameValue(1, count($rows), 'search should ignore unrelated t99034 table and keep output monitor populated.');
-assertSameValue('Autorizada', $rows[0]['situacao_nfe'], 'Legacy schema without fiscal events should show authorized NFe situation.');
+assertSameValue('Cancelada', $rows[0]['situacao_nfe'], 'Cancellation extracted from SEFAZ event should update fiscal situation even without automatic event table.');
+assertSameValue(1, count($rows[0]['eventos_nfe'] ?? []), 'Cancellation extracted from SEFAZ event should appear in fiscal events.');
+assertSameValue('req-cancel', $rows[0]['eventos_nfe'][0]['request_id'] ?? null, 'Fallback fiscal event should expose cancellation request id.');
 
 fwrite(STDOUT, "OK\n");

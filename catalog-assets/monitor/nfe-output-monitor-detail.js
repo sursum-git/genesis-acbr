@@ -20,6 +20,36 @@
         return value === null || value === undefined || value === '' ? '' : window.kendo.toString(value, 'n2');
     }
 
+    const fiscalEventsGrid = document.getElementById('nfe-detail-fiscal-events-grid');
+    if (fiscalEventsGrid) {
+        let events = [];
+        try {
+            events = JSON.parse(fiscalEventsGrid.dataset.events || '[]');
+        } catch (error) {
+            events = [];
+        }
+
+        $('#nfe-detail-fiscal-events-grid').kendoGrid({
+            dataSource: Array.isArray(events) ? events : [],
+            sortable: true,
+            scrollable: true,
+            resizable: true,
+            pageable: false,
+            noRecords: {
+                template: 'Nenhum evento fiscal registrado para esta nota.'
+            },
+            columns: [
+                { field: 'data', title: 'Data', width: 155 },
+                { field: 'tipo_acao', title: 'Tipo', width: 145 },
+                { field: 'situacao', title: 'Situação', width: 170 },
+                { field: 'c_stat', title: 'cStat', width: 90 },
+                { field: 'motivo', title: 'Motivo', width: 300 },
+                { field: 'protocolo', title: 'Protocolo', width: 150 },
+                { field: 'request_id', title: 'Request ID', width: 230 }
+            ]
+        });
+    }
+
     const itemsGrid = document.getElementById('nfe-output-items-grid');
     if (itemsGrid) {
         let items = [];

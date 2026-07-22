@@ -558,6 +558,8 @@ final class NfeOutputMonitorRepository
         );
         $noteId = isset($row['id_t99019']) ? (int) $row['id_t99019'] : 0;
         $fiscalEvents = $this->findFiscalEventsByNoteId($noteId);
+        $cancellation = $this->cancellationPayload($row);
+        $fiscalEvents = $this->appendCancellationEvent($fiscalEvents, $cancellation);
 
         return [
             'note_id' => $noteId,
@@ -584,7 +586,7 @@ final class NfeOutputMonitorRepository
             'danfe_base64' => $danfeBase64,
             'danfe_url' => $hasDanfe ? '/monitor-saida-nfe/danfe/' . $requestId : '',
             'xml_url' => $xmlCompleto !== '' ? '/monitor-saida-nfe/xml/' . $requestId : '',
-            'cancelamento' => $this->cancellationPayload($row),
+            'cancelamento' => $cancellation,
             'acoes_nfe' => $this->buildNfeActionsPayload($row, $emitenteDocumento),
             'impostos' => [
                 'ICMS' => $this->taxPayload($row, 'icms'),
@@ -660,6 +662,10 @@ final class NfeOutputMonitorRepository
             return $stored;
         }
 
+        if ($this->isCancellationSuccessful($row)) {
+            return 'Cancelada';
+        }
+
         foreach ($events as $event) {
             $situation = $this->stringOrEmpty($event['situacao'] ?? null);
             if (in_array($situation, ['Cancelada', 'Inutilizada'], true)) {
@@ -668,6 +674,42 @@ final class NfeOutputMonitorRepository
         }
 
         return (int) ($row['si_status_processamento'] ?? 0) === ApiRequestStatus::CONCLUIDA ? 'Autorizada' : 'Sem situação';
+    }
+
+    /**
+     * @param list<array<string, mixed>> $events
+     * @param array{cancelada:bool,request_id:string,c_stat:string,motivo:string,protocolo:string,data:string} $cancellation
+     * @return list<array<string, mixed>>
+     */
+    private function appendCancellationEvent(array $events, array $cancellation): array
+    {
+        if (!$cancellation['cancelada']) {
+            return $events;
+        }
+
+        foreach ($events as $event) {
+            if (
+                $this->stringOrEmpty($event['request_id'] ?? null) === $cancellation['request_id']
+                || ($cancellation['protocolo'] !== '' && $this->stringOrEmpty($event['protocolo'] ?? null) === $cancellation['protocolo'])
+            ) {
+                return $events;
+            }
+        }
+
+        array_unshift($events, [
+            'id' => null,
+            'request_id' => $cancellation['request_id'],
+            'tipo_evento' => '110111',
+            'tipo_acao' => 'cancelamento',
+            'situacao' => 'Cancelada',
+            'chave_nfe' => '',
+            'c_stat' => $cancellation['c_stat'],
+            'motivo' => $cancellation['motivo'],
+            'protocolo' => $cancellation['protocolo'],
+            'data' => $cancellation['data'],
+        ]);
+
+        return $events;
     }
 
     /**

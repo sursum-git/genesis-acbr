@@ -21,12 +21,39 @@
                 <div class="d-flex flex-wrap align-items-center gap-2">
                     <a class="btn btn-outline-secondary btn-sm" href="{{ backUrl }}">Voltar</a>
                     <span class="badge text-bg-primary">{{ detail.status_envio }}</span>
+                    <span class="badge {{ detail.situacao_nfe == 'Cancelada' or detail.situacao_nfe == 'Inutilizada' ? 'text-bg-danger' : 'text-bg-success' }}">{{ detail.situacao_nfe }}</span>
                     {% if detail.xml_url %}
                         <a class="btn btn-primary btn-sm" href="{{ app.request.basePath ~ '/index.php' ~ detail.xml_url }}">XML</a>
                     {% endif %}
                     <a class="btn btn-outline-secondary btn-sm" href="{{ technicalUrl }}">Visão técnica</a>
                 </div>
             </div>
+        </div>
+    </section>
+
+    <section class="card border-0 shadow-sm mb-4">
+        <div class="card-header">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <h3 class="card-title mb-0">Situação da NFe</h3>
+                <span class="badge {{ detail.situacao_nfe == 'Cancelada' or detail.situacao_nfe == 'Inutilizada' ? 'text-bg-danger' : 'text-bg-success' }}">{{ detail.situacao_nfe }}</span>
+            </div>
+        </div>
+        <div class="card-body">
+            <dl class="row monitor-dl">
+                <dt class="col-sm-3">Status do envio</dt><dd class="col-sm-9">{{ detail.status_envio }}</dd>
+                <dt class="col-sm-3">Situação fiscal</dt><dd class="col-sm-9">{{ detail.situacao_nfe }}</dd>
+                {% if detail.cancelamento.cancelada %}
+                    <dt class="col-sm-3">Cancelamento</dt>
+                    <dd class="col-sm-9">
+                        {% if detail.cancelamento.c_stat %}{{ detail.cancelamento.c_stat }} - {% endif %}{{ detail.cancelamento.motivo ?: 'Cancelada' }}
+                        {% if detail.cancelamento.protocolo %}<br>Protocolo: {{ detail.cancelamento.protocolo }}{% endif %}
+                    </dd>
+                {% endif %}
+            </dl>
+            <div
+                id="nfe-detail-fiscal-events-grid"
+                data-events='{{ detail.eventos_nfe|json_encode(constant('JSON_UNESCAPED_UNICODE'))|e('html_attr') }}'
+            ></div>
         </div>
     </section>
 

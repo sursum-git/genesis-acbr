@@ -413,7 +413,6 @@ final class NfeOutputMonitorRepository
                     MAX(evt.t99008_id) AS last_cancel_t99008_id
                 FROM t99016 evt
                 WHERE evt.tp_evento = '110111'
-                  AND evt.c_stat IN (101, 135, 155)
                 GROUP BY evt.ch_nfe
             ) cancel_ref ON cancel_ref.ch_nfe = n.ch_nfe
             LEFT JOIN t99016 cancel_evt ON cancel_evt.t99008_id = cancel_ref.last_cancel_t99008_id
@@ -683,7 +682,7 @@ final class NfeOutputMonitorRepository
      */
     private function appendCancellationEvent(array $events, array $cancellation): array
     {
-        if (!$cancellation['cancelada']) {
+        if ($cancellation['request_id'] === '' && $cancellation['c_stat'] === '' && $cancellation['motivo'] === '') {
             return $events;
         }
 
@@ -701,7 +700,7 @@ final class NfeOutputMonitorRepository
             'request_id' => $cancellation['request_id'],
             'tipo_evento' => '110111',
             'tipo_acao' => 'cancelamento',
-            'situacao' => 'Cancelada',
+            'situacao' => $cancellation['cancelada'] ? 'Cancelada' : 'Erro no cancelamento',
             'chave_nfe' => '',
             'c_stat' => $cancellation['c_stat'],
             'motivo' => $cancellation['motivo'],

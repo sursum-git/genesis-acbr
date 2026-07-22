@@ -19,6 +19,7 @@ $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' =
 $connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, ch_nfe TEXT, n_nf TEXT, situacao_fiscal TEXT)');
 
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, ch_nfe, n_nf, situacao_fiscal) VALUES (1, '32260606013812000158550030001972461604403624', '197246', 'Autorizada')");
+$connection->executeStatement("INSERT INTO t99019 (id_t99019, ch_nfe, n_nf, situacao_fiscal) VALUES (2, '32260606013812000158550030001972451604403619', '197245', 'Autorizada')");
 $repository = new NfeOutputFiscalEventRepository($connection);
 
 $cancelEvent = $repository->recordActionResult(
@@ -54,6 +55,26 @@ $inutEvent = $repository->recordActionResult(
 assertSameValue('inutilizacao', $inutEvent['tipo_acao'] ?? null, 'Inutilization action should be recorded.');
 assertSameValue('Erro na inutilização', $inutEvent['situacao'] ?? null, 'Rejected inutilization should record an error event.');
 assertSameValue('Cancelada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 1'), 'Rejected inutilization should not replace a successful fiscal situation.');
+
+$rejectedCancelEvent = $repository->recordActionResult(
+    2,
+    'cancelar',
+    'req-cancel-rejected',
+    ['AeChave' => '32260606013812000158550030001972451604403619'],
+    [
+        'resultado' => [
+            'member' => [
+                "[Cancelamento]\nCStat=501\nXMotivo=Rejeicao: Prazo de Cancelamento Superior ao Previsto na Legislacao\nnProt=\ntpEvento=110111\n",
+            ],
+        ],
+    ]
+);
+
+assertSameValue('cancelamento', $rejectedCancelEvent['tipo_acao'] ?? null, 'Rejected cancel action should be recorded as cancellation.');
+assertSameValue('Erro no cancelamento', $rejectedCancelEvent['situacao'] ?? null, 'Rejected cancellation should record error situation.');
+assertSameValue('501', $rejectedCancelEvent['c_stat'] ?? null, 'Rejected cancellation should extract cStat from resultado.member.');
+assertSameValue('Rejeicao: Prazo de Cancelamento Superior ao Previsto na Legislacao', $rejectedCancelEvent['motivo'] ?? null, 'Rejected cancellation should extract xMotivo from resultado.member.');
+assertSameValue('Autorizada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 2'), 'Rejected cancellation should not mark the note as canceled.');
 
 $events = $repository->findByNoteId(1);
 assertSameValue(2, count($events), 'Repository should list all fiscal events for the note.');

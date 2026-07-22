@@ -44,12 +44,26 @@ $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (2, 'req-cancel', 'procEventoNFe')");
 $connection->executeStatement("INSERT INTO t99016 (t99008_id, ch_nfe, tp_evento, dh_evento, c_stat, x_motivo, n_prot) VALUES (2, '35123456789012345678901234567890123456789012', '110111', '2026-07-03 10:04:00', 135, 'Evento registrado e vinculado a NF-e', '135260000000001')");
 
+$connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-rejected', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 200, '2026-07-03 09:00:00', NULL, NULL, '{\"c_identificador\":\"cliente_a\",\"c_nome\":\"Cliente A\"}')");
+$connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (3, 'req-rejected', 'procNFe')");
+$connection->executeStatement("INSERT INTO t99010 (t99008_id, tp_amb) VALUES (3, 2)");
+$connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, mod, serie, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (2, 3, '32260606013812000158550030001972451604403619', '197245', '55', '3', '2026-07-03 08:59:00', '155.40', '<xml>ok</xml>', '')");
+$connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (2, 1)");
+$connection->executeStatement("INSERT INTO t99024 (t99019_id, t99021_id) VALUES (2, 1)");
+$connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-cancel-rejected', '/nfe/eventos/cancelar', 'nfe', 3, 200, '2026-07-03 09:05:00', NULL, NULL, '{\"c_identificador\":\"cliente_a\",\"c_nome\":\"Cliente A\"}')");
+$connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (4, 'req-cancel-rejected', 'procEventoNFe')");
+$connection->executeStatement("INSERT INTO t99016 (t99008_id, ch_nfe, tp_evento, dh_evento, c_stat, x_motivo, n_prot) VALUES (4, '32260606013812000158550030001972451604403619', '110111', '2026-07-03 09:04:00', 501, 'Rejeicao: Prazo de Cancelamento Superior ao Previsto na Legislacao', '')");
+
 $repository = new NfeOutputMonitorRepository($connection);
 $rows = $repository->search(['ambiente' => '2']);
 
-assertSameValue(1, count($rows), 'search should ignore unrelated t99034 table and keep output monitor populated.');
+assertSameValue(2, count($rows), 'search should ignore unrelated t99034 table and keep output monitor populated.');
 assertSameValue('Cancelada', $rows[0]['situacao_nfe'], 'Cancellation extracted from SEFAZ event should update fiscal situation even without automatic event table.');
 assertSameValue(1, count($rows[0]['eventos_nfe'] ?? []), 'Cancellation extracted from SEFAZ event should appear in fiscal events.');
 assertSameValue('req-cancel', $rows[0]['eventos_nfe'][0]['request_id'] ?? null, 'Fallback fiscal event should expose cancellation request id.');
+assertSameValue('Autorizada', $rows[1]['situacao_nfe'], 'Rejected cancellation should not mark note as canceled.');
+assertSameValue(1, count($rows[1]['eventos_nfe'] ?? []), 'Rejected cancellation extracted from SEFAZ event should appear in fiscal events.');
+assertSameValue('Erro no cancelamento', $rows[1]['eventos_nfe'][0]['situacao'] ?? null, 'Rejected cancellation should expose error event situation.');
+assertSameValue('501', $rows[1]['eventos_nfe'][0]['c_stat'] ?? null, 'Rejected cancellation event should expose cStat.');
 
 fwrite(STDOUT, "OK\n");

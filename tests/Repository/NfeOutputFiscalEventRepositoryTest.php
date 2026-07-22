@@ -17,9 +17,11 @@ function assertSameValue(mixed $expected, mixed $actual, string $message): void
 
 $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
 $connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, ch_nfe TEXT, n_nf TEXT, situacao_fiscal TEXT)');
+$connection->executeStatement('CREATE TABLE t99001 (id_t99001 INTEGER PRIMARY KEY AUTOINCREMENT, u_c_request_id TEXT, c_caminho TEXT, t_corpo_requisicao TEXT, dt_hr_recebimento TEXT)');
 
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, ch_nfe, n_nf, situacao_fiscal) VALUES (1, '32260606013812000158550030001972461604403624', '197246', 'Autorizada')");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, ch_nfe, n_nf, situacao_fiscal) VALUES (2, '32260606013812000158550030001972451604403619', '197245', 'Autorizada')");
+$connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, t_corpo_requisicao, dt_hr_recebimento) VALUES ('req-audit-cancel-error', '/nfe/eventos/cancelar', '{\"payload\":{\"AeChave\":\"32260606013812000158550030001972451604403619\"}}', '2026-07-22T18:34:49+00:00')");
 $repository = new NfeOutputFiscalEventRepository($connection);
 
 $cancelEvent = $repository->recordActionResult(
@@ -75,6 +77,25 @@ assertSameValue('Erro no cancelamento', $rejectedCancelEvent['situacao'] ?? null
 assertSameValue('501', $rejectedCancelEvent['c_stat'] ?? null, 'Rejected cancellation should extract cStat from resultado.member.');
 assertSameValue('Rejeicao: Prazo de Cancelamento Superior ao Previsto na Legislacao', $rejectedCancelEvent['motivo'] ?? null, 'Rejected cancellation should extract xMotivo from resultado.member.');
 assertSameValue('Autorizada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 2'), 'Rejected cancellation should not mark the note as canceled.');
+
+$legacyErrorEvent = $repository->recordActionResult(
+    2,
+    'cancelar',
+    '',
+    ['AeChave' => '32260606013812000158550030001972451604403619'],
+    [
+        'resultado' => [
+            'member' => [
+                'Erro ao cancelar NFe Código de erro: -14. Último retorno: Rejeicao: NF-e nao consta na base de dados da SEFAZ',
+            ],
+        ],
+    ]
+);
+
+assertSameValue('Erro no cancelamento', $legacyErrorEvent['situacao'] ?? null, 'Legacy cancel error should be recorded as cancellation error.');
+assertSameValue('req-audit-cancel-error', $legacyErrorEvent['request_id'] ?? null, 'Legacy cancel error should be linked to the audit request when the response does not expose request_id.');
+assertSameValue('Rejeicao: NF-e nao consta na base de dados da SEFAZ', $legacyErrorEvent['motivo'] ?? null, 'Legacy cancel error should extract the last SEFAZ return as reason.');
+assertSameValue('Autorizada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 2'), 'Legacy cancel error should not mark the note as canceled.');
 
 $events = $repository->findByNoteId(1);
 assertSameValue(2, count($events), 'Repository should list all fiscal events for the note.');

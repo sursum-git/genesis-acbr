@@ -50,10 +50,13 @@
                     </dd>
                 {% endif %}
             </dl>
-            <div
-                id="nfe-detail-fiscal-events-grid"
-                data-events='{{ detail.eventos_nfe|json_encode(constant('JSON_UNESCAPED_UNICODE'))|e('html_attr') }}'
-            ></div>
+            <div class="mt-4">
+                <h4 class="h6 mb-3">Eventos fiscais da NFe</h4>
+                <div
+                    id="nfe-detail-fiscal-events-grid"
+                    data-events='{{ detail.eventos_nfe|json_encode(constant('JSON_UNESCAPED_UNICODE'))|e('html_attr') }}'
+                ></div>
+            </div>
         </div>
     </section>
 

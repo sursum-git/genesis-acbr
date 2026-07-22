@@ -25,10 +25,12 @@ final class NfeOutputFiscalEventRepository
         $this->ensureSchema();
 
         $normalizedAction = $action === 'inutilizar' ? 'inutilizacao' : 'cancelamento';
+        $resolvedRequestId = $requestId !== '' ? $requestId : $this->findLatestAuditRequestId($action, $actionPayload);
         $cStat = $this->extractValue($responsePayload, ['c_stat_receita', 'cStat', 'CStat', 'resultado.cStat', 'resultado.CStat'])
             ?: $this->extractLineValue($responsePayload, ['cStat', 'CStat']);
         $motivo = $this->extractValue($responsePayload, ['mensagem', 'message', 'resultado.xMotivo', 'resultado.XMotivo', 'resultado.motivo'])
-            ?: $this->extractLineValue($responsePayload, ['xMotivo', 'XMotivo']);
+            ?: $this->extractLineValue($responsePayload, ['xMotivo', 'XMotivo'])
+            ?: $this->extractLastReturnReason($responsePayload);
         $protocol = $this->extractValue($responsePayload, ['nProt', 'NProt', 'protocolo', 'resultado.nProt', 'resultado.NProt', 'resultado.protocolo'])
             ?: $this->extractLineValue($responsePayload, ['nProt', 'NProt', 'Protocolo']);
         $accessKey = $this->firstNonEmpty(
@@ -48,7 +50,7 @@ final class NfeOutputFiscalEventRepository
         $now = date('c');
         $event = [
             't99019_id' => $noteId,
-            'u_c_request_id' => $requestId,
+            'u_c_request_id' => $resolvedRequestId,
             'tipo_evento' => $eventType,
             'tipo_acao' => $normalizedAction,
             'situacao' => $situation,
@@ -154,6 +156,45 @@ final class NfeOutputFiscalEventRepository
         $this->schemaEnsured = true;
     }
 
+    /**
+     * @param array<string, mixed> $actionPayload
+     */
+    private function findLatestAuditRequestId(string $action, array $actionPayload): string
+    {
+        if (!$this->auditConnection->createSchemaManager()->tablesExist(['t99001'])) {
+            return '';
+        }
+
+        $path = $action === 'inutilizar' ? '/nfe/inutilizacao/inutilizar' : '/nfe/eventos/cancelar';
+        $needle = $this->firstNonEmpty(
+            $this->stringOrEmpty($actionPayload['AeChave'] ?? null),
+            $this->stringOrEmpty($actionPayload['ANumeroInicial'] ?? null),
+            $this->stringOrEmpty($actionPayload['ACNPJ'] ?? null),
+            $this->stringOrEmpty($actionPayload['AeCNPJCPF'] ?? null)
+        );
+
+        if ($needle === '') {
+            return '';
+        }
+
+        $requestId = $this->auditConnection->fetchOne(
+            <<<'SQL'
+            SELECT u_c_request_id
+            FROM t99001
+            WHERE c_caminho = :path
+              AND COALESCE(t_corpo_requisicao, '') LIKE :needle
+            ORDER BY dt_hr_recebimento DESC, id_t99001 DESC
+            LIMIT 1
+            SQL,
+            [
+                'path' => $path,
+                'needle' => '%' . $needle . '%',
+            ]
+        );
+
+        return $this->stringOrEmpty($requestId);
+    }
+
     private function tableHasColumn(string $table, string $column): bool
     {
         if (!$this->auditConnection->createSchemaManager()->tablesExist([$table])) {
@@ -202,6 +243,24 @@ final class NfeOutputFiscalEventRepository
                 if (preg_match('/(?:^|\n)\s*' . preg_quote($key, '/') . '\s*=\s*([^\r\n<]+)/i', $text, $matches) === 1) {
                     return trim((string) $matches[1]);
                 }
+            }
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function extractLastReturnReason(array $payload): string
+    {
+        foreach ($this->textCandidates($payload) as $text) {
+            if (preg_match('/Último retorno:\s*(.+)$/iu', $text, $matches) === 1) {
+                return trim((string) $matches[1]);
+            }
+
+            if (preg_match('/Ultimo retorno:\s*(.+)$/iu', $text, $matches) === 1) {
+                return trim((string) $matches[1]);
             }
         }
 

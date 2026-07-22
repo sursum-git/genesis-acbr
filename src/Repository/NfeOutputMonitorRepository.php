@@ -10,6 +10,8 @@ final class NfeOutputMonitorRepository
 {
     private const MAX_RECORDS = 100;
     private const HOMOLOGATION_PLACEHOLDER = 'NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL';
+    private const FISCAL_EVENT_TABLE = 't99035';
+    private const LEGACY_FISCAL_EVENT_TABLE = 't99034';
 
     /**
      * @var array<string, bool>
@@ -673,24 +675,31 @@ final class NfeOutputMonitorRepository
      */
     private function findFiscalEventsByNoteId(int $noteId): array
     {
-        if ($noteId <= 0 || !$this->tableExists('t99034')) {
+        if ($noteId <= 0) {
             return [];
         }
 
+        $table = $this->fiscalEventTableName();
+        if ($table === null) {
+            return [];
+        }
+
+        $idColumn = $table === self::FISCAL_EVENT_TABLE ? 'id_t99035' : 'id_t99034';
+
         /** @var list<array<string, mixed>> $rows */
         $rows = $this->auditConnection->fetchAllAssociative(
-            <<<'SQL'
+            <<<SQL
             SELECT *
-            FROM t99034
+            FROM {$table}
             WHERE t99019_id = :note_id
-            ORDER BY dh_evento DESC, id_t99034 DESC
+            ORDER BY dh_evento DESC, {$idColumn} DESC
             SQL,
             ['note_id' => $noteId]
         );
 
-        return array_map(function (array $event): array {
+        return array_map(function (array $event) use ($idColumn): array {
             return [
-                'id' => isset($event['id_t99034']) ? (int) $event['id_t99034'] : null,
+                'id' => isset($event[$idColumn]) ? (int) $event[$idColumn] : null,
                 'request_id' => $this->stringOrEmpty($event['u_c_request_id'] ?? null),
                 'tipo_evento' => $this->stringOrEmpty($event['tipo_evento'] ?? null),
                 'tipo_acao' => $this->stringOrEmpty($event['tipo_acao'] ?? null),
@@ -702,6 +711,19 @@ final class NfeOutputMonitorRepository
                 'data' => $this->stringOrEmpty($event['dh_evento'] ?? null),
             ];
         }, $rows);
+    }
+
+    private function fiscalEventTableName(): ?string
+    {
+        if ($this->tableExists(self::FISCAL_EVENT_TABLE) && $this->tableHasColumn(self::FISCAL_EVENT_TABLE, 't99019_id')) {
+            return self::FISCAL_EVENT_TABLE;
+        }
+
+        if ($this->tableExists(self::LEGACY_FISCAL_EVENT_TABLE) && $this->tableHasColumn(self::LEGACY_FISCAL_EVENT_TABLE, 't99019_id')) {
+            return self::LEGACY_FISCAL_EVENT_TABLE;
+        }
+
+        return null;
     }
 
     private function yearForInutilization(string $issueDate, string $accessKey): string

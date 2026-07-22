@@ -7,6 +7,8 @@ use Doctrine\DBAL\Platforms\SqlitePlatform;
 
 final class NfeOutputFiscalEventRepository
 {
+    private const EVENT_TABLE = 't99035';
+
     private bool $schemaEnsured = false;
 
     public function __construct(private readonly Connection $auditConnection)
@@ -62,7 +64,7 @@ final class NfeOutputFiscalEventRepository
             'dt_hr_atu' => $now,
         ];
 
-        $this->auditConnection->insert('t99034', $event);
+        $this->auditConnection->insert(self::EVENT_TABLE, $event);
 
         if ($success) {
             $this->auditConnection->update('t99019', [
@@ -72,7 +74,7 @@ final class NfeOutputFiscalEventRepository
             ]);
         }
 
-        return $this->normalizeEvent($event + ['id_t99034' => (int) $this->auditConnection->lastInsertId()]);
+        return $this->normalizeEvent($event + ['id_t99035' => (int) $this->auditConnection->lastInsertId()]);
     }
 
     /**
@@ -86,9 +88,9 @@ final class NfeOutputFiscalEventRepository
         $rows = $this->auditConnection->fetchAllAssociative(
             <<<'SQL'
             SELECT *
-            FROM t99034
+            FROM t99035
             WHERE t99019_id = :note_id
-            ORDER BY dh_evento DESC, id_t99034 DESC
+            ORDER BY dh_evento DESC, id_t99035 DESC
             SQL,
             ['note_id' => $noteId]
         );
@@ -103,7 +105,7 @@ final class NfeOutputFiscalEventRepository
     private function normalizeEvent(array $event): array
     {
         return [
-            'id' => isset($event['id_t99034']) ? (int) $event['id_t99034'] : null,
+            'id' => isset($event['id_t99035']) ? (int) $event['id_t99035'] : (isset($event['id_t99034']) ? (int) $event['id_t99034'] : null),
             'request_id' => $this->stringOrEmpty($event['u_c_request_id'] ?? null),
             'tipo_evento' => $this->stringOrEmpty($event['tipo_evento'] ?? null),
             'tipo_acao' => $this->stringOrEmpty($event['tipo_acao'] ?? null),
@@ -126,13 +128,13 @@ final class NfeOutputFiscalEventRepository
             $this->auditConnection->executeStatement('ALTER TABLE t99019 ADD COLUMN situacao_fiscal varchar(40)');
         }
 
-        if (!$this->auditConnection->createSchemaManager()->tablesExist(['t99034'])) {
+        if (!$this->auditConnection->createSchemaManager()->tablesExist([self::EVENT_TABLE])) {
             $platform = $this->auditConnection->getDatabasePlatform();
             $idColumn = $platform instanceof SqlitePlatform ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'bigserial PRIMARY KEY';
 
             $this->auditConnection->executeStatement(<<<SQL
-                CREATE TABLE t99034 (
-                    id_t99034 {$idColumn},
+                CREATE TABLE t99035 (
+                    id_t99035 {$idColumn},
                     t99019_id integer NOT NULL,
                     u_c_request_id varchar(36),
                     tipo_evento varchar(30),

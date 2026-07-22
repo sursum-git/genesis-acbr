@@ -68,6 +68,10 @@ services:
     arguments:
       $auditConnection: '@app.audit_connection'
 
+  App\Repository\NfeOutputFiscalEventRepository:
+    arguments:
+      $auditConnection: '@app.audit_connection'
+
   App\Repository\NfeInputMonitorRepository:
     arguments:
       $auditConnection: '@app.audit_connection'

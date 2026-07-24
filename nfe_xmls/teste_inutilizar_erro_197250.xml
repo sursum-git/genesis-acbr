@@ -44,8 +44,8 @@
       <CRT>3</CRT>
     </emit>
     <dest>
-      <CNPJ>04628656000104</CNPJ>
-      <xNome>NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</xNome>
+      <CNPJ>00000000000000</CNPJ>
+      <xNome>DESTINATARIO TESTE REJEICAO PARA INUTILIZACAO</xNome>
       <enderDest>
         <xLgr>RUA IVETE LIMA CARDOSO</xLgr>
         <nro>167</nro>
@@ -161,7 +161,7 @@
         <vPIS>1.00</vPIS>
         <vCOFINS>4.62</vCOFINS>
         <vOutro>0.00</vOutro>
-        <vNF>0.01</vNF>
+        <vNF>63.34</vNF>
       </ICMSTot>
       <IBSCBSTot>
         <vBCIBSCBS>55.19</vBCIBSCBS>
@@ -213,7 +213,7 @@
         <nFat>0197250</nFat>
         <vOrig>63.34</vOrig>
         <vDesc>0.00</vDesc>
-        <vLiq>0.01</vLiq>
+        <vLiq>63.34</vLiq>
       </fat>
       <dup>
         <nDup>001</nDup>

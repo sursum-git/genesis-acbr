@@ -92,6 +92,13 @@ $connection->executeStatement("INSERT INTO t99012 (t99008_id, cnpj, x_nome) VALU
 $connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (4, 4)");
 $connection->executeStatement("INSERT INTO t99024 (t99019_id, t99021_id) VALUES (4, 4)");
 
+$connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-authorized-empty-key', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 201, '2026-07-03 14:00:00', NULL, '{\"resultado\":{\"mensagem\":\"[Envio]\\nCStat=100\\nXMotivo=Autorizado o uso da NF-e\\n[NFe197251]\\nchDFe=32260706013812000158550030001972511191972511\\nnProt=332260000146707\\n\"}}', '{\"c_identificador\":\"TECNO-FLEX\",\"c_nome\":\"TECNO-FLEX IND. E COM. LTDA.\"}')");
+$connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (6, 'req-authorized-empty-key', 'procNFe')");
+$connection->executeStatement("INSERT INTO t99010 (t99008_id, tp_amb) VALUES (6, 2)");
+$connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, mod, serie, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (6, 6, '', '197251', '55', '3', '2026-07-03 13:59:00', '63.34', '', '')");
+$connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (6, 'TECNO-FLEX IND. E COM. LTDA.', '06013812000158')");
+$connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (6, 6)");
+
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_erro, t_corpo_resposta, t_assinante_json) VALUES ('req-cancel', '/nfe/eventos/cancelar', 'nfe', 3, 200, '2026-07-03 13:05:00', NULL, NULL, '{\"c_identificador\":\"TECNO-FLEX\",\"c_nome\":\"TECNO-FLEX IND. E COM. LTDA.\"}')");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (5, 'req-cancel', 'procEventoNFe')");
 $connection->executeStatement("INSERT INTO t99016 (t99008_id, ch_nfe, tp_evento, dh_evento, c_stat, x_motivo, n_prot) VALUES (5, '32260606013812000158550030001972461604403624', '110111', '2026-07-03 13:04:00', 135, 'Evento registrado e vinculado a NF-e', '135260000000001')");
@@ -105,40 +112,44 @@ $rows = $repository->search([
     'date_to' => '2026-07-03',
 ]);
 
-assertSameValue(4, count($rows), 'search should return all NFe send attempts in the fixture.');
-assertSameValue('req-homolog-placeholder', $rows[0]['request_id'], 'Newest send attempt should come first.');
-assertSameValue('40456687000199', $rows[0]['cliente'], 'Grid should not expose homologation placeholder as customer name.');
-assertSameValue('TECNO-FLEX IND. E COM. LTDA.', $rows[0]['emitente_nome'], 'Grid should not expose homologation placeholder as issuer name.');
-assertSameValue('Transmitida', $rows[0]['status_envio'], 'Grid should keep transmission status even when cancellation event exists.');
-assertSameValue('Cancelada', $rows[0]['situacao_nfe'], 'Grid should expose fiscal situation independently from transmission status.');
-assertSameValue(1, count($rows[0]['eventos_nfe'] ?? []), 'Grid should expose fiscal events for status window.');
-assertSameValue(true, $rows[0]['cancelamento']['cancelada'] ?? null, 'Repository should expose cancellation flag for detail view.');
-assertSameValue('req-cancel', $rows[0]['cancelamento']['request_id'] ?? null, 'Repository should expose cancellation request id for detail view.');
-assertSameValue('135260000000001', $rows[0]['cancelamento']['protocolo'] ?? null, 'Repository should expose cancellation protocol for detail view.');
-assertSameValue('', $rows[0]['acoes_nfe']['cancelar_url'] ?? null, 'Grid should hide cancel action for canceled note.');
-assertSameValue('/nfe/inutilizacao/inutilizar', $rows[0]['acoes_nfe']['inutilizar_url'] ?? null, 'Grid should expose NFe inutilization action endpoint.');
-assertSameValue('32260606013812000158550030001972461604403624', $rows[0]['acoes_nfe']['chave'] ?? null, 'Grid should expose access key for cancel action.');
+assertSameValue(5, count($rows), 'search should return all NFe send attempts in the fixture.');
+assertSameValue('req-authorized-empty-key', $rows[0]['request_id'], 'Newest send attempt should come first.');
+assertSameValue('32260706013812000158550030001972511191972511', $rows[0]['chave_nfe'], 'Grid should recover access key from the authorization response when t99019.ch_nfe is empty.');
+assertSameValue('/nfe/eventos/cancelar', $rows[0]['acoes_nfe']['cancelar_url'] ?? null, 'Grid should expose cancel action when access key is recovered from response.');
+assertSameValue('32260706013812000158550030001972511191972511', $rows[0]['acoes_nfe']['chave'] ?? null, 'Grid should expose recovered access key for cancel action.');
 assertSameValue('06013812000158', $rows[0]['acoes_nfe']['cnpj_emitente'] ?? null, 'Grid should expose issuer document for NFe actions.');
-assertSameValue('26', $rows[0]['acoes_nfe']['ano'] ?? null, 'Grid should expose two-digit year for inutilization.');
-assertSameValue('55', $rows[0]['acoes_nfe']['modelo'] ?? null, 'Grid should expose document model for inutilization.');
-assertSameValue('3', $rows[0]['acoes_nfe']['serie'] ?? null, 'Grid should expose note series for inutilization.');
-assertSameValue('197246', $rows[0]['acoes_nfe']['numero_inicial'] ?? null, 'Grid should expose note number range for inutilization.');
-assertSameValue('197246', $rows[0]['acoes_nfe']['numero_final'] ?? null, 'Grid should expose note number range for inutilization.');
-assertSameValue('req-base64', $rows[1]['request_id'], 'Base64 send should come after the homologation placeholder fixture.');
-assertSameValue('/monitor-saida-nfe/danfe/req-base64', $rows[1]['danfe_url'], 'Grid should expose DANFE route when only base64 is available.');
-assertSameValue('/monitor-saida-nfe/xml/req-base64', $rows[1]['xml_url'], 'Grid should expose XML route extracted from response body.');
-assertSameValue('EMITENTE C', $rows[1]['emitente_nome'], 'Grid should expose issuer name.');
-assertSameValue('req-fail', $rows[2]['request_id'], 'Failed send should come after the base64 fixture.');
-assertSameValue('999', $rows[2]['numero_nota'], 'Grid should expose note number.');
-assertSameValue('FOO SA', $rows[2]['cliente'], 'Grid should expose customer.');
-assertSameValue('Falha', $rows[2]['status_envio'], 'Grid should expose failed transmission status.');
-assertSameValue('', $rows[2]['danfe_url'], 'Grid should expose empty DANFE link when unavailable.');
-assertSameValue('18.00', $rows[3]['impostos']['ICMS']['valor'] ?? null, 'Grid should expose ICMS total.');
-assertSameValue('ACME LTDA', $rows[3]['cliente'], 'Grid should prefer extracted customer name when link table contains homologation placeholder.');
-assertSameValue('7.60', $rows[3]['impostos']['COFINS']['valor'] ?? null, 'Grid should expose COFINS total.');
-assertSameValue('1.65', $rows[3]['impostos']['PIS']['valor'] ?? null, 'Grid should expose PIS total.');
-assertSameValue('0.30', $rows[3]['impostos']['IBS']['valor'] ?? null, 'Grid should expose IBS total aggregated from IBSUF and IBSMUN.');
-assertSameValue('0.90', $rows[3]['impostos']['CBS']['valor'] ?? null, 'Grid should expose CBS total.');
+assertSameValue('req-homolog-placeholder', $rows[1]['request_id'], 'Canceled homologation fixture should come after the newest fixture.');
+assertSameValue('40456687000199', $rows[1]['cliente'], 'Grid should not expose homologation placeholder as customer name.');
+assertSameValue('TECNO-FLEX IND. E COM. LTDA.', $rows[1]['emitente_nome'], 'Grid should not expose homologation placeholder as issuer name.');
+assertSameValue('Transmitida', $rows[1]['status_envio'], 'Grid should keep transmission status even when cancellation event exists.');
+assertSameValue('Cancelada', $rows[1]['situacao_nfe'], 'Grid should expose fiscal situation independently from transmission status.');
+assertSameValue(1, count($rows[1]['eventos_nfe'] ?? []), 'Grid should expose fiscal events for status window.');
+assertSameValue(true, $rows[1]['cancelamento']['cancelada'] ?? null, 'Repository should expose cancellation flag for detail view.');
+assertSameValue('req-cancel', $rows[1]['cancelamento']['request_id'] ?? null, 'Repository should expose cancellation request id for detail view.');
+assertSameValue('135260000000001', $rows[1]['cancelamento']['protocolo'] ?? null, 'Repository should expose cancellation protocol for detail view.');
+assertSameValue('', $rows[1]['acoes_nfe']['cancelar_url'] ?? null, 'Grid should hide cancel action for canceled note.');
+assertSameValue('/nfe/inutilizacao/inutilizar', $rows[1]['acoes_nfe']['inutilizar_url'] ?? null, 'Grid should expose NFe inutilization action endpoint.');
+assertSameValue('32260606013812000158550030001972461604403624', $rows[1]['acoes_nfe']['chave'] ?? null, 'Grid should expose access key for cancel action.');
+assertSameValue('26', $rows[1]['acoes_nfe']['ano'] ?? null, 'Grid should expose two-digit year for inutilization.');
+assertSameValue('55', $rows[1]['acoes_nfe']['modelo'] ?? null, 'Grid should expose document model for inutilization.');
+assertSameValue('3', $rows[1]['acoes_nfe']['serie'] ?? null, 'Grid should expose note series for inutilization.');
+assertSameValue('197246', $rows[1]['acoes_nfe']['numero_inicial'] ?? null, 'Grid should expose note number range for inutilization.');
+assertSameValue('197246', $rows[1]['acoes_nfe']['numero_final'] ?? null, 'Grid should expose note number range for inutilization.');
+assertSameValue('req-base64', $rows[2]['request_id'], 'Base64 send should come after the homologation placeholder fixture.');
+assertSameValue('/monitor-saida-nfe/danfe/req-base64', $rows[2]['danfe_url'], 'Grid should expose DANFE route when only base64 is available.');
+assertSameValue('/monitor-saida-nfe/xml/req-base64', $rows[2]['xml_url'], 'Grid should expose XML route extracted from response body.');
+assertSameValue('EMITENTE C', $rows[2]['emitente_nome'], 'Grid should expose issuer name.');
+assertSameValue('req-fail', $rows[3]['request_id'], 'Failed send should come after the base64 fixture.');
+assertSameValue('999', $rows[3]['numero_nota'], 'Grid should expose note number.');
+assertSameValue('FOO SA', $rows[3]['cliente'], 'Grid should expose customer.');
+assertSameValue('Falha', $rows[3]['status_envio'], 'Grid should expose failed transmission status.');
+assertSameValue('', $rows[3]['danfe_url'], 'Grid should expose empty DANFE link when unavailable.');
+assertSameValue('18.00', $rows[4]['impostos']['ICMS']['valor'] ?? null, 'Grid should expose ICMS total.');
+assertSameValue('ACME LTDA', $rows[4]['cliente'], 'Grid should prefer extracted customer name when link table contains homologation placeholder.');
+assertSameValue('7.60', $rows[4]['impostos']['COFINS']['valor'] ?? null, 'Grid should expose COFINS total.');
+assertSameValue('1.65', $rows[4]['impostos']['PIS']['valor'] ?? null, 'Grid should expose PIS total.');
+assertSameValue('0.30', $rows[4]['impostos']['IBS']['valor'] ?? null, 'Grid should expose IBS total aggregated from IBSUF and IBSMUN.');
+assertSameValue('0.90', $rows[4]['impostos']['CBS']['valor'] ?? null, 'Grid should expose CBS total.');
 
 $productionRows = $repository->search([
     'date_from' => '2026-07-03',
@@ -154,8 +165,8 @@ $homologationRows = $repository->search([
     'date_to' => '2026-07-03',
     'ambiente' => '2',
 ]);
-assertSameValue(2, count($homologationRows), 'search should filter homologation output notes.');
-assertSameValue('req-homolog-placeholder', $homologationRows[0]['request_id'], 'Newest homologation output note should come first.');
+assertSameValue(3, count($homologationRows), 'search should filter homologation output notes.');
+assertSameValue('req-authorized-empty-key', $homologationRows[0]['request_id'], 'Newest homologation output note should come first.');
 assertSameValue('2', $homologationRows[0]['ambiente'], 'Homologation output row should expose environment.');
 
 $filteredRows = $repository->search([

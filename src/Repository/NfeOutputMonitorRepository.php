@@ -537,6 +537,11 @@ final class NfeOutputMonitorRepository
         $requestId = trim((string) ($row['request_id'] ?? ''));
         $assinante = $this->extractSubscriber($row['t_assinante_json'] ?? null);
         $xmlCompleto = $this->extractAuthorizedXml($row['xml_autorizado'] ?? null, $row['t_corpo_resposta'] ?? null);
+        $chaveNfe = $this->firstNonEmpty(
+            $this->stringOrEmpty($row['chave_nfe'] ?? null),
+            $this->extractAccessKeyFallback($xmlCompleto, $row['t_corpo_resposta'] ?? null)
+        );
+        $row['chave_nfe'] = $chaveNfe;
         $danfeBase64 = $this->extractDanfeBase64($row['t_corpo_resposta'] ?? null);
         $hasDanfe = $this->stringOrEmpty($row['caminho_danfe'] ?? null) !== '' || $danfeBase64 !== '';
         $clienteDocumento = $this->firstNonEmpty(
@@ -570,7 +575,7 @@ final class NfeOutputMonitorRepository
             'emitente_documento' => $emitenteDocumento,
             'assinante_identificador' => $assinante['identificador'],
             'assinante_nome' => $assinante['nome'],
-            'chave_nfe' => $this->stringOrEmpty($row['chave_nfe'] ?? null),
+            'chave_nfe' => $chaveNfe,
             'data_envio' => $row['dt_hr_recebimento'] ?? null,
             'data_emissao' => $row['data_emissao'] ?? null,
             'valor_total' => $this->decimalOrEmpty($row['valor_total'] ?? null),
@@ -820,6 +825,41 @@ final class NfeOutputMonitorRepository
         $result = $decoded['xml_autorizado'] ?? $decoded['resultado']['xml_autorizado'] ?? null;
 
         return is_string($result) ? trim($result) : '';
+    }
+
+    private function extractAccessKeyFallback(string $authorizedXml, mixed $responseBody): string
+    {
+        $candidates = [$authorizedXml];
+        $decoded = $this->decodeResponseBody($responseBody);
+        if ($decoded !== null) {
+            foreach ([
+                $decoded['xml_autorizado'] ?? null,
+                $decoded['resultado']['xml_autorizado'] ?? null,
+                $decoded['resultado']['mensagem'] ?? null,
+                $decoded['resultado']['XML'] ?? null,
+                $decoded['resultado']['xml'] ?? null,
+            ] as $candidate) {
+                if (is_string($candidate)) {
+                    $candidates[] = $candidate;
+                }
+            }
+        }
+
+        foreach ($candidates as $candidate) {
+            if (preg_match('/(?:chDFe|chNFe)\s*=\s*(\d{44})/i', $candidate, $matches) === 1) {
+                return $matches[1];
+            }
+
+            if (preg_match('/<chNFe>\s*(\d{44})\s*<\/chNFe>/i', $candidate, $matches) === 1) {
+                return $matches[1];
+            }
+
+            if (preg_match('/Id=["\']NFe(\d{44})["\']/i', $candidate, $matches) === 1) {
+                return $matches[1];
+            }
+        }
+
+        return '';
     }
 
     private function extractAuthorizationEventXml(mixed $responseBody): string

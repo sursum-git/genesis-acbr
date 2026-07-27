@@ -222,11 +222,29 @@
         fiscalEventGrid = $('#nfe-fiscal-events-grid').data('kendoGrid');
     }
 
+    function fiscalEventsFromRow(row) {
+        if (!row) {
+            return [];
+        }
+
+        const events = typeof row.get === 'function' ? row.get('eventos_nfe') : row.eventos_nfe;
+        if (Array.isArray(events)) {
+            return events;
+        }
+
+        if (events && typeof events.toJSON === 'function') {
+            const normalized = events.toJSON();
+            return Array.isArray(normalized) ? normalized : [];
+        }
+
+        return [];
+    }
+
     function openFiscalEventWindow(row) {
         initializeFiscalEventWindow();
 
         $('#nfe-fiscal-events-title').text((row.situacao_nfe || 'Sem situação') + ' - Nota ' + (row.numero_nota || row.request_id || ''));
-        fiscalEventGrid.dataSource.data(Array.isArray(row.eventos_nfe) ? row.eventos_nfe : []);
+        fiscalEventGrid.dataSource.data(fiscalEventsFromRow(row));
         fiscalEventWindow.center().open();
     }
 

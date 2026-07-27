@@ -30,4 +30,11 @@ foreach (['data-action-event-url', 'actionEventUrl', 'monitor-nfe-situation', 'm
     }
 }
 
+foreach (['fiscalEventsFromRow', "row.get('eventos_nfe')", 'events.toJSON'] as $expectedToken) {
+    if (!str_contains($script, $expectedToken)) {
+        fwrite(STDERR, "NFe monitor event window should support Kendo observable event arrays: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
 fwrite(STDOUT, "OK\n");

@@ -40,12 +40,10 @@
             },
             columns: [
                 { field: 'data', title: 'Data', width: 155 },
-                { field: 'tipo_acao', title: 'Tipo', width: 145 },
+                { field: 'tipo_acao', title: 'Evento', width: 190 },
                 { field: 'situacao', title: 'Situação', width: 170 },
-                { field: 'c_stat', title: 'cStat', width: 90 },
-                { field: 'motivo', title: 'Motivo', width: 300 },
-                { field: 'protocolo', title: 'Protocolo', width: 150 },
-                { field: 'request_id', title: 'Request ID', width: 230 }
+                { field: 'motivo', title: 'Retorno', width: 360 },
+                { field: 'protocolo', title: 'Protocolo', width: 160 }
             ]
         });
     }
@@ -155,6 +153,13 @@
     const technicalTabs = document.getElementById('nfe-output-technical-tabs');
     if (technicalTabs) {
         $('#nfe-output-technical-tabs').kendoTabStrip({
+            animation: false
+        });
+    }
+
+    const detailTabs = document.getElementById('nfe-output-detail-tabs');
+    if (detailTabs) {
+        $('#nfe-output-detail-tabs').kendoTabStrip({
             animation: false
         });
     }

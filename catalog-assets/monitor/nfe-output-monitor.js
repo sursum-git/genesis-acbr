@@ -212,12 +212,10 @@
             },
             columns: [
                 { field: 'data', title: 'Data', width: 155 },
-                { field: 'tipo_acao', title: 'Tipo', width: 145 },
+                { field: 'tipo_acao', title: 'Evento', width: 190 },
                 { field: 'situacao', title: 'Situação', width: 170 },
-                { field: 'c_stat', title: 'cStat', width: 90 },
-                { field: 'motivo', title: 'Motivo', width: 280 },
-                { field: 'protocolo', title: 'Protocolo', width: 150 },
-                { field: 'request_id', title: 'Request ID', width: 230 }
+                { field: 'motivo', title: 'Retorno', width: 360 },
+                { field: 'protocolo', title: 'Protocolo', width: 160 }
             ]
         });
 
@@ -1069,6 +1067,8 @@
                         buttons.push('<a class="btn btn-sm btn-primary" href="' + appBaseUrl + escapeHtml(row.xml_url) + '">XML</a>');
                     }
 
+                    buttons.push('<button type="button" class="btn btn-sm btn-outline-info monitor-nfe-events" data-request-id="' + escapeHtml(row.request_id || '') + '">Eventos</button>');
+
                     if (requiredActionFields(row, 'cancelar')) {
                         buttons.push('<button type="button" class="btn btn-sm btn-outline-danger monitor-nfe-action" data-action="cancelar" data-request-id="' + escapeHtml(row.request_id || '') + '">Cancelar</button>');
                     }
@@ -1102,6 +1102,22 @@
     });
 
     $(document).on('click', '.monitor-nfe-situation', function () {
+        const requestId = String($(this).data('request-id') || '');
+        const data = grid.dataSource.data();
+        let row = null;
+        for (let index = 0; index < data.length; index += 1) {
+            if (String(data[index].request_id || '') === requestId) {
+                row = data[index];
+                break;
+            }
+        }
+
+        if (row) {
+            openFiscalEventWindow(row);
+        }
+    });
+
+    $(document).on('click', '.monitor-nfe-events', function () {
         const requestId = String($(this).data('request-id') || '');
         const data = grid.dataSource.data();
         let row = null;

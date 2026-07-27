@@ -427,6 +427,7 @@ final class NfeInputMonitorRepository
             $this->stringOrEmpty($row['chave_nfe_proc'] ?? null),
             $this->stringOrEmpty($row['ch_nfe'] ?? null)
         );
+        $events = $this->findFiscalEventsByAccessKey($chaveNfe);
         $xmlCompleto = $this->firstNonEmpty(
             $this->stringOrEmpty($row['xml_completo'] ?? null),
             $this->stringOrEmpty($row['xml_descompactado'] ?? null)
@@ -475,7 +476,92 @@ final class NfeInputMonitorRepository
                 $this->stringOrEmpty($row['protocolo_nfe'] ?? null),
                 $this->stringOrEmpty($row['n_prot'] ?? null)
             ),
+            'eventos_nfe' => $events,
         ];
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function findFiscalEventsByAccessKey(string $accessKey): array
+    {
+        if ($accessKey === '' || !$this->tableExists('t99016')) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->auditConnection->fetchAllAssociative(
+            "
+                SELECT
+                    t99008_id,
+                    ch_nfe,
+                    tp_evento,
+                    dh_evento,
+                    c_stat,
+                    x_motivo,
+                    n_prot,
+                    desc_evento
+                FROM t99016
+                WHERE ch_nfe = :access_key
+                ORDER BY dh_evento DESC, t99008_id DESC
+            ",
+            ['access_key' => $accessKey]
+        );
+
+        return array_map(fn (array $row): array => $this->normalizeFiscalEvent($row), $rows);
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function normalizeFiscalEvent(array $row): array
+    {
+        $eventType = $this->stringOrEmpty($row['tp_evento'] ?? null);
+        $cStat = $this->stringOrEmpty($row['c_stat'] ?? null);
+
+        return [
+            'id' => isset($row['t99008_id']) ? (int) $row['t99008_id'] : null,
+            'request_id' => '',
+            'tipo_evento' => $eventType,
+            'tipo_acao' => $this->displayEventType($eventType, $this->stringOrEmpty($row['desc_evento'] ?? null)),
+            'situacao' => $this->displayEventSituation($cStat),
+            'chave_nfe' => $this->stringOrEmpty($row['ch_nfe'] ?? null),
+            'c_stat' => $cStat,
+            'motivo' => $this->stringOrEmpty($row['x_motivo'] ?? null),
+            'protocolo' => $this->stringOrEmpty($row['n_prot'] ?? null),
+            'data' => $this->stringOrEmpty($row['dh_evento'] ?? null),
+        ];
+    }
+
+    private function displayEventType(string $eventType, string $description): string
+    {
+        if ($description !== '') {
+            return $description;
+        }
+
+        return match ($eventType) {
+            '110110' => 'Carta de Correção',
+            '110111' => 'Cancelamento',
+            '210200' => 'Confirmação da Operação',
+            '210210' => 'Ciência da Operação',
+            '210220' => 'Desconhecimento da Operação',
+            '210240' => 'Operação não Realizada',
+            default => $eventType !== '' ? 'Evento ' . $eventType : 'Evento fiscal',
+        };
+    }
+
+    private function displayEventSituation(string $cStat): string
+    {
+        if (in_array((int) $cStat, [101, 102, 135, 136, 155], true)) {
+            return 'Registrado';
+        }
+
+        if ($cStat !== '') {
+            return 'Não registrado';
+        }
+
+        return 'Sem retorno';
     }
 
     /**

@@ -30,6 +30,13 @@
         </div>
     </section>
 
+    <div id="nfe-output-detail-tabs" class="mb-4">
+        <ul>
+            <li class="k-active">Dados da nota</li>
+            <li>Itens</li>
+            <li>Eventos</li>
+        </ul>
+        <div>
     <div class="row g-4 mb-4">
         <div class="col-12 col-xl-6">
             <section class="card h-100">
@@ -89,6 +96,8 @@
             </section>
         </div>
     </div>
+        </div>
+        <div>
 
     <section class="card border-0 shadow-sm">
         <div class="card-header"><h3 class="card-title">Itens da nota</h3></div>
@@ -96,6 +105,20 @@
             <div id="nfe-output-items-grid" data-items='{{ detail.itens|json_encode(constant('JSON_UNESCAPED_UNICODE'))|e('html_attr') }}'></div>
         </div>
     </section>
+        </div>
+        <div>
+            <section class="card border-0 shadow-sm">
+                <div class="card-header"><h3 class="card-title">Eventos da nota</h3></div>
+                <div class="card-body">
+                    <p class="text-muted mb-3">Eventos fiscais relacionados à nota recebida, sem dados técnicos de requisição.</p>
+                    <div
+                        id="nfe-detail-fiscal-events-grid"
+                        data-events='{{ detail.eventos_nfe|default([])|json_encode(constant('JSON_UNESCAPED_UNICODE'))|e('html_attr') }}'
+                    ></div>
+                </div>
+            </section>
+        </div>
+    </div>
 {% endblock %}
 
 {% block page_scripts %}

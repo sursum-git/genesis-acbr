@@ -12,6 +12,7 @@
     const filterOptionsUrl = root.dataset.filterOptionsUrl || '';
     const filterLookupUrl = root.dataset.filterLookupUrl || '';
     const actionEventUrl = root.dataset.actionEventUrl || '';
+    const correctionUrl = root.dataset.correctionUrl || '';
     const detailUrlTemplate = root.dataset.detailUrlTemplate || '';
     const cancelUrl = root.dataset.cancelUrl || (basePath + '/index.php/nfe/eventos/cancelar');
     const inutilizeUrl = root.dataset.inutilizeUrl || (basePath + '/index.php/nfe/inutilizacao/inutilizar');
@@ -82,6 +83,10 @@
         const payload = row.acoes_nfe || {};
         if (action === 'cancelar') {
             return Boolean(payload.cancelar_url && payload.chave && payload.cnpj_emitente && !(row.cancelamento && row.cancelamento.cancelada));
+        }
+
+        if (action === 'carta_correcao') {
+            return Boolean(correctionUrl && payload.chave && payload.cnpj_emitente && row.xml_url && !(row.cancelamento && row.cancelamento.cancelada));
         }
 
         return Boolean(payload.cnpj_emitente && payload.ano && payload.modelo && payload.serie && payload.numero_inicial && payload.numero_final);
@@ -240,10 +245,18 @@
         return [];
     }
 
+    function rowValue(row, field) {
+        if (row && typeof row.get === 'function') {
+            return row.get(field);
+        }
+
+        return row ? row[field] : '';
+    }
+
     function openFiscalEventWindow(row) {
         initializeFiscalEventWindow();
 
-        $('#nfe-fiscal-events-title').text((row.situacao_nfe || 'Sem situação') + ' - Nota ' + (row.numero_nota || row.request_id || ''));
+        $('#nfe-fiscal-events-title').text((rowValue(row, 'situacao_nfe') || 'Sem situação') + ' - Nota ' + (rowValue(row, 'numero_nota') || rowValue(row, 'request_id') || ''));
         fiscalEventGrid.dataSource.data(fiscalEventsFromRow(row));
         fiscalEventWindow.center().open();
     }
@@ -334,6 +347,7 @@
     function resetActionWindow() {
         $('#nfe-action-token').data('kendoTextBox').value('');
         $('#nfe-action-justification').data('kendoTextArea').value('');
+        $('#nfe-action-justification-label').text('Justificativa');
         $('#nfe-action-result').removeClass('text-danger text-success').text('');
         $('#nfe-action-confirm').data('kendoButton').enable(true);
     }
@@ -342,7 +356,7 @@
         $('#nfe-action-token').kendoTextBox();
         $('#nfe-action-justification').kendoTextArea({
             rows: 4,
-            maxLength: 255
+            maxLength: 1000
         });
         $('#nfe-action-confirm').kendoButton({
             themeColor: 'primary'
@@ -381,13 +395,20 @@
         };
         resetActionWindow();
 
-        const title = action === 'cancelar' ? 'Cancelar NFe' : 'Inutilizar numeração';
+        const title = action === 'cancelar'
+            ? 'Cancelar NFe'
+            : action === 'carta_correcao'
+                ? 'Carta de Correção'
+                : 'Inutilizar numeração';
         const payload = row.acoes_nfe || {};
         const summary = action === 'cancelar'
             ? 'Cancelar a NFe ' + escapeHtml(row.numero_nota || '') + '<br>Chave: <span class="monitor-break">' + escapeHtml(payload.chave || row.chave_nfe || '') + '</span>'
-            : 'Inutilizar a numeração da NFe ' + escapeHtml(row.numero_nota || '') + '<br>Série: ' + escapeHtml(payload.serie || '') + ' | Modelo: ' + escapeHtml(payload.modelo || '55') + ' | Ano: ' + escapeHtml(payload.ano || '');
+            : action === 'carta_correcao'
+                ? 'Registrar Carta de Correção para a NFe ' + escapeHtml(row.numero_nota || '') + '<br>Chave: <span class="monitor-break">' + escapeHtml(payload.chave || row.chave_nfe || '') + '</span><br><span class="text-muted">Não use para corrigir valores, impostos, quantidade, remetente/destinatário ou datas da nota.</span>'
+                : 'Inutilizar a numeração da NFe ' + escapeHtml(row.numero_nota || '') + '<br>Série: ' + escapeHtml(payload.serie || '') + ' | Modelo: ' + escapeHtml(payload.modelo || '55') + ' | Ano: ' + escapeHtml(payload.ano || '');
 
         actionWindow.title(title);
+        $('#nfe-action-justification-label').text(action === 'carta_correcao' ? 'Correção' : 'Justificativa');
         $('#nfe-action-summary').html(summary);
         actionWindow.center().open();
 
@@ -616,6 +637,31 @@
             }).fail(function (xhr) {
                 $result.removeClass('text-success').addClass('text-danger').text(xhr.responseJSON ? actionResultMessage(xhr.responseJSON) : (xhr.responseText || 'Falha ao cancelar a NFe.'));
                 confirmButton.enable(true);
+            });
+            return;
+        }
+
+        if (activeAction.type === 'carta_correcao') {
+            $.ajax({
+                url: correctionUrl,
+                method: 'POST',
+                contentType: 'application/json',
+                dataType: 'json',
+                headers: {
+                    'X-Api-Token': token
+                },
+                data: JSON.stringify({
+                    nota_request_id: row.request_id || '',
+                    correcao: justification
+                })
+            }).done(function (response) {
+                $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
+                $grid.data('kendoGrid').dataSource.read();
+            }).fail(function (xhr) {
+                const response = xhr.responseJSON || null;
+                $result.removeClass('text-success').addClass('text-danger').text(response ? actionResultMessage(response) : (xhr.responseText || 'Falha ao enviar a Carta de Correção.'));
+                confirmButton.enable(true);
+                $grid.data('kendoGrid').dataSource.read();
             });
             return;
         }
@@ -1089,6 +1135,10 @@
 
                     if (requiredActionFields(row, 'cancelar')) {
                         buttons.push('<button type="button" class="btn btn-sm btn-outline-danger monitor-nfe-action" data-action="cancelar" data-request-id="' + escapeHtml(row.request_id || '') + '">Cancelar</button>');
+                    }
+
+                    if (requiredActionFields(row, 'carta_correcao')) {
+                        buttons.push('<button type="button" class="btn btn-sm btn-outline-dark monitor-nfe-action nfe-action-correction" data-action="carta_correcao" data-request-id="' + escapeHtml(row.request_id || '') + '">Carta de Correção</button>');
                     }
 
                     if (requiredActionFields(row, 'inutilizar')) {

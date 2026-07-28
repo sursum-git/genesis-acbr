@@ -24,7 +24,11 @@ final class NfeOutputFiscalEventRepository
     {
         $this->ensureSchema();
 
-        $normalizedAction = $action === 'inutilizar' ? 'inutilizacao' : 'cancelamento';
+        $normalizedAction = match ($action) {
+            'inutilizar' => 'inutilizacao',
+            'carta_correcao' => 'carta_correcao',
+            default => 'cancelamento',
+        };
         $resolvedRequestId = $requestId !== '' ? $requestId : $this->findLatestAuditRequestId($action, $actionPayload);
         $cStat = $this->extractValue($responsePayload, ['c_stat_receita', 'cStat', 'CStat', 'resultado.cStat', 'resultado.CStat'])
             ?: $this->extractLineValue($responsePayload, ['cStat', 'CStat']);
@@ -37,14 +41,21 @@ final class NfeOutputFiscalEventRepository
             $this->stringOrEmpty($actionPayload['AeChave'] ?? null),
             $this->stringOrEmpty($actionPayload['chave'] ?? null)
         );
-        $eventType = $normalizedAction === 'cancelamento' ? '110111' : 'INUTILIZACAO';
-        $success = $normalizedAction === 'cancelamento'
-            ? in_array((int) $cStat, [101, 135, 155], true)
-            : (int) $cStat === 102;
+        $eventType = match ($normalizedAction) {
+            'cancelamento' => '110111',
+            'carta_correcao' => '110110',
+            default => 'INUTILIZACAO',
+        };
+        $success = match ($normalizedAction) {
+            'cancelamento', 'carta_correcao' => in_array((int) $cStat, [101, 135, 136, 155], true),
+            default => (int) $cStat === 102,
+        };
         $situation = match (true) {
             $normalizedAction === 'cancelamento' && $success => 'Cancelada',
             $normalizedAction === 'inutilizacao' && $success => 'Inutilizada',
+            $normalizedAction === 'carta_correcao' && $success => 'Carta de Correção registrada',
             $normalizedAction === 'cancelamento' => 'Erro no cancelamento',
+            $normalizedAction === 'carta_correcao' => 'Erro na Carta de Correção',
             default => 'Erro na inutilização',
         };
         $now = date('c');
@@ -68,7 +79,7 @@ final class NfeOutputFiscalEventRepository
 
         $this->auditConnection->insert(self::EVENT_TABLE, $event);
 
-        if ($success) {
+        if ($success && in_array($normalizedAction, ['cancelamento', 'inutilizacao'], true)) {
             $this->auditConnection->update('t99019', [
                 'situacao_fiscal' => $situation,
             ], [
@@ -165,7 +176,11 @@ final class NfeOutputFiscalEventRepository
             return '';
         }
 
-        $path = $action === 'inutilizar' ? '/nfe/inutilizacao/inutilizar' : '/nfe/eventos/cancelar';
+        $path = match ($action) {
+            'inutilizar' => '/nfe/inutilizacao/inutilizar',
+            'carta_correcao' => '/nfe/eventos/enviar-evento',
+            default => '/nfe/eventos/cancelar',
+        };
         $needle = $this->firstNonEmpty(
             $this->stringOrEmpty($actionPayload['AeChave'] ?? null),
             $this->stringOrEmpty($actionPayload['ANumeroInicial'] ?? null),

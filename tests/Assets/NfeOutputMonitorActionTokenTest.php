@@ -30,6 +30,13 @@ foreach (['data-action-event-url', 'actionEventUrl', 'monitor-nfe-situation', 'm
     }
 }
 
+foreach (['data-correction-url', 'correctionUrl', 'Carta de Correção', 'nfe-action-correction', 'correcao'] as $expectedToken) {
+    if (!str_contains($template . $script, $expectedToken)) {
+        fwrite(STDERR, "NFe monitor should expose correction letter action token: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
 foreach (['fiscalEventsFromRow', "row.get('eventos_nfe')", 'events.toJSON'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
         fwrite(STDERR, "NFe monitor event window should support Kendo observable event arrays: {$expectedToken}.\n");

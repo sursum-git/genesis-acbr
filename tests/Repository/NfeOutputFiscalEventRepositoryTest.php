@@ -58,6 +58,28 @@ assertSameValue('inutilizacao', $inutEvent['tipo_acao'] ?? null, 'Inutilization 
 assertSameValue('Erro na inutilização', $inutEvent['situacao'] ?? null, 'Rejected inutilization should record an error event.');
 assertSameValue('Cancelada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 1'), 'Rejected inutilization should not replace a successful fiscal situation.');
 
+$correctionEvent = $repository->recordActionResult(
+    1,
+    'carta_correcao',
+    'req-cce-ok',
+    [
+        'AeChave' => '32260606013812000158550030001972461604403624',
+        'xCorrecao' => 'Corrige as informações adicionais da NF-e sem alterar valores fiscais.',
+    ],
+    [
+        'resultado' => [
+            'mensagem' => "CStat=135\nXMotivo=Evento registrado e vinculado a NF-e\nnProt=135260000000003\ntpEvento=110110",
+        ],
+    ]
+);
+
+assertSameValue('carta_correcao', $correctionEvent['tipo_acao'] ?? null, 'CC-e action should be recorded as correction letter.');
+assertSameValue('Carta de Correção registrada', $correctionEvent['situacao'] ?? null, 'Successful CC-e should record user-friendly situation.');
+assertSameValue('110110', $correctionEvent['tipo_evento'] ?? null, 'CC-e should record NF-e event type 110110.');
+assertSameValue('135', $correctionEvent['c_stat'] ?? null, 'Successful CC-e should record cStat.');
+assertSameValue('135260000000003', $correctionEvent['protocolo'] ?? null, 'Successful CC-e should record protocol.');
+assertSameValue('Cancelada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 1'), 'Successful CC-e should not replace canceled fiscal situation.');
+
 $rejectedCancelEvent = $repository->recordActionResult(
     2,
     'cancelar',
@@ -98,8 +120,9 @@ assertSameValue('Rejeicao: NF-e nao consta na base de dados da SEFAZ', $legacyEr
 assertSameValue('Autorizada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 2'), 'Legacy cancel error should not mark the note as canceled.');
 
 $events = $repository->findByNoteId(1);
-assertSameValue(2, count($events), 'Repository should list all fiscal events for the note.');
-assertSameValue('req-inut-error', $events[0]['request_id'] ?? null, 'Newest event should come first.');
-assertSameValue('req-cancel-ok', $events[1]['request_id'] ?? null, 'Older event should remain available.');
+assertSameValue(3, count($events), 'Repository should list all fiscal events for the note.');
+assertSameValue('req-cce-ok', $events[0]['request_id'] ?? null, 'Newest event should come first.');
+assertSameValue('req-inut-error', $events[1]['request_id'] ?? null, 'Inutilization event should remain available.');
+assertSameValue('req-cancel-ok', $events[2]['request_id'] ?? null, 'Older event should remain available.');
 
 fwrite(STDOUT, "OK\n");

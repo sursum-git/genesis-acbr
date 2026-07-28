@@ -25,6 +25,7 @@
         data-detail-url-template="{{ detailUrlTemplate }}"
         data-technical-detail-url-template="{{ technicalDetailUrlTemplate }}"
         data-action-event-url="{{ actionEventUrl }}"
+        data-correction-url="{{ correctionUrl }}"
         data-cancel-url="{{ app.request.basePath ~ '/index.php/nfe/eventos/cancelar' }}"
         data-inutilize-url="{{ app.request.basePath ~ '/index.php/nfe/inutilizacao/inutilizar' }}"
     >
@@ -119,7 +120,7 @@
             <div class="monitor-action-summary" id="nfe-action-summary"></div>
             <label class="form-label" for="nfe-action-token">Token da API</label>
             <input type="password" id="nfe-action-token" name="token" autocomplete="off" required>
-            <label class="form-label" for="nfe-action-justification">Justificativa</label>
+            <label class="form-label" for="nfe-action-justification" id="nfe-action-justification-label">Justificativa</label>
             <textarea id="nfe-action-justification" name="justificativa" rows="4" minlength="15" required></textarea>
             <div class="form-text">Informe no mínimo 15 caracteres.</div>
             <div id="nfe-action-result" class="monitor-action-result" aria-live="polite"></div>

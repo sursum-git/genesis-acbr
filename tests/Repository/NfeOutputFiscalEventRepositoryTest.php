@@ -106,6 +106,25 @@ $correctionEventWithBatchStatus = $repository->recordActionResult(
 assertSameValue('135', $correctionEventWithBatchStatus['c_stat'] ?? null, 'CC-e should record the event cStat instead of the batch cStat.');
 assertSameValue('Carta de Correção registrada', $correctionEventWithBatchStatus['situacao'] ?? null, 'CC-e with successful event cStat should be recorded as successful.');
 
+$correctionEventRejected = $repository->recordActionResult(
+    1,
+    'carta_correcao',
+    'req-cce-batch-rejected',
+    [
+        'AeChave' => '32260706013812000158550030001972531191972532',
+        'xCorrecao' => 'Corrige texto livre das informações adicionais da NF-e.',
+    ],
+    [
+        'resultado' => [
+            'mensagem' => "[Evento]\nCStat=128\nXMotivo=Lote de Evento Processado\n\n[Evento001]\nCStat=579\nXML=<infEvento><cStat>579</cStat><xMotivo>Rejeicao: A data do evento nao pode ser menor que a data de autorizacao para NF-e nao emitida em contingencia</xMotivo></infEvento>\nXMotivo=Rejeicao: A data do evento nao pode ser menor que a data de autorizacao para NF-e nao emitida em contingencia\nnSeqEvento=2\n",
+        ],
+    ]
+);
+
+assertSameValue('579', $correctionEventRejected['c_stat'] ?? null, 'Rejected CC-e should record the event cStat instead of the batch cStat.');
+assertSameValue('Erro na Carta de Correção', $correctionEventRejected['situacao'] ?? null, 'Rejected CC-e should be recorded as an error.');
+assertSameValue('Rejeicao: A data do evento nao pode ser menor que a data de autorizacao para NF-e nao emitida em contingencia', $correctionEventRejected['motivo'] ?? null, 'Rejected CC-e should record only the event rejection reason.');
+
 $longReason = str_repeat('Retorno detalhado da SEFAZ para Carta de Correcao. ', 8);
 $longReasonEvent = $repository->recordActionResult(
     1,
@@ -162,11 +181,12 @@ assertSameValue('Rejeicao: NF-e nao consta na base de dados da SEFAZ', $legacyEr
 assertSameValue('Autorizada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 2'), 'Legacy cancel error should not mark the note as canceled.');
 
 $events = $repository->findByNoteId(1);
-assertSameValue(5, count($events), 'Repository should list all fiscal events for the note.');
+assertSameValue(6, count($events), 'Repository should list all fiscal events for the note.');
 assertSameValue('req-cce-long-reason', $events[0]['request_id'] ?? null, 'Newest event should come first.');
-assertSameValue('req-cce-batch-ok', $events[1]['request_id'] ?? null, 'CC-e batch response event should remain available.');
-assertSameValue('req-cce-ok', $events[2]['request_id'] ?? null, 'Previous CC-e event should remain available.');
-assertSameValue('req-inut-error', $events[3]['request_id'] ?? null, 'Inutilization event should remain available.');
-assertSameValue('req-cancel-ok', $events[4]['request_id'] ?? null, 'Older event should remain available.');
+assertSameValue('req-cce-batch-rejected', $events[1]['request_id'] ?? null, 'Rejected CC-e batch response event should remain available.');
+assertSameValue('req-cce-batch-ok', $events[2]['request_id'] ?? null, 'CC-e batch response event should remain available.');
+assertSameValue('req-cce-ok', $events[3]['request_id'] ?? null, 'Previous CC-e event should remain available.');
+assertSameValue('req-inut-error', $events[4]['request_id'] ?? null, 'Inutilization event should remain available.');
+assertSameValue('req-cancel-ok', $events[5]['request_id'] ?? null, 'Older event should remain available.');
 
 fwrite(STDOUT, "OK\n");

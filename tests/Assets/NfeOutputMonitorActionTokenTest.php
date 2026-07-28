@@ -23,6 +23,13 @@ foreach (['firstResponseValue', 'responseTextCandidates', 'cStat', 'nProt', 'Req
     }
 }
 
+foreach (['extractLastLineValue', 'response.event', "event.motivo", "event.c_stat"] as $expectedToken) {
+    if (!str_contains($script, $expectedToken)) {
+        fwrite(STDERR, "NFe action result should summarize fiscal event responses without raw ACBr output: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
 foreach (['data-action-event-url', 'actionEventUrl', 'monitor-nfe-situation', 'monitor-nfe-events', 'nfe-fiscal-events-grid'] as $expectedToken) {
     if (!str_contains($template . $script, $expectedToken)) {
         fwrite(STDERR, "NFe monitor should expose fiscal event UI token: {$expectedToken}.\n");

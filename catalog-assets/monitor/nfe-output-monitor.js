@@ -470,6 +470,23 @@
         return '';
     }
 
+    function extractLastLineValue(texts, keys) {
+        let lastValue = '';
+        for (const text of texts) {
+            for (const key of keys) {
+                const matches = text.matchAll(new RegExp('(?:^|\\n)\\s*' + key + '\\s*=\\s*([^\\r\\n<]*)', 'gi'));
+                for (const match of matches) {
+                    const value = String(match[1] || '').trim();
+                    if (value !== '') {
+                        lastValue = value;
+                    }
+                }
+            }
+        }
+
+        return lastValue;
+    }
+
     function actionResultMessage(response) {
         if (!response) {
             return 'Ação enviada. Consulte a requisição gerada para confirmar o retorno da SEFAZ.';
@@ -480,32 +497,38 @@
         }
 
         const texts = responseTextCandidates(response);
-        const message = firstResponseValue(response, [
-            'message',
-            'mensagem',
-            'resultado.message',
-            'resultado.mensagem',
+        const event = response.event && typeof response.event === 'object' ? response.event : {};
+        const message = firstResponseValue({ event: event }, [
+            'event.motivo',
+            'event.situacao'
+        ]) || extractLastLineValue(texts, ['xMotivo', 'XMotivo', 'Motivo']) || firstResponseValue(response, [
             'resultado.xMotivo',
             'resultado.XMotivo',
             'resultado.motivo',
-            'hydra:description'
-        ]) || extractLineValue(texts, ['xMotivo', 'XMotivo', 'Motivo']);
-        const cStat = firstResponseValue(response, [
+            'hydra:description',
+            'message',
+            'mensagem'
+        ]);
+        const cStat = firstResponseValue({ event: event }, [
+            'event.c_stat'
+        ]) || firstResponseValue(response, [
             'c_stat_receita',
             'cStat',
             'CStat',
             'resultado.c_stat_receita',
             'resultado.cStat',
             'resultado.CStat'
-        ]) || extractLineValue(texts, ['cStat', 'CStat']);
-        const nProt = firstResponseValue(response, [
+        ]) || extractLastLineValue(texts, ['cStat', 'CStat']);
+        const nProt = firstResponseValue({ event: event }, [
+            'event.protocolo'
+        ]) || firstResponseValue(response, [
             'nProt',
             'NProt',
             'protocolo',
             'resultado.nProt',
             'resultado.NProt',
             'resultado.protocolo'
-        ]) || extractLineValue(texts, ['nProt', 'NProt', 'Protocolo']);
+        ]) || extractLastLineValue(texts, ['nProt', 'NProt', 'Protocolo']);
         const status = firstResponseValue(response, ['status', 'resultado.status']);
         const requestId = firstResponseValue(response, ['request_id', 'resultado.request_id']);
         const parts = [];

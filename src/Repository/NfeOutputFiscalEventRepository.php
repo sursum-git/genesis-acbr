@@ -30,13 +30,15 @@ final class NfeOutputFiscalEventRepository
             default => 'cancelamento',
         };
         $resolvedRequestId = $requestId !== '' ? $requestId : $this->findLatestAuditRequestId($action, $actionPayload);
+        $preferLastEventLine = in_array($normalizedAction, ['cancelamento', 'carta_correcao'], true);
+        $lineValueExtractor = $preferLastEventLine ? 'extractLastLineValue' : 'extractLineValue';
         $cStat = $this->extractValue($responsePayload, ['c_stat_receita', 'cStat', 'CStat', 'resultado.cStat', 'resultado.CStat'])
-            ?: $this->extractLineValue($responsePayload, ['cStat', 'CStat']);
+            ?: $this->{$lineValueExtractor}($responsePayload, ['cStat', 'CStat']);
         $motivo = $this->extractValue($responsePayload, ['mensagem', 'message', 'resultado.xMotivo', 'resultado.XMotivo', 'resultado.motivo'])
-            ?: $this->extractLineValue($responsePayload, ['xMotivo', 'XMotivo'])
+            ?: $this->{$lineValueExtractor}($responsePayload, ['xMotivo', 'XMotivo'])
             ?: $this->extractLastReturnReason($responsePayload);
         $protocol = $this->extractValue($responsePayload, ['nProt', 'NProt', 'protocolo', 'resultado.nProt', 'resultado.NProt', 'resultado.protocolo'])
-            ?: $this->extractLineValue($responsePayload, ['nProt', 'NProt', 'Protocolo']);
+            ?: $this->{$lineValueExtractor}($responsePayload, ['nProt', 'NProt', 'Protocolo']);
         $accessKey = $this->firstNonEmpty(
             $this->stringOrEmpty($actionPayload['AeChave'] ?? null),
             $this->stringOrEmpty($actionPayload['chave'] ?? null)
@@ -61,14 +63,14 @@ final class NfeOutputFiscalEventRepository
         $now = date('c');
         $event = [
             't99019_id' => $noteId,
-            'u_c_request_id' => $resolvedRequestId,
+            'u_c_request_id' => $this->limitString($resolvedRequestId, 36),
             'tipo_evento' => $eventType,
             'tipo_acao' => $normalizedAction,
             'situacao' => $situation,
-            'ch_nfe' => $accessKey,
+            'ch_nfe' => $this->limitString($accessKey, 44),
             'c_stat' => $cStat !== '' ? (int) $cStat : null,
-            'x_motivo' => $motivo !== '' ? $motivo : null,
-            'n_prot' => $protocol !== '' ? $protocol : null,
+            'x_motivo' => $motivo !== '' ? $this->limitString($motivo, 255) : null,
+            'n_prot' => $protocol !== '' ? $this->limitString($protocol, 20) : null,
             'dh_evento' => $now,
             't_payload_json' => json_encode([
                 'payload' => $actionPayload,
@@ -266,6 +268,31 @@ final class NfeOutputFiscalEventRepository
 
     /**
      * @param array<string, mixed> $payload
+     * @param list<string> $keys
+     */
+    private function extractLastLineValue(array $payload, array $keys): string
+    {
+        $lastValue = '';
+        foreach ($this->textCandidates($payload) as $text) {
+            foreach ($keys as $key) {
+                if (preg_match_all('/(?:^|\n)\s*' . preg_quote($key, '/') . '\s*=\s*([^\r\n<]*)/i', $text, $matches) === false) {
+                    continue;
+                }
+
+                foreach ($matches[1] ?? [] as $value) {
+                    $normalized = trim((string) $value);
+                    if ($normalized !== '') {
+                        $lastValue = $normalized;
+                    }
+                }
+            }
+        }
+
+        return $lastValue;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
      */
     private function extractLastReturnReason(array $payload): string
     {
@@ -323,5 +350,14 @@ final class NfeOutputFiscalEventRepository
         }
 
         return '';
+    }
+
+    private function limitString(string $value, int $limit): string
+    {
+        if (function_exists('mb_strcut')) {
+            return mb_strcut($value, 0, $limit, 'UTF-8');
+        }
+
+        return substr($value, 0, $limit);
     }
 }

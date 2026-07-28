@@ -15,6 +15,14 @@ function assertSameValue(mixed $expected, mixed $actual, string $message): void
     }
 }
 
+function assertTrueValue(bool $actual, string $message): void
+{
+    if (!$actual) {
+        fwrite(STDERR, $message . PHP_EOL);
+        exit(1);
+    }
+}
+
 $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
 $connection->executeStatement('CREATE TABLE t99019 (id_t99019 INTEGER PRIMARY KEY AUTOINCREMENT, ch_nfe TEXT, n_nf TEXT, situacao_fiscal TEXT)');
 $connection->executeStatement('CREATE TABLE t99001 (id_t99001 INTEGER PRIMARY KEY AUTOINCREMENT, u_c_request_id TEXT, c_caminho TEXT, t_corpo_requisicao TEXT, dt_hr_recebimento TEXT)');
@@ -80,6 +88,40 @@ assertSameValue('135', $correctionEvent['c_stat'] ?? null, 'Successful CC-e shou
 assertSameValue('135260000000003', $correctionEvent['protocolo'] ?? null, 'Successful CC-e should record protocol.');
 assertSameValue('Cancelada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 1'), 'Successful CC-e should not replace canceled fiscal situation.');
 
+$correctionEventWithBatchStatus = $repository->recordActionResult(
+    1,
+    'carta_correcao',
+    'req-cce-batch-ok',
+    [
+        'AeChave' => '32260606013812000158550030001972461604403624',
+        'xCorrecao' => 'Corrige texto livre das informações adicionais da NF-e.',
+    ],
+    [
+        'resultado' => [
+            'mensagem' => "[Evento]\nCStat=128\nXMotivo=Lote de Evento Processado\n\n[Evento001]\nCStat=135\nXMotivo=Evento registrado e vinculado a NF-e\nnProt=135260000000004\n",
+        ],
+    ]
+);
+
+assertSameValue('135', $correctionEventWithBatchStatus['c_stat'] ?? null, 'CC-e should record the event cStat instead of the batch cStat.');
+assertSameValue('Carta de Correção registrada', $correctionEventWithBatchStatus['situacao'] ?? null, 'CC-e with successful event cStat should be recorded as successful.');
+
+$longReason = str_repeat('Retorno detalhado da SEFAZ para Carta de Correcao. ', 8);
+$longReasonEvent = $repository->recordActionResult(
+    1,
+    'carta_correcao',
+    'req-cce-long-reason',
+    [
+        'AeChave' => '32260606013812000158550030001972461604403624',
+        'xCorrecao' => 'Corrige texto livre das informações adicionais da NF-e.',
+    ],
+    [
+        'mensagem' => $longReason,
+    ]
+);
+
+assertTrueValue(strlen($longReasonEvent['motivo'] ?? '') <= 255, 'Long fiscal event reasons should fit the t99035.x_motivo column.');
+
 $rejectedCancelEvent = $repository->recordActionResult(
     2,
     'cancelar',
@@ -120,9 +162,11 @@ assertSameValue('Rejeicao: NF-e nao consta na base de dados da SEFAZ', $legacyEr
 assertSameValue('Autorizada', $connection->fetchOne('SELECT situacao_fiscal FROM t99019 WHERE id_t99019 = 2'), 'Legacy cancel error should not mark the note as canceled.');
 
 $events = $repository->findByNoteId(1);
-assertSameValue(3, count($events), 'Repository should list all fiscal events for the note.');
-assertSameValue('req-cce-ok', $events[0]['request_id'] ?? null, 'Newest event should come first.');
-assertSameValue('req-inut-error', $events[1]['request_id'] ?? null, 'Inutilization event should remain available.');
-assertSameValue('req-cancel-ok', $events[2]['request_id'] ?? null, 'Older event should remain available.');
+assertSameValue(5, count($events), 'Repository should list all fiscal events for the note.');
+assertSameValue('req-cce-long-reason', $events[0]['request_id'] ?? null, 'Newest event should come first.');
+assertSameValue('req-cce-batch-ok', $events[1]['request_id'] ?? null, 'CC-e batch response event should remain available.');
+assertSameValue('req-cce-ok', $events[2]['request_id'] ?? null, 'Previous CC-e event should remain available.');
+assertSameValue('req-inut-error', $events[3]['request_id'] ?? null, 'Inutilization event should remain available.');
+assertSameValue('req-cancel-ok', $events[4]['request_id'] ?? null, 'Older event should remain available.');
 
 fwrite(STDOUT, "OK\n");

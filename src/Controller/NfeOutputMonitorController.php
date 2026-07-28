@@ -306,7 +306,7 @@ final class NfeOutputMonitorController extends AbstractController
         $eventDate = (new DateTimeImmutable('now', new DateTimeZone('America/Sao_Paulo')))->format('Y-m-d\TH:i:sP');
         $sequenceText = (string) $sequence;
         $eventId = 'ID110110' . $accessKey . str_pad($sequenceText, 2, '0', STR_PAD_LEFT);
-        $condition = 'A Carta de Correcao e disciplinada pelo paragrafo 1o-A do art. 7o do Convenio S/N, de 15 de dezembro de 1970 e pode corrigir erros que nao estejam relacionados com as variaveis que determinam o valor do imposto, dados cadastrais que impliquem mudanca do remetente ou destinatario e data de emissao ou de saida.';
+        $condition = 'A Carta de Correcao e disciplinada pelo paragrafo 1o-A do art. 7o do Convenio S/N, de 15 de dezembro de 1970 e pode ser utilizada para regularizacao de erro ocorrido na emissao de documento fiscal, desde que o erro nao esteja relacionado com: I - as variaveis que determinam o valor do imposto tais como: base de calculo, aliquota, diferenca de preco, quantidade, valor da operacao ou da prestacao; II - a correcao de dados cadastrais que implique mudanca do remetente ou do destinatario; III - a data de emissao ou de saida.';
 
         return '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
             . '<envEvento xmlns="http://www.portalfiscal.inf.br/nfe" versao="1.00">'

@@ -13,6 +13,7 @@
     const filterLookupUrl = root.dataset.filterLookupUrl || '';
     const actionEventUrl = root.dataset.actionEventUrl || '';
     const correctionUrl = root.dataset.correctionUrl || '';
+    const manifestationUrl = root.dataset.manifestationUrl || '';
     const detailUrlTemplate = root.dataset.detailUrlTemplate || '';
     const cancelUrl = root.dataset.cancelUrl || (basePath + '/index.php/nfe/eventos/cancelar');
     const inutilizeUrl = root.dataset.inutilizeUrl || (basePath + '/index.php/nfe/inutilizacao/inutilizar');
@@ -87,6 +88,10 @@
 
         if (action === 'carta_correcao') {
             return Boolean(correctionUrl && payload.chave && payload.cnpj_emitente && row.xml_url && !(row.cancelamento && row.cancelamento.cancelada));
+        }
+
+        if (action === 'manifestacao_destinatario') {
+            return Boolean(manifestationUrl && row.chave_nfe && row.cliente_documento && row.xml_url);
         }
 
         return Boolean(payload.cnpj_emitente && payload.ano && payload.modelo && payload.serie && payload.numero_inicial && payload.numero_final);
@@ -348,6 +353,11 @@
         $('#nfe-action-token').data('kendoTextBox').value('');
         $('#nfe-action-justification').data('kendoTextArea').value('');
         $('#nfe-action-justification-label').text('Justificativa');
+        $('#nfe-manifestation-type-wrap').hide();
+        const manifestationType = $('#nfe-manifestation-type').data('kendoDropDownList');
+        if (manifestationType) {
+            manifestationType.value('210210');
+        }
         $('#nfe-action-result').removeClass('text-danger text-success').text('');
         $('#nfe-action-confirm').data('kendoButton').enable(true);
     }
@@ -362,6 +372,7 @@
             themeColor: 'primary'
         });
         $('#nfe-action-close').kendoButton();
+        $('#nfe-manifestation-type').kendoDropDownList();
 
         actionWindow = $('#nfe-action-window').kendoWindow({
             title: 'Ação da NFe',
@@ -399,16 +410,22 @@
             ? 'Cancelar NFe'
             : action === 'carta_correcao'
                 ? 'Carta de Correção'
-                : 'Inutilizar numeração';
+                : action === 'manifestacao_destinatario'
+                    ? 'Manifestação do Destinatário'
+                    : 'Inutilizar numeração';
         const payload = row.acoes_nfe || {};
         const summary = action === 'cancelar'
             ? 'Cancelar a NFe ' + escapeHtml(row.numero_nota || '') + '<br>Chave: <span class="monitor-break">' + escapeHtml(payload.chave || row.chave_nfe || '') + '</span>'
             : action === 'carta_correcao'
                 ? 'Registrar Carta de Correção para a NFe ' + escapeHtml(row.numero_nota || '') + '<br>Chave: <span class="monitor-break">' + escapeHtml(payload.chave || row.chave_nfe || '') + '</span><br><span class="text-muted">Não use para corrigir valores, impostos, quantidade, remetente/destinatário ou datas da nota.</span>'
-                : 'Inutilizar a numeração da NFe ' + escapeHtml(row.numero_nota || '') + '<br>Série: ' + escapeHtml(payload.serie || '') + ' | Modelo: ' + escapeHtml(payload.modelo || '55') + ' | Ano: ' + escapeHtml(payload.ano || '');
+                : action === 'manifestacao_destinatario'
+                    ? 'Registrar manifestação para a NFe de entrada ' + escapeHtml(row.numero_nota || '') + '<br>Chave: <span class="monitor-break">' + escapeHtml(row.chave_nfe || '') + '</span><br>Destinatário: ' + escapeHtml(row.cliente || row.cliente_documento || '')
+                    : 'Inutilizar a numeração da NFe ' + escapeHtml(row.numero_nota || '') + '<br>Série: ' + escapeHtml(payload.serie || '') + ' | Modelo: ' + escapeHtml(payload.modelo || '55') + ' | Ano: ' + escapeHtml(payload.ano || '');
 
         actionWindow.title(title);
         $('#nfe-action-justification-label').text(action === 'carta_correcao' ? 'Correção' : 'Justificativa');
+        $('#nfe-manifestation-type-wrap').toggle(action === 'manifestacao_destinatario');
+        $('#nfe-action-help-text').text(action === 'manifestacao_destinatario' ? 'Justificativa obrigatória apenas para Operação não Realizada.' : 'Informe no mínimo 15 caracteres.');
         $('#nfe-action-summary').html(summary);
         actionWindow.center().open();
 
@@ -617,7 +634,7 @@
             return;
         }
 
-        if (justification.length < 15) {
+        if (activeAction.type !== 'manifestacao_destinatario' && justification.length < 15) {
             $result.removeClass('text-success').addClass('text-danger').text('A justificativa deve ter no mínimo 15 caracteres.');
             return;
         }
@@ -683,6 +700,40 @@
             }).fail(function (xhr) {
                 const response = xhr.responseJSON || null;
                 $result.removeClass('text-success').addClass('text-danger').text(response ? actionResultMessage(response) : (xhr.responseText || 'Falha ao enviar a Carta de Correção.'));
+                confirmButton.enable(true);
+                $grid.data('kendoGrid').dataSource.read();
+            });
+            return;
+        }
+
+        if (activeAction.type === 'manifestacao_destinatario') {
+            const manifestationType = $('#nfe-manifestation-type').data('kendoDropDownList');
+            const selectedManifestation = String(manifestationType ? manifestationType.value() : $('#nfe-manifestation-type').val() || '210210');
+            if (selectedManifestation === '210240' && justification.length < 15) {
+                $result.removeClass('text-success').addClass('text-danger').text('Operação não realizada exige justificativa com no mínimo 15 caracteres.');
+                confirmButton.enable(true);
+                return;
+            }
+
+            $.ajax({
+                url: manifestationUrl,
+                method: 'POST',
+                contentType: 'application/json',
+                dataType: 'json',
+                headers: {
+                    'X-Api-Token': token
+                },
+                data: JSON.stringify({
+                    nota_request_id: row.request_id || '',
+                    tipo_manifestacao: selectedManifestation,
+                    justificativa: justification
+                })
+            }).done(function (response) {
+                $result.removeClass('text-danger').addClass('text-success').text(actionResultMessage(response));
+                $grid.data('kendoGrid').dataSource.read();
+            }).fail(function (xhr) {
+                const response = xhr.responseJSON || null;
+                $result.removeClass('text-success').addClass('text-danger').text(response ? actionResultMessage(response) : (xhr.responseText || 'Falha ao enviar a Manifestação do Destinatário.'));
                 confirmButton.enable(true);
                 $grid.data('kendoGrid').dataSource.read();
             });
@@ -1162,6 +1213,10 @@
 
                     if (requiredActionFields(row, 'carta_correcao')) {
                         buttons.push('<button type="button" class="btn btn-sm btn-outline-dark monitor-nfe-action nfe-action-correction" data-action="carta_correcao" data-request-id="' + escapeHtml(row.request_id || '') + '">Carta de Correção</button>');
+                    }
+
+                    if (requiredActionFields(row, 'manifestacao_destinatario')) {
+                        buttons.push('<button type="button" class="btn btn-sm btn-outline-dark monitor-nfe-action" data-action="manifestacao_destinatario" data-request-id="' + escapeHtml(row.request_id || '') + '">Manifestar</button>');
                     }
 
                     if (requiredActionFields(row, 'inutilizar')) {

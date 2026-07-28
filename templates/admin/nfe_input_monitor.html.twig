@@ -22,6 +22,7 @@
         data-data-url="{{ dataUrl }}"
         data-filter-options-url="{{ filterOptionsUrl }}"
         data-filter-lookup-url="{{ filterLookupUrl }}"
+        data-manifestation-url="{{ manifestationUrl }}"
         data-detail-url-template="{{ detailUrlTemplate }}"
         data-technical-detail-url-template="{{ technicalDetailUrlTemplate }}"
     >
@@ -108,6 +109,31 @@
                 <button type="button" id="monitor-lookup-cancel">Cancelar</button>
             </div>
         </div>
+    </div>
+
+    <div id="nfe-action-window" class="monitor-action-window" style="display: none;">
+        <form id="nfe-action-form" class="monitor-action-form">
+            <div class="monitor-action-summary" id="nfe-action-summary"></div>
+            <label class="form-label" for="nfe-action-token">Token da API</label>
+            <input type="password" id="nfe-action-token" name="token" autocomplete="off" required>
+            <div id="nfe-manifestation-type-wrap" style="display: none;">
+                <label class="form-label" for="nfe-manifestation-type">Manifestação</label>
+                <select id="nfe-manifestation-type" name="tipo_manifestacao">
+                    <option value="210210">Ciência da Operação</option>
+                    <option value="210200">Confirmação da Operação</option>
+                    <option value="210220">Desconhecimento da Operação</option>
+                    <option value="210240">Operação não Realizada</option>
+                </select>
+            </div>
+            <label class="form-label" for="nfe-action-justification" id="nfe-action-justification-label">Justificativa</label>
+            <textarea id="nfe-action-justification" name="justificativa" rows="4" minlength="15"></textarea>
+            <div class="form-text" id="nfe-action-help-text">Informe no mínimo 15 caracteres quando a ação exigir justificativa.</div>
+            <div id="nfe-action-result" class="monitor-action-result" aria-live="polite"></div>
+            <div class="monitor-action-buttons">
+                <button type="submit" id="nfe-action-confirm">Confirmar</button>
+                <button type="button" id="nfe-action-close">Fechar</button>
+            </div>
+        </form>
     </div>
 {% endblock %}
 

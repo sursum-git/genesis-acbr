@@ -15,8 +15,13 @@ final class NfeInputMonitorRepository
      */
     private array $tableExistsCache = [];
 
-    public function __construct(private readonly Connection $auditConnection)
-    {
+    private readonly NfeInputFiscalEventRepository $manualFiscalEventRepository;
+
+    public function __construct(
+        private readonly Connection $auditConnection,
+        ?NfeInputFiscalEventRepository $manualFiscalEventRepository = null,
+    ) {
+        $this->manualFiscalEventRepository = $manualFiscalEventRepository ?? new NfeInputFiscalEventRepository($auditConnection);
     }
 
     /**
@@ -485,8 +490,13 @@ final class NfeInputMonitorRepository
      */
     private function findFiscalEventsByAccessKey(string $accessKey): array
     {
-        if ($accessKey === '' || !$this->tableExists('t99016')) {
+        if ($accessKey === '') {
             return [];
+        }
+
+        $events = $this->manualFiscalEventRepository->findByAccessKey($accessKey);
+        if (!$this->tableExists('t99016')) {
+            return $events;
         }
 
         /** @var list<array<string, mixed>> $rows */
@@ -508,7 +518,10 @@ final class NfeInputMonitorRepository
             ['access_key' => $accessKey]
         );
 
-        return array_map(fn (array $row): array => $this->normalizeFiscalEvent($row), $rows);
+        $events = array_merge($events, array_map(fn (array $row): array => $this->normalizeFiscalEvent($row), $rows));
+        usort($events, fn (array $left, array $right): int => strcmp((string) ($right['data'] ?? ''), (string) ($left['data'] ?? '')));
+
+        return $events;
     }
 
     /**

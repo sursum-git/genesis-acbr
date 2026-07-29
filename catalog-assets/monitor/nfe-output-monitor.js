@@ -2,6 +2,7 @@
     const root = document.getElementById('nfe-output-monitor-app');
     const form = document.getElementById('nfe-output-monitor-filters');
     const filterWindowElement = document.getElementById('nfe-output-filter-window');
+    const actionWindowElement = document.getElementById('nfe-action-window');
     if (!root || !form || !filterWindowElement || typeof window.kendo === 'undefined' || typeof window.jQuery === 'undefined') {
         return;
     }
@@ -372,7 +373,11 @@
             themeColor: 'primary'
         });
         $('#nfe-action-close').kendoButton();
-        $('#nfe-manifestation-type').kendoDropDownList();
+        $('#nfe-manifestation-type').kendoDropDownList({
+            popup: {
+                appendTo: actionWindowElement
+            }
+        });
 
         actionWindow = $('#nfe-action-window').kendoWindow({
             title: 'Ação da NFe',

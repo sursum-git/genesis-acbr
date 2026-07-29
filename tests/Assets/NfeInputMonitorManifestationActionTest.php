@@ -18,6 +18,13 @@ foreach (['data-manifestation-url', 'data-default-environment="1"', 'manifestati
     }
 }
 
+foreach (["$('#nfe-manifestation-type').kendoDropDownList({", 'appendTo: actionWindowElement'] as $expectedToken) {
+    if (!str_contains($script, $expectedToken)) {
+        fwrite(STDERR, "Recipient manifestation dropdown should render its popup inside the Kendo window: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
 foreach (['id="nfe-action-window"', 'id="nfe-action-token"', 'id="nfe-action-justification"', 'id="nfe-manifestation-type"'] as $expectedToken) {
     if (!str_contains($template, $expectedToken)) {
         fwrite(STDERR, "Input monitor should expose Kendo action window token: {$expectedToken}.\n");

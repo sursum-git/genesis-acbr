@@ -11,7 +11,7 @@ if (!is_string($template) || !is_string($script)) {
     exit(1);
 }
 
-foreach (['data-manifestation-url', 'manifestationUrl', 'Manifestar', 'nfe-manifestation-type', '210200', '210210', '210220', '210240'] as $expectedToken) {
+foreach (['data-manifestation-url', 'data-default-environment="1"', 'manifestationUrl', 'Manifestar', 'nfe-manifestation-type', '210200', '210210', '210220', '210240'] as $expectedToken) {
     if (!str_contains($template . $script, $expectedToken)) {
         fwrite(STDERR, "Input monitor should expose recipient manifestation token: {$expectedToken}.\n");
         exit(1);

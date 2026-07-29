@@ -22,7 +22,7 @@
     const $filterWindow = $('#nfe-output-filter-window');
     const $openFilters = $('#open-nfe-output-filters');
     const $clearFilters = $('#clear-nfe-output-filters');
-    let currentEnvironment = '2';
+    let currentEnvironment = ['1', '2'].includes(root.dataset.defaultEnvironment || '') ? root.dataset.defaultEnvironment : '2';
     let activeColumnField = '';
     let activeColumnTitle = '';
     let activeColumnHeader = null;
@@ -1022,7 +1022,7 @@
             '<div class="monitor-env-toggle" role="group" aria-label="Ambiente da nota">' +
                 '<span class="monitor-env-label">Ambiente</span>' +
                 '<button type="button" class="monitor-env-button" data-environment="1" aria-pressed="false">Produção</button>' +
-                '<button type="button" class="monitor-env-button" data-environment="2" aria-pressed="true">Homologação</button>' +
+                '<button type="button" class="monitor-env-button" data-environment="2" aria-pressed="false">Homologação</button>' +
             '</div>';
         const $searchItem = $toolbar.find('.k-grid-search').closest('.k-toolbar-item');
         const $toggle = $(markup);

@@ -43,6 +43,7 @@ $repository = new NfeInputMonitorRepository($connection);
 $rows = $repository->search([]);
 
 assertSameInputValue(1, count($rows), 'resNFe row should be listed.');
+assertSameInputValue(false, $connection->createSchemaManager()->tablesExist(['t99036']), 'input monitor listing should not create manual fiscal event tables during read.');
 assertSameInputValue('resNFe', $rows[0]['schema_family'], 'input monitor should list only NFe summary documents.');
 assertSameInputValue('9876', $rows[0]['numero_nota'], 'resNFe row should prefer linked full NFe number when available.');
 assertSameInputValue('TECNO-FLEX IND. E COM. LTDA.', $rows[0]['cliente'], 'resNFe client should be the consulted company/subscriber.');

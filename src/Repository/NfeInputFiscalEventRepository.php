@@ -67,7 +67,9 @@ final class NfeInputFiscalEventRepository
             return [];
         }
 
-        $this->ensureSchema();
+        if (!$this->tableExists(self::EVENT_TABLE)) {
+            return [];
+        }
 
         /** @var list<array<string, mixed>> $rows */
         $rows = $this->auditConnection->fetchAllAssociative(
@@ -229,5 +231,10 @@ final class NfeInputFiscalEventRepository
         }
 
         return substr($value, 0, $limit);
+    }
+
+    private function tableExists(string $tableName): bool
+    {
+        return $this->auditConnection->createSchemaManager()->tablesExist([$tableName]);
     }
 }

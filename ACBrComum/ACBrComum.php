@@ -120,6 +120,182 @@ function CarregaIniPath($dir, $nomeLib)
     return $dir . DIRECTORY_SEPARATOR . $nomeLib . ".INI";
 }
 
+function AcbrIniProfilesDir($dir)
+{
+    return rtrim($dir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'configs';
+}
+
+function AcbrIniActiveProfileFile($dir)
+{
+    return AcbrIniProfilesDir($dir) . DIRECTORY_SEPARATOR . 'active-profile.json';
+}
+
+function AcbrIniNormalizeProfile($profile)
+{
+    if ($profile === null) {
+        return null;
+    }
+
+    $profile = trim((string) $profile);
+    if ($profile === '') {
+        return null;
+    }
+
+    if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/', $profile)) {
+        throw new InvalidArgumentException('Perfil INI invalido. Use apenas letras, numeros, ponto, hifen ou underline.');
+    }
+
+    if (strpos($profile, '..') !== false || strpos($profile, '/') !== false || strpos($profile, '\\') !== false) {
+        throw new InvalidArgumentException('Perfil INI invalido. Caminhos nao sao permitidos.');
+    }
+
+    return $profile;
+}
+
+function AcbrIniProfilePath($dir, $nomeLib, $profile)
+{
+    return AcbrIniProfilesDir($dir) . DIRECTORY_SEPARATOR . $profile . DIRECTORY_SEPARATOR . $nomeLib . '.INI';
+}
+
+function AcbrIniReadActiveProfile($dir, $activeKey = 'active')
+{
+    $activeFile = AcbrIniActiveProfileFile($dir);
+    if (!is_file($activeFile)) {
+        return null;
+    }
+
+    $data = json_decode((string) file_get_contents($activeFile), true);
+    if (!is_array($data)) {
+        return null;
+    }
+
+    $profile = $data[$activeKey] ?? $data['active'] ?? null;
+    return is_string($profile) ? AcbrIniNormalizeProfile($profile) : null;
+}
+
+function ResolveAcbrIniPath($dir, $nomeLib, $requestedProfile = null, $activeKey = 'active')
+{
+    $profile = AcbrIniNormalizeProfile($requestedProfile);
+
+    if ($profile === null) {
+        $profile = AcbrIniReadActiveProfile($dir, $activeKey);
+    }
+
+    if ($profile === null) {
+        return CarregaIniPath($dir, $nomeLib);
+    }
+
+    $path = AcbrIniProfilePath($dir, $nomeLib, $profile);
+    if (!is_file($path)) {
+        throw new RuntimeException("Perfil INI nao encontrado: {$profile}");
+    }
+
+    return $path;
+}
+
+function ListaAcbrIniProfiles($dir, $nomeLib, $activeKey = 'active')
+{
+    $profilesDir = AcbrIniProfilesDir($dir);
+    if (!is_dir($profilesDir)) {
+        return [];
+    }
+
+    $activeProfile = AcbrIniReadActiveProfile($dir, $activeKey);
+    $profiles = [];
+
+    foreach ((scandir($profilesDir) ?: []) as $entry) {
+        if ($entry === '.' || $entry === '..') {
+            continue;
+        }
+
+        try {
+            $profile = AcbrIniNormalizeProfile($entry);
+        } catch (Throwable) {
+            continue;
+        }
+
+        if ($profile !== $entry) {
+            continue;
+        }
+
+        $path = AcbrIniProfilePath($dir, $nomeLib, $profile);
+        if (!is_file($path)) {
+            continue;
+        }
+
+        $profiles[] = [
+            'id' => $profile,
+            'active' => $activeProfile === $profile,
+            'path' => $path,
+        ];
+    }
+
+    usort($profiles, static function ($a, $b) {
+        return $a['id'] <=> $b['id'];
+    });
+
+    return $profiles;
+}
+
+function CriaAcbrIniProfile($dir, $nomeLib, $profile, $sourceProfile = null, $activeKey = 'active')
+{
+    $profile = AcbrIniNormalizeProfile($profile);
+    if ($profile === null) {
+        throw new InvalidArgumentException('Perfil INI invalido. Use apenas letras, numeros, ponto, hifen ou underline.');
+    }
+
+    $targetPath = AcbrIniProfilePath($dir, $nomeLib, $profile);
+    if (file_exists($targetPath)) {
+        throw new RuntimeException("Perfil INI ja existe: {$profile}");
+    }
+
+    $sourceProfile = AcbrIniNormalizeProfile($sourceProfile);
+    $sourcePath = $sourceProfile === null ? CarregaIniPath($dir, $nomeLib) : ResolveAcbrIniPath($dir, $nomeLib, $sourceProfile, $activeKey);
+    if (!is_file($sourcePath)) {
+        throw new RuntimeException("Arquivo INI padrao nao encontrado: {$sourcePath}");
+    }
+
+    $targetDir = dirname($targetPath);
+    if (!is_dir($targetDir) && !mkdir($targetDir, 0777, true) && !is_dir($targetDir)) {
+        throw new RuntimeException("Nao foi possivel criar a pasta do perfil INI: {$targetDir}");
+    }
+
+    if (!copy($sourcePath, $targetPath)) {
+        throw new RuntimeException("Nao foi possivel criar o perfil INI: {$profile}");
+    }
+
+    return $targetPath;
+}
+
+function SelecionaAcbrIniProfile($dir, $nomeLib, $profile, $activeKey = 'active')
+{
+    $profile = AcbrIniNormalizeProfile($profile);
+    if ($profile === null) {
+        throw new InvalidArgumentException('Perfil INI invalido. Use apenas letras, numeros, ponto, hifen ou underline.');
+    }
+
+    ResolveAcbrIniPath($dir, $nomeLib, $profile, $activeKey);
+
+    $activeFile = AcbrIniActiveProfileFile($dir);
+    $activeDir = dirname($activeFile);
+    if (!is_dir($activeDir) && !mkdir($activeDir, 0777, true) && !is_dir($activeDir)) {
+        throw new RuntimeException("Nao foi possivel criar a pasta de perfis INI: {$activeDir}");
+    }
+
+    $data = is_file($activeFile) ? json_decode((string) file_get_contents($activeFile), true) : [];
+    if (!is_array($data)) {
+        $data = [];
+    }
+
+    $data[$activeKey] = $profile;
+    $tmpFile = $activeFile . '.tmp';
+    $json = json_encode($data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if ($json === false || file_put_contents($tmpFile, $json . PHP_EOL, LOCK_EX) === false || !rename($tmpFile, $activeFile)) {
+        @unlink($tmpFile);
+        throw new RuntimeException('Nao foi possivel gravar o perfil INI ativo.');
+    }
+}
+
 function CarregaContents($importsPath, $dllPath)
 {
     $modoGrafico = verificaAmbienteGrafico();

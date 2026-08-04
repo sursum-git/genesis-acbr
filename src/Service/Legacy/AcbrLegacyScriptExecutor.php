@@ -11,7 +11,7 @@ final class AcbrLegacyScriptExecutor
     {
     }
 
-    public function execute(string $scriptRelativePath, string $metodo, array $payload = []): array
+    public function execute(string $scriptRelativePath, string $metodo, array $payload = [], ?string $iniProfile = null): array
     {
         $request = $this->requestStack->getCurrentRequest();
 
@@ -22,6 +22,10 @@ final class AcbrLegacyScriptExecutor
         $baseUrl = $request->getSchemeAndHttpHost();
         $scriptPath = '/' . ltrim($scriptRelativePath, '/');
         $postData = array_merge(['metodo' => $metodo], $payload);
+        $resolvedIniProfile = $this->resolveIniProfile($iniProfile);
+        if ($resolvedIniProfile !== null && !isset($postData['ACBrIniProfile'])) {
+            $postData['ACBrIniProfile'] = $resolvedIniProfile;
+        }
 
         $curl = curl_init($baseUrl . $scriptPath);
         if ($curl === false) {
@@ -62,5 +66,24 @@ final class AcbrLegacyScriptExecutor
         }
 
         return $responseBody === '' ? ['mensagem' => 'Operação executada sem conteúdo de resposta.'] : ['mensagem' => $responseBody, 'raw' => $responseBody];
+    }
+
+    private function resolveIniProfile(?string $iniProfile): ?string
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        $iniProfile ??= $request?->headers->get('X-ACBr-Ini-Profile');
+        $iniProfile ??= is_string($request?->query->get('ACBrIniProfile')) ? (string) $request?->query->get('ACBrIniProfile') : null;
+        $iniProfile ??= is_string($request?->request->get('ACBrIniProfile')) ? (string) $request?->request->get('ACBrIniProfile') : null;
+
+        if ($iniProfile === null || trim($iniProfile) === '') {
+            return null;
+        }
+
+        $iniProfile = trim($iniProfile);
+        if (!preg_match('/^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/', $iniProfile) || str_contains($iniProfile, '..') || str_contains($iniProfile, '/') || str_contains($iniProfile, '\\')) {
+            throw new AcbrLegacyApiException('Perfil INI invalido. Use apenas letras, numeros, ponto, hifen ou underline.');
+        }
+
+        return $iniProfile;
     }
 }

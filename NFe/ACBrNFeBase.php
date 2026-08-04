@@ -99,6 +99,27 @@
             margin: 0 5px;
         }
 
+        .ini-profile-panel {
+            align-items: end;
+            display: grid;
+            gap: 8px;
+            grid-template-columns: minmax(220px, 1fr) repeat(3, auto);
+            margin: 10px 0;
+            text-align: left;
+        }
+
+        .ini-profile-panel label {
+            display: flex;
+            flex-direction: column;
+            font-weight: 600;
+            gap: 4px;
+        }
+
+        .ini-profile-panel select,
+        .ini-profile-panel input {
+            min-height: 34px;
+        }
+
         .cfgPanelDireita {
             display: flex;
             flex-direction: column;
@@ -680,6 +701,17 @@
             </div>
         </div>
         <div class="buttons">
+            <div class="ini-profile-panel">
+                <label for="ACBrIniProfile">
+                    Arquivo .ini
+                    <select id="ACBrIniProfile">
+                        <option value="">ACBrNFe.INI padrão</option>
+                    </select>
+                </label>
+                <input type="button" id="recarregarIniProfiles" value="Recarregar perfis">
+                <input type="button" id="selecionarIniProfile" value="Selecionar perfil">
+                <input type="button" id="criarIniProfile" value="Criar novo perfil">
+            </div>
             <input type="button" id="carregarConfiguracoes" value="Carregar Configurações">
             <input type="button" id="salvarConfiguracoes" value="Salvar Configurações">
         </div>
@@ -798,9 +830,53 @@
             }
         }
 
-        // Inicializa biblioteca
-        chamaAjaxEnviar({
-            metodo: "carregarConfiguracoes"
+        carregarPerfisIni(function() {
+            chamaAjaxEnviar({
+                metodo: "carregarConfiguracoes"
+            });
+        });
+
+        $('#recarregarIniProfiles').on('click', function() {
+            carregarPerfisIni();
+        });
+
+        $('#selecionarIniProfile').on('click', function() {
+            const profile = perfilIniAtual();
+            if (!profile) {
+                $('#result').val('Selecione ou crie um perfil INI para marcar como ativo. O arquivo padrão continua sendo usado quando nenhum perfil está ativo.');
+                return;
+            }
+
+            chamarAjaxSemPerfil({
+                metodo: "SelecionarIniProfile",
+                ACBrIniProfile: profile
+            }, function(response) {
+                processaResponseGeral(response);
+                carregarPerfisIni(function() {
+                    chamaAjaxEnviar({
+                        metodo: "carregarConfiguracoes"
+                    });
+                });
+            });
+        });
+
+        $('#criarIniProfile').on('click', function() {
+            inputBox("Digite o nome do novo perfil .ini:", function(profile) {
+                chamarAjaxSemPerfil({
+                    metodo: "CriarIniProfile",
+                    ACBrIniProfile: profile,
+                    SourceIniProfile: perfilIniAtual()
+                }, function(response) {
+                    if (response.mensagem) {
+                        $('#result').val(response.mensagem);
+                    }
+
+                    carregarPerfisIni(function() {
+                        $('#ACBrIniProfile').val(profile);
+                        $('#selecionarIniProfile').trigger('click');
+                    });
+                });
+            });
         });
 
         // Chamada do botão para carregar configurações
@@ -1265,6 +1341,21 @@
         });
 
         function chamaAjaxEnviar(infoData) {
+            infoData = adicionaPerfilIni(infoData);
+
+            chamarAjaxSemPerfil(infoData, function(response) {
+                if ((infoData.metodo === "carregarConfiguracoes") ||
+                    (infoData.metodo === "Inicializar")) {
+                    processaRetornoConfiguracoes(response);
+                } else {
+                    processaResponseGeral(response);
+                }
+            }, function(error) {
+                processaResponseGeral(error);
+            });
+        }
+
+        function chamarAjaxSemPerfil(infoData, successCallback, errorCallback) {
             // Fazer a chamada passando o modo ST ou MT. 
             // Ex: http://localhost/NFe/ACBrNFeBase.php?modo=MT
             // Ex: http://localhost/NFe/ACBrNFeBase.php?modo=ST
@@ -1278,17 +1369,72 @@
                 type: 'POST',
                 data: infoData,
                 success: function(response) {
-                    if ((infoData.metodo === "carregarConfiguracoes") ||
-                        (infoData.metodo === "Inicializar")) {
-                        processaRetornoConfiguracoes(response);
-                    } else {
-                        processaResponseGeral(response);
-                    }
+                    successCallback(response);
                 },
                 error: function(error) {
-                    processaResponseGeral(error);
+                    if (errorCallback) {
+                        errorCallback(error);
+                    } else {
+                        processaResponseGeral(error);
+                    }
                 }
             });
+        }
+
+        function perfilIniAtual() {
+            return ($('#ACBrIniProfile').val() || '').trim();
+        }
+
+        function adicionaPerfilIni(infoData) {
+            const profile = perfilIniAtual();
+            const data = Object.assign({}, infoData);
+
+            if (profile && !data.ACBrIniProfile) {
+                data.ACBrIniProfile = profile;
+            }
+
+            return data;
+        }
+
+        function carregarPerfisIni(callback) {
+            chamarAjaxSemPerfil({
+                metodo: "ListarIniProfiles"
+            }, function(response) {
+                atualizarSelectPerfisIni(response.dados || {});
+
+                if (callback) {
+                    callback(response);
+                }
+            });
+        }
+
+        function atualizarSelectPerfisIni(dados) {
+            const select = $('#ACBrIniProfile');
+            const valorAtual = select.val() || '';
+            const active = dados.active || '';
+            const profiles = Array.isArray(dados.profiles) ? dados.profiles : [];
+
+            select.empty();
+            select.append($('<option>', {
+                value: '',
+                text: 'ACBrNFe.INI padrão'
+            }));
+
+            profiles.forEach(function(profile) {
+                const label = profile.active ? profile.id + ' (ativo)' : profile.id;
+                select.append($('<option>', {
+                    value: profile.id,
+                    text: label
+                }));
+            });
+
+            if (active) {
+                select.val(active);
+            } else if (valorAtual && profiles.some(function(profile) { return profile.id === valorAtual; })) {
+                select.val(valorAtual);
+            } else {
+                select.val('');
+            }
         }
 
         function inputBox(mensagem, callback, obrigatorio = true) {

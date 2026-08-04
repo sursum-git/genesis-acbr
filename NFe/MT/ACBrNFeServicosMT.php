@@ -38,6 +38,67 @@ include '../../ACBrComum/ACBrComum.php';
 
 $nomeLib = "ACBrNFe";
 $metodo = $_POST['metodo'];
+$activeIniProfileKey = 'nfe_mt';
+
+$requestedIniProfile = $_POST['ACBrIniProfile'] ?? null;
+
+try {
+    $iniPath = ResolveAcbrIniPath(__DIR__, $nomeLib, is_string($requestedIniProfile) ? $requestedIniProfile : null, $activeIniProfileKey);
+
+    if ($metodo == "ListarIniProfiles") {
+        echo json_encode([
+            "mensagem" => "Perfis INI carregados.",
+            "dados" => [
+                "active" => AcbrIniReadActiveProfile(__DIR__, $activeIniProfileKey),
+                "defaultPath" => CarregaIniPath(__DIR__, $nomeLib),
+                "resolvedPath" => $iniPath,
+                "profiles" => ListaAcbrIniProfiles(__DIR__, $nomeLib, $activeIniProfileKey),
+            ],
+        ]);
+        exit;
+    }
+
+    if ($metodo == "CriarIniProfile") {
+        $profile = $_POST['ACBrIniProfile'] ?? '';
+        $sourceProfile = $_POST['SourceIniProfile'] ?? null;
+        $createdPath = CriaAcbrIniProfile(
+            __DIR__,
+            $nomeLib,
+            is_string($profile) ? $profile : '',
+            is_string($sourceProfile) ? $sourceProfile : null,
+            $activeIniProfileKey
+        );
+
+        echo json_encode([
+            "mensagem" => "Perfil INI criado.",
+            "dados" => [
+                "profile" => $profile,
+                "path" => $createdPath,
+                "profiles" => ListaAcbrIniProfiles(__DIR__, $nomeLib, $activeIniProfileKey),
+            ],
+        ]);
+        exit;
+    }
+
+    if ($metodo == "SelecionarIniProfile") {
+        $profile = $_POST['ACBrIniProfile'] ?? '';
+        SelecionaAcbrIniProfile(__DIR__, $nomeLib, is_string($profile) ? $profile : '', $activeIniProfileKey);
+
+        echo json_encode([
+            "mensagem" => "Perfil INI selecionado.",
+            "dados" => [
+                "active" => $profile,
+                "resolvedPath" => ResolveAcbrIniPath(__DIR__, $nomeLib, is_string($profile) ? $profile : '', $activeIniProfileKey),
+                "profiles" => ListaAcbrIniProfiles(__DIR__, $nomeLib, $activeIniProfileKey),
+            ],
+        ]);
+        exit;
+    }
+} catch (Throwable $e) {
+    http_response_code(400);
+    echo json_encode(["mensagem" => $e->getMessage()]);
+    exit;
+}
 
 if (ValidaFFI() != 0)
     exit;
@@ -51,8 +112,6 @@ $importsPath = CarregaImports(__DIR__, $nomeLib, 'MT');
 
 if ($importsPath == -10)
     exit;
-
-$iniPath = CarregaIniPath(__DIR__, $nomeLib);
 
 $processo = "file_get_contents";
 $ffi = CarregaContents($importsPath, $dllPath);

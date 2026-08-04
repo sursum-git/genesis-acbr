@@ -36,6 +36,8 @@
     let lookupWindowInitialized = false;
     let fiscalEventWindow = null;
     let fiscalEventGrid = null;
+    let rowActionMenu = null;
+    let rowActionMenuRow = null;
 
     function buildDetailUrl(requestId) {
         return detailUrlTemplate.replace('__REQUEST_ID__', encodeURIComponent(requestId));
@@ -351,7 +353,6 @@
     }
 
     function resetActionWindow() {
-        $('#nfe-action-token').data('kendoTextBox').value('');
         $('#nfe-action-justification').data('kendoTextArea').value('');
         $('#nfe-action-justification-label').text('Justificativa');
         $('#nfe-manifestation-type-wrap').hide();
@@ -364,7 +365,6 @@
     }
 
     function initializeActionWindow() {
-        $('#nfe-action-token').kendoTextBox();
         $('#nfe-action-justification').kendoTextArea({
             rows: 4,
             maxLength: 1000
@@ -435,9 +435,9 @@
         actionWindow.center().open();
 
         window.setTimeout(function () {
-            const tokenInput = $('#nfe-action-token').data('kendoTextBox');
-            if (tokenInput) {
-                tokenInput.focus();
+            const textArea = $('#nfe-action-justification').data('kendoTextArea');
+            if (textArea) {
+                textArea.focus();
             }
         }, 0);
     }
@@ -628,16 +628,9 @@
         }
 
         const textArea = $('#nfe-action-justification').data('kendoTextArea');
-        const tokenInput = $('#nfe-action-token').data('kendoTextBox');
-        const token = String(tokenInput ? tokenInput.value() : '').trim();
         const justification = String(textArea ? textArea.value() : '').trim();
         const $result = $('#nfe-action-result');
         const confirmButton = $('#nfe-action-confirm').data('kendoButton');
-
-        if (token === '') {
-            $result.removeClass('text-success').addClass('text-danger').text('Informe o token da API.');
-            return;
-        }
 
         if (activeAction.type !== 'manifestacao_destinatario' && justification.length < 15) {
             $result.removeClass('text-success').addClass('text-danger').text('A justificativa deve ter no mínimo 15 caracteres.');
@@ -660,11 +653,8 @@
             $.ajax({
                 url: cancelUrl,
                 method: 'POST',
-                contentType: 'application/ld+json',
+                contentType: 'application/json',
                 dataType: 'json',
-                headers: {
-                    'X-Api-Token': token
-                },
                 data: JSON.stringify({
                     payload: actionPayload
                 })
@@ -692,9 +682,6 @@
                 method: 'POST',
                 contentType: 'application/json',
                 dataType: 'json',
-                headers: {
-                    'X-Api-Token': token
-                },
                 data: JSON.stringify({
                     nota_request_id: row.request_id || '',
                     correcao: justification
@@ -725,9 +712,6 @@
                 method: 'POST',
                 contentType: 'application/json',
                 dataType: 'json',
-                headers: {
-                    'X-Api-Token': token
-                },
                 data: JSON.stringify({
                     nota_request_id: row.request_id || '',
                     tipo_manifestacao: selectedManifestation,
@@ -757,12 +741,12 @@
 
         $.ajax({
             url: inutilizeUrl,
-            method: 'GET',
+            method: 'POST',
+            contentType: 'application/json',
             dataType: 'json',
-            headers: {
-                'X-Api-Token': token
-            },
-            data: actionPayload
+            data: JSON.stringify({
+                payload: actionPayload
+            })
         }).done(function (response) {
             recordFiscalEvent(activeAction.type, row, actionPayload, response)
                 .done(function () {
@@ -1055,6 +1039,104 @@
         });
     }
 
+    function findGridRowByRequestId(grid, requestId) {
+        const data = grid.dataSource.data();
+        for (let index = 0; index < data.length; index += 1) {
+            if (String(data[index].request_id || '') === String(requestId || '')) {
+                return data[index];
+            }
+        }
+
+        return null;
+    }
+
+    function rowActionItems(row) {
+        if (!row) {
+            return [];
+        }
+
+        const items = [
+            { action: 'detalhe', text: 'Detalhe' },
+            { action: 'eventos', text: 'Eventos' }
+        ];
+
+        if (requiredActionFields(row, 'cancelar')) {
+            items.push({ action: 'cancelar', text: 'Cancelar' });
+        }
+
+        if (requiredActionFields(row, 'carta_correcao')) {
+            items.push({ action: 'carta_correcao', text: 'Carta de Correção' });
+        }
+
+        if (requiredActionFields(row, 'manifestacao_destinatario')) {
+            items.push({ action: 'manifestacao_destinatario', text: 'Manifestar' });
+        }
+
+        if (requiredActionFields(row, 'inutilizar')) {
+            items.push({ action: 'inutilizar', text: 'Inutilizar' });
+        }
+
+        return items;
+    }
+
+    function openRowActionMenu(grid, trigger) {
+        if (!rowActionMenu) {
+            return;
+        }
+
+        rowActionMenuRow = findGridRowByRequestId(grid, trigger.data('request-id'));
+        const items = rowActionItems(rowActionMenuRow);
+        rowActionMenu.remove(rowActionMenu.element.children());
+        rowActionMenu.append(items.map(function (item) {
+            return {
+                text: item.text,
+                attr: {
+                    'data-action': item.action
+                }
+            };
+        }));
+        rowActionMenu.open(trigger);
+    }
+
+    function initializeRowActionMenu(grid) {
+        if (rowActionMenu) {
+            return;
+        }
+
+        if (!document.getElementById('nfe-row-action-menu')) {
+            $('body').append('<ul id="nfe-row-action-menu"></ul>');
+        }
+
+        rowActionMenu = $('#nfe-row-action-menu').kendoContextMenu({
+            orientation: 'vertical',
+            showOn: 'click',
+            select: function (event) {
+                const action = String($(event.item).data('action') || '');
+                if (!rowActionMenuRow) {
+                    return;
+                }
+
+                if (action === 'detalhe') {
+                    window.location.href = buildDetailUrl(rowActionMenuRow.request_id || '');
+                    return;
+                }
+
+                if (action === 'eventos') {
+                    openFiscalEventWindow(rowActionMenuRow);
+                    return;
+                }
+
+                openActionWindow(action, rowActionMenuRow);
+            }
+        }).data('kendoContextMenu');
+
+        $(document).on('click', '.monitor-row-actions', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openRowActionMenu(grid, $(this));
+        });
+    }
+
     const filterWindow = initializeFilterWindow();
     initializeActionWindow();
 
@@ -1151,6 +1233,18 @@
         },
         columns: [
             {
+                title: 'Ações',
+                width: 105,
+                locked: true,
+                lockable: false,
+                sortable: false,
+                filterable: false,
+                columnMenu: false,
+                template: function (row) {
+                    return '<button type="button" class="btn btn-sm btn-outline-secondary monitor-row-actions" data-request-id="' + escapeHtml(row.request_id || '') + '">Ações</button>';
+                }
+            },
+            {
                 field: 'data_envio_texto',
                 title: 'Data',
                 width: 190,
@@ -1197,35 +1291,19 @@
             { field: 'is_valor', title: 'IS', width: 130, template: function (row) { return formatDecimal(row.is_valor); }, filterable: { cell: { operator: 'eq', showOperators: false } } },
             {
                 title: 'Arquivos',
-                width: 360,
+                width: 170,
                 sortable: false,
                 filterable: false,
                 columnMenu: false,
                 template: function (row) {
-                    const buttons = [
-                        '<a class="btn btn-sm btn-outline-secondary" href="' + buildDetailUrl(row.request_id || '') + '">Detalhe</a>'
-                    ];
+                    const buttons = [];
 
                     if (row.xml_url) {
                         buttons.push('<a class="btn btn-sm btn-primary" href="' + appBaseUrl + escapeHtml(row.xml_url) + '">XML</a>');
                     }
 
-                    buttons.push('<button type="button" class="btn btn-sm btn-outline-info monitor-nfe-events" data-request-id="' + escapeHtml(row.request_id || '') + '">Eventos</button>');
-
-                    if (requiredActionFields(row, 'cancelar')) {
-                        buttons.push('<button type="button" class="btn btn-sm btn-outline-danger monitor-nfe-action" data-action="cancelar" data-request-id="' + escapeHtml(row.request_id || '') + '">Cancelar</button>');
-                    }
-
-                    if (requiredActionFields(row, 'carta_correcao')) {
-                        buttons.push('<button type="button" class="btn btn-sm btn-outline-dark monitor-nfe-action nfe-action-correction" data-action="carta_correcao" data-request-id="' + escapeHtml(row.request_id || '') + '">Carta de Correção</button>');
-                    }
-
-                    if (requiredActionFields(row, 'manifestacao_destinatario')) {
-                        buttons.push('<button type="button" class="btn btn-sm btn-outline-dark monitor-nfe-action" data-action="manifestacao_destinatario" data-request-id="' + escapeHtml(row.request_id || '') + '">Manifestar</button>');
-                    }
-
-                    if (requiredActionFields(row, 'inutilizar')) {
-                        buttons.push('<button type="button" class="btn btn-sm btn-outline-warning monitor-nfe-action" data-action="inutilizar" data-request-id="' + escapeHtml(row.request_id || '') + '">Inutilizar</button>');
+                    if (row.danfe_url) {
+                        buttons.push('<a class="btn btn-sm btn-outline-primary" target="_blank" rel="noreferrer" href="' + appBaseUrl + escapeHtml(row.danfe_url) + '">DANFE</a>');
                     }
 
                     return '<div class="d-flex flex-wrap gap-2">' + buttons.join('') + '</div>';
@@ -1236,32 +1314,18 @@
 
     const grid = $grid.data('kendoGrid');
     initializeEnvironmentToggle(grid);
+    initializeRowActionMenu(grid);
 
     $(document).on('click', '.monitor-nfe-action', function () {
         const action = $(this).data('action');
         const requestId = String($(this).data('request-id') || '');
-        const data = grid.dataSource.data();
-        let row = null;
-        for (let index = 0; index < data.length; index += 1) {
-            if (String(data[index].request_id || '') === requestId) {
-                row = data[index];
-                break;
-            }
-        }
-
+        const row = findGridRowByRequestId(grid, requestId);
         openActionWindow(action, row);
     });
 
     $(document).on('click', '.monitor-nfe-situation', function () {
         const requestId = String($(this).data('request-id') || '');
-        const data = grid.dataSource.data();
-        let row = null;
-        for (let index = 0; index < data.length; index += 1) {
-            if (String(data[index].request_id || '') === requestId) {
-                row = data[index];
-                break;
-            }
-        }
+        const row = findGridRowByRequestId(grid, requestId);
 
         if (row) {
             openFiscalEventWindow(row);
@@ -1270,14 +1334,7 @@
 
     $(document).on('click', '.monitor-nfe-events', function () {
         const requestId = String($(this).data('request-id') || '');
-        const data = grid.dataSource.data();
-        let row = null;
-        for (let index = 0; index < data.length; index += 1) {
-            if (String(data[index].request_id || '') === requestId) {
-                row = data[index];
-                break;
-            }
-        }
+        const row = findGridRowByRequestId(grid, requestId);
 
         if (row) {
             openFiscalEventWindow(row);

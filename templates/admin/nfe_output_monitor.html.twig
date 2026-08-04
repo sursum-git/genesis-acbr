@@ -26,8 +26,8 @@
         data-technical-detail-url-template="{{ technicalDetailUrlTemplate }}"
         data-action-event-url="{{ actionEventUrl }}"
         data-correction-url="{{ correctionUrl }}"
-        data-cancel-url="{{ app.request.basePath ~ '/index.php/nfe/eventos/cancelar' }}"
-        data-inutilize-url="{{ app.request.basePath ~ '/index.php/nfe/inutilizacao/inutilizar' }}"
+        data-cancel-url="{{ app.request.basePath ~ '/index.php/monitor-saida-nfe/acoes/cancelar' }}"
+        data-inutilize-url="{{ app.request.basePath ~ '/index.php/monitor-saida-nfe/acoes/inutilizar' }}"
     >
         <div class="card-body">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3">
@@ -118,8 +118,6 @@
     <div id="nfe-action-window" class="monitor-action-window" style="display: none;">
         <form id="nfe-action-form" class="monitor-action-form">
             <div class="monitor-action-summary" id="nfe-action-summary"></div>
-            <label class="form-label" for="nfe-action-token">Token da API</label>
-            <input type="password" id="nfe-action-token" name="token" autocomplete="off" required>
             <label class="form-label" for="nfe-action-justification" id="nfe-action-justification-label">Justificativa</label>
             <textarea id="nfe-action-justification" name="justificativa" rows="4" minlength="15" required></textarea>
             <div class="form-text">Informe no mínimo 15 caracteres.</div>

@@ -75,10 +75,6 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/carta-correcao', name: 'app_nfe_output_monitor_correction_letter', methods: ['POST'])]
     public function correctionLetter(Request $request): JsonResponse
     {
-        if ($this->validApiToken($request) === false) {
-            return $this->json(['message' => 'Token invalido.'], Response::HTTP_UNAUTHORIZED);
-        }
-
         $payload = json_decode($request->getContent(), true);
         if (!is_array($payload)) {
             return $this->json(['message' => 'Payload inválido para Carta de Correção.'], Response::HTTP_BAD_REQUEST);
@@ -141,6 +137,28 @@ final class NfeOutputMonitorController extends AbstractController
             @unlink($nfeXmlPath);
             @unlink($eventXmlPath);
         }
+    }
+
+    #[Route('/monitor-saida-nfe/acoes/cancelar', name: 'app_nfe_output_monitor_cancel_action', methods: ['POST'])]
+    public function cancelAction(Request $request): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload) || !is_array($payload['payload'] ?? null)) {
+            return $this->json(['message' => 'Payload inválido para cancelamento.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        return $this->forwardInternalApi($request, 'POST', '/index.php/nfe/eventos/cancelar', ['payload' => $payload['payload']]);
+    }
+
+    #[Route('/monitor-saida-nfe/acoes/inutilizar', name: 'app_nfe_output_monitor_inutilize_action', methods: ['POST'])]
+    public function inutilizeAction(Request $request): JsonResponse
+    {
+        $payload = json_decode($request->getContent(), true);
+        if (!is_array($payload) || !is_array($payload['payload'] ?? null)) {
+            return $this->json(['message' => 'Payload inválido para inutilização.'], Response::HTTP_BAD_REQUEST);
+        }
+
+        return $this->forwardInternalApi($request, 'GET', '/index.php/nfe/inutilizacao/inutilizar', $payload['payload']);
     }
 
     #[Route('/monitor-saida-nfe/filtros/opcoes', name: 'app_nfe_output_monitor_filter_options', methods: ['GET'])]
@@ -265,17 +283,53 @@ final class NfeOutputMonitorController extends AbstractController
         return ($detail['caminho_danfe'] ?? '') !== '' || ($detail['danfe_base64'] ?? '') !== '';
     }
 
-    private function validApiToken(Request $request): bool
+    private function forwardInternalApi(Request $request, string $method, string $path, array $payload): JsonResponse
     {
-        $token = trim((string) $request->headers->get('X-Api-Token', ''));
-        if ($token === '') {
-            $authorization = trim((string) $request->headers->get('Authorization', ''));
-            if (preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches) === 1) {
-                $token = trim((string) ($matches[1] ?? ''));
-            }
+        $token = $this->assinanteRepository->findFirstToken();
+        if ($token === null) {
+            return $this->json(['message' => 'Nenhum token de assinante ativo encontrado para executar a ação.'], Response::HTTP_INTERNAL_SERVER_ERROR);
         }
 
-        return $token !== '' && $this->assinanteRepository->findByToken($token) !== null;
+        $url = $request->getSchemeAndHttpHost() . $path;
+        $method = strtoupper($method);
+        $curl = curl_init($method === 'GET' ? $url . '?' . http_build_query($payload) : $url);
+        if ($curl === false) {
+            return $this->json(['message' => 'Falha ao iniciar chamada interna da API.'], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $headers = [
+            'Accept: application/json',
+            'X-Api-Token: ' . $token,
+        ];
+
+        $options = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 60,
+            CURLOPT_CONNECTTIMEOUT => 10,
+            CURLOPT_HTTPHEADER => $headers,
+        ];
+
+        if ($method === 'POST') {
+            $headers[] = 'Content-Type: application/ld+json';
+            $options[CURLOPT_POST] = true;
+            $options[CURLOPT_POSTFIELDS] = json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            $options[CURLOPT_HTTPHEADER] = $headers;
+        }
+
+        curl_setopt_array($curl, $options);
+        $body = curl_exec($curl);
+        $httpCode = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
+        $error = curl_error($curl);
+        curl_close($curl);
+
+        if ($body === false) {
+            return $this->json(['message' => $error !== '' ? $error : 'Falha ao chamar a API interna.'], Response::HTTP_BAD_GATEWAY);
+        }
+
+        $decoded = json_decode((string) $body, true);
+        $status = $httpCode >= 100 ? $httpCode : Response::HTTP_BAD_GATEWAY;
+
+        return $this->json(is_array($decoded) ? $decoded : ['mensagem' => trim((string) $body)], $status);
     }
 
     /**

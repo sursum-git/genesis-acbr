@@ -59,10 +59,10 @@ $rows = $repository->search(['ambiente' => '2']);
 
 assertSameValue(2, count($rows), 'search should ignore unrelated t99034 table and keep output monitor populated.');
 assertSameValue('Cancelada', $rows[0]['situacao_nfe'], 'Cancellation extracted from SEFAZ event should update fiscal situation even without automatic event table.');
-assertSameValue(1, count($rows[0]['eventos_nfe'] ?? []), 'Cancellation extracted from SEFAZ event should appear in fiscal events.');
+assertSameValue(2, count($rows[0]['eventos_nfe'] ?? []), 'Cancellation and authorization should appear in fiscal events.');
 assertSameValue('req-cancel', $rows[0]['eventos_nfe'][0]['request_id'] ?? null, 'Fallback fiscal event should expose cancellation request id.');
 assertSameValue('Autorizada', $rows[1]['situacao_nfe'], 'Rejected cancellation should not mark note as canceled.');
-assertSameValue(1, count($rows[1]['eventos_nfe'] ?? []), 'Rejected cancellation extracted from SEFAZ event should appear in fiscal events.');
+assertSameValue(2, count($rows[1]['eventos_nfe'] ?? []), 'Rejected cancellation and authorization should appear in fiscal events.');
 assertSameValue('Erro no cancelamento', $rows[1]['eventos_nfe'][0]['situacao'] ?? null, 'Rejected cancellation should expose error event situation.');
 assertSameValue('501', $rows[1]['eventos_nfe'][0]['c_stat'] ?? null, 'Rejected cancellation event should expose cStat.');
 

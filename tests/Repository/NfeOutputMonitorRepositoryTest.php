@@ -118,12 +118,15 @@ assertSameValue('32260706013812000158550030001972511191972511', $rows[0]['chave_
 assertSameValue('/nfe/eventos/cancelar', $rows[0]['acoes_nfe']['cancelar_url'] ?? null, 'Grid should expose cancel action when access key is recovered from response.');
 assertSameValue('32260706013812000158550030001972511191972511', $rows[0]['acoes_nfe']['chave'] ?? null, 'Grid should expose recovered access key for cancel action.');
 assertSameValue('06013812000158', $rows[0]['acoes_nfe']['cnpj_emitente'] ?? null, 'Grid should expose issuer document for NFe actions.');
+assertSameValue('Autorização', $rows[0]['eventos_nfe'][0]['tipo_acao'] ?? null, 'Grid should expose authorization as a fiscal event.');
+assertSameValue('Autorizada', $rows[0]['eventos_nfe'][0]['situacao'] ?? null, 'Authorization event should expose authorized situation.');
+assertSameValue('100', $rows[0]['eventos_nfe'][0]['c_stat'] ?? null, 'Authorization event should expose cStat 100.');
 assertSameValue('req-homolog-placeholder', $rows[1]['request_id'], 'Canceled homologation fixture should come after the newest fixture.');
 assertSameValue('40456687000199', $rows[1]['cliente'], 'Grid should not expose homologation placeholder as customer name.');
 assertSameValue('TECNO-FLEX IND. E COM. LTDA.', $rows[1]['emitente_nome'], 'Grid should not expose homologation placeholder as issuer name.');
 assertSameValue('Transmitida', $rows[1]['status_envio'], 'Grid should keep transmission status even when cancellation event exists.');
 assertSameValue('Cancelada', $rows[1]['situacao_nfe'], 'Grid should expose fiscal situation independently from transmission status.');
-assertSameValue(1, count($rows[1]['eventos_nfe'] ?? []), 'Grid should expose fiscal events for status window.');
+assertSameValue(2, count($rows[1]['eventos_nfe'] ?? []), 'Grid should expose authorization and cancellation fiscal events for status window.');
 assertSameValue(true, $rows[1]['cancelamento']['cancelada'] ?? null, 'Repository should expose cancellation flag for detail view.');
 assertSameValue('req-cancel', $rows[1]['cancelamento']['request_id'] ?? null, 'Repository should expose cancellation request id for detail view.');
 assertSameValue('135260000000001', $rows[1]['cancelamento']['protocolo'] ?? null, 'Repository should expose cancellation protocol for detail view.');

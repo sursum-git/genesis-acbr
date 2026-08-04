@@ -3,7 +3,6 @@
 namespace App\Controller;
 
 use App\Http\Exception\AcbrLegacyApiException;
-use App\Repository\ApiAssinanteRepository;
 use App\Repository\NfeInputFiscalEventRepository;
 use App\Repository\NfeInputMonitorRepository;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
@@ -22,7 +21,6 @@ final class NfeInputMonitorController extends AbstractController
         private readonly NfeInputMonitorRepository $monitorRepository,
         private readonly NfeInputFiscalEventRepository $fiscalEventRepository,
         private readonly AcbrLegacyScriptExecutor $legacyScriptExecutor,
-        private readonly ApiAssinanteRepository $assinanteRepository,
     ) {
     }
 
@@ -42,10 +40,6 @@ final class NfeInputMonitorController extends AbstractController
     #[Route('/monitor-entrada-nfe/manifestacao-destinatario', name: 'app_nfe_input_monitor_recipient_manifestation', methods: ['POST'])]
     public function recipientManifestation(Request $request): JsonResponse
     {
-        if ($this->validApiToken($request) === false) {
-            return $this->json(['message' => 'Token invalido.'], Response::HTTP_UNAUTHORIZED);
-        }
-
         $payload = json_decode($request->getContent(), true);
         if (!is_array($payload)) {
             return $this->json(['message' => 'Payload inválido para Manifestação do Destinatário.'], Response::HTTP_BAD_REQUEST);
@@ -194,19 +188,6 @@ final class NfeInputMonitorController extends AbstractController
         $response->headers->set('Content-Disposition', $response->headers->makeDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename));
 
         return $response;
-    }
-
-    private function validApiToken(Request $request): bool
-    {
-        $token = trim((string) $request->headers->get('X-Api-Token', ''));
-        if ($token === '') {
-            $authorization = trim((string) $request->headers->get('Authorization', ''));
-            if (preg_match('/^Bearer\s+(.+)$/i', $authorization, $matches) === 1) {
-                $token = trim((string) ($matches[1] ?? ''));
-            }
-        }
-
-        return $token !== '' && $this->assinanteRepository->findByToken($token) !== null;
     }
 
     /**

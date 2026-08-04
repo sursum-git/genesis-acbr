@@ -563,6 +563,7 @@ final class NfeOutputMonitorRepository
         $noteId = isset($row['id_t99019']) ? (int) $row['id_t99019'] : 0;
         $fiscalEvents = $this->findFiscalEventsByNoteId($noteId);
         $cancellation = $this->cancellationPayload($row);
+        $fiscalEvents = $this->appendAuthorizationEvent($fiscalEvents, $this->authorizationEventPayload($row, $requestId, $chaveNfe, $xmlCompleto));
         $fiscalEvents = $this->appendCancellationEvent($fiscalEvents, $cancellation);
 
         return [
@@ -714,6 +715,81 @@ final class NfeOutputMonitorRepository
         ]);
 
         return $events;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $events
+     * @param array<string, mixed>|null $authorization
+     * @return list<array<string, mixed>>
+     */
+    private function appendAuthorizationEvent(array $events, ?array $authorization): array
+    {
+        if ($authorization === null) {
+            return $events;
+        }
+
+        foreach ($events as $event) {
+            if (
+                $this->stringOrEmpty($event['tipo_acao'] ?? null) === 'Autorização'
+                || ($authorization['protocolo'] !== '' && $this->stringOrEmpty($event['protocolo'] ?? null) === $authorization['protocolo'])
+            ) {
+                return $events;
+            }
+        }
+
+        $events[] = $authorization;
+
+        usort($events, fn (array $left, array $right): int => strcmp(
+            (string) ($right['data'] ?? ''),
+            (string) ($left['data'] ?? '')
+        ));
+
+        return $events;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>|null
+     */
+    private function authorizationEventPayload(array $row, string $requestId, string $accessKey, string $authorizedXml): ?array
+    {
+        $responseBody = $row['t_corpo_resposta'] ?? null;
+        $texts = $this->responseTexts($responseBody, $authorizedXml);
+        $cStat = $this->firstNonEmpty(
+            $this->extractLastLineValue($texts, ['CStat', 'cStat']),
+            $this->extractXmlValue($texts, 'cStat')
+        );
+        $hasAuthorization = $authorizedXml !== ''
+            || $cStat === '100'
+            || (int) ($row['si_status_processamento'] ?? 0) === ApiRequestStatus::CONCLUIDA;
+
+        if (!$hasAuthorization) {
+            return null;
+        }
+
+        $motivo = $this->firstNonEmpty(
+            $this->extractLastLineValue($texts, ['XMotivo', 'xMotivo']),
+            $this->extractXmlValue($texts, 'xMotivo'),
+            'Autorizado o uso da NF-e'
+        );
+        $protocol = $this->firstNonEmpty(
+            $this->extractLastLineValue($texts, ['NProt', 'nProt']),
+            $this->extractXmlValue($texts, 'nProt')
+        );
+
+        return [
+            'id' => null,
+            'request_id' => $requestId,
+            'tipo_evento' => '100',
+            'tipo_acao' => 'Autorização',
+            'situacao' => 'Autorizada',
+            'chave_nfe' => $accessKey,
+            'c_stat' => $this->firstNonEmpty($cStat, '100'),
+            'motivo' => $motivo,
+            'protocolo' => $protocol,
+            'data' => $this->stringOrEmpty($row['dt_hr_recebimento'] ?? null),
+            'xml' => $this->extractAuthorizationEventXml($responseBody),
+        ];
     }
 
     /**
@@ -881,6 +957,75 @@ final class NfeOutputMonitorRepository
 
         if (preg_match('/XML=(.+?)(?:\n[a-zA-Z][a-zA-Z0-9]+=|\z)/s', $message, $matches) === 1) {
             return trim($matches[1]);
+        }
+
+        return '';
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function responseTexts(mixed $responseBody, string $authorizedXml): array
+    {
+        $texts = [];
+        if ($authorizedXml !== '') {
+            $texts[] = $authorizedXml;
+        }
+
+        $decoded = $this->decodeResponseBody($responseBody);
+        if ($decoded === null) {
+            return $texts;
+        }
+
+        foreach ([
+            $decoded['mensagem'] ?? null,
+            $decoded['raw'] ?? null,
+            $decoded['xml_autorizado'] ?? null,
+            $decoded['resultado']['mensagem'] ?? null,
+            $decoded['resultado']['XML'] ?? null,
+            $decoded['resultado']['xml'] ?? null,
+            $decoded['resultado']['xml_autorizado'] ?? null,
+        ] as $candidate) {
+            if (is_string($candidate) && trim($candidate) !== '') {
+                $texts[] = trim($candidate);
+            }
+        }
+
+        return $texts;
+    }
+
+    /**
+     * @param list<string> $texts
+     * @param list<string> $keys
+     */
+    private function extractLastLineValue(array $texts, array $keys): string
+    {
+        $lastValue = '';
+        foreach ($texts as $text) {
+            foreach ($keys as $key) {
+                if (preg_match_all('/(?:^|\n)\s*' . preg_quote($key, '/') . '\s*=\s*([^\r\n<]*)/i', $text, $matches) !== false) {
+                    foreach ($matches[1] ?? [] as $match) {
+                        $value = trim((string) $match);
+                        if ($value !== '') {
+                            $lastValue = $value;
+                        }
+                    }
+                }
+            }
+        }
+
+        return $lastValue;
+    }
+
+    /**
+     * @param list<string> $texts
+     */
+    private function extractXmlValue(array $texts, string $tag): string
+    {
+        foreach ($texts as $text) {
+            if (preg_match('/<' . preg_quote($tag, '/') . '>\s*([^<]+)\s*<\/' . preg_quote($tag, '/') . '>/i', $text, $matches) === 1) {
+                return trim((string) ($matches[1] ?? ''));
+            }
         }
 
         return '';

@@ -52,9 +52,10 @@ assertSameInputValue('FORNECEDOR RESUMO LTDA', $rows[0]['emitente_nome'], 'resNF
 assertSameInputValue('12345678000199', $rows[0]['emitente_documento'], 'resNFe issuer document should come from the summary sender.');
 assertSameInputValue('1', $rows[0]['ambiente'], 'resNFe row should expose production environment.');
 assertSameInputValue('<procNFe><NFe><infNFe Id="NFe32260712345678000199550030006420801000000012"/></NFe></procNFe>', $rows[0]['xml_autorizado'], 'resNFe row should expose linked full procNFe XML when available.');
-assertSameInputValue(1, count($rows[0]['eventos_nfe'] ?? []), 'resNFe row should expose related fiscal events.');
+assertSameInputValue(2, count($rows[0]['eventos_nfe'] ?? []), 'resNFe row should expose authorization and related fiscal events.');
 assertSameInputValue('Carta de Correção', $rows[0]['eventos_nfe'][0]['tipo_acao'] ?? null, 'resNFe event should expose a user-friendly event type.');
 assertSameInputValue('Registrado', $rows[0]['eventos_nfe'][0]['situacao'] ?? null, 'resNFe event should expose a user-friendly situation.');
+assertSameInputValue('Autorização', $rows[0]['eventos_nfe'][1]['tipo_acao'] ?? null, 'resNFe event list should expose authorization.');
 
 $productionRows = $repository->search(['ambiente' => '1']);
 assertSameInputValue(1, count($productionRows), 'input monitor should filter production rows.');

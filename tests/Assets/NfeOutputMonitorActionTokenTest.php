@@ -6,13 +6,13 @@ $root = dirname(__DIR__, 2);
 $template = file_get_contents($root . '/templates/admin/nfe_output_monitor.html.twig');
 $script = file_get_contents($root . '/catalog-assets/monitor/nfe-output-monitor.js');
 
-if (!is_string($template) || !str_contains($template, 'id="nfe-action-token"')) {
-    fwrite(STDERR, "Action window should expose an API token field.\n");
+if (!is_string($template) || str_contains($template, 'id="nfe-action-token"')) {
+    fwrite(STDERR, "Action window should not expose an API token field.\n");
     exit(1);
 }
 
-if (!is_string($script) || !str_contains($script, "'X-Api-Token': token")) {
-    fwrite(STDERR, "NFe action requests should send X-Api-Token header.\n");
+if (!is_string($script) || str_contains($script, "'X-Api-Token': token") || str_contains($script, 'nfe-action-token')) {
+    fwrite(STDERR, "NFe action requests should not send a browser-provided API token.\n");
     exit(1);
 }
 
@@ -37,7 +37,21 @@ foreach (['data-action-event-url', 'actionEventUrl', 'monitor-nfe-situation', 'm
     }
 }
 
-foreach (['data-correction-url', 'correctionUrl', 'Carta de Correção', 'nfe-action-correction', 'correcao'] as $expectedToken) {
+foreach (['monitor-row-actions', 'nfe-row-action-menu', 'openRowActionMenu', "title: 'Ações'", 'locked: true'] as $expectedToken) {
+    if (!str_contains($script, $expectedToken)) {
+        fwrite(STDERR, "NFe monitor should expose left context action menu token: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
+foreach (['data-cancel-url', 'data-inutilize-url', '/monitor-saida-nfe/acoes/cancelar', '/monitor-saida-nfe/acoes/inutilizar'] as $expectedToken) {
+    if (!str_contains($template, $expectedToken)) {
+        fwrite(STDERR, "NFe output monitor should use internal action endpoint token: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
+foreach (['data-correction-url', 'correctionUrl', 'Carta de Correção', 'carta_correcao', 'correcao'] as $expectedToken) {
     if (!str_contains($template . $script, $expectedToken)) {
         fwrite(STDERR, "NFe monitor should expose correction letter action token: {$expectedToken}.\n");
         exit(1);

@@ -437,6 +437,7 @@ final class NfeInputMonitorRepository
             $this->stringOrEmpty($row['xml_completo'] ?? null),
             $this->stringOrEmpty($row['xml_descompactado'] ?? null)
         );
+        $events = $this->appendAuthorizationEvent($events, $this->authorizationEventPayload($row, $chaveNfe, $xmlCompleto));
 
         return [
             'request_id' => $documentId,
@@ -544,6 +545,61 @@ final class NfeInputMonitorRepository
             'motivo' => $this->stringOrEmpty($row['x_motivo'] ?? null),
             'protocolo' => $this->stringOrEmpty($row['n_prot'] ?? null),
             'data' => $this->stringOrEmpty($row['dh_evento'] ?? null),
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $events
+     * @param array<string, mixed>|null $authorization
+     * @return list<array<string, mixed>>
+     */
+    private function appendAuthorizationEvent(array $events, ?array $authorization): array
+    {
+        if ($authorization === null) {
+            return $events;
+        }
+
+        foreach ($events as $event) {
+            if (
+                $this->stringOrEmpty($event['tipo_acao'] ?? null) === 'Autorização'
+                || ($authorization['protocolo'] !== '' && $this->stringOrEmpty($event['protocolo'] ?? null) === $authorization['protocolo'])
+            ) {
+                return $events;
+            }
+        }
+
+        $events[] = $authorization;
+        usort($events, fn (array $left, array $right): int => strcmp((string) ($right['data'] ?? ''), (string) ($left['data'] ?? '')));
+
+        return $events;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>|null
+     */
+    private function authorizationEventPayload(array $row, string $accessKey, string $authorizedXml): ?array
+    {
+        $protocol = $this->firstNonEmpty(
+            $this->stringOrEmpty($row['protocolo_nfe'] ?? null),
+            $this->stringOrEmpty($row['n_prot'] ?? null)
+        );
+
+        if ($authorizedXml === '' && $protocol === '') {
+            return null;
+        }
+
+        return [
+            'id' => null,
+            'request_id' => $this->stringOrEmpty($row['original_request_id'] ?? null),
+            'tipo_evento' => '100',
+            'tipo_acao' => 'Autorização',
+            'situacao' => 'Autorizada',
+            'chave_nfe' => $accessKey,
+            'c_stat' => '100',
+            'motivo' => 'Autorizado o uso da NF-e',
+            'protocolo' => $protocol,
+            'data' => $this->stringOrEmpty($row['dt_hr_processado_em'] ?? $row['dh_resp'] ?? $row['dt_hr_recebimento'] ?? null),
         ];
     }
 

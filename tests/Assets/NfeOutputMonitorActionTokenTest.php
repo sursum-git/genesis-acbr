@@ -44,15 +44,15 @@ foreach (['monitor-row-actions', 'nfe-row-action-menu', 'openRowActionMenu', "ti
     }
 }
 
-foreach (["target: '#nfe-output-monitor-grid'", "filter: '.monitor-row-actions'", "showOn: 'click'", 'alignToAnchor: false'] as $expectedToken) {
+foreach (["target: '#nfe-output-monitor-grid'", "showOn: 'manual'", 'const offset = trigger.offset();', 'rowActionMenu.open(offset.left, offset.top + trigger.outerHeight());'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
-        fwrite(STDERR, "NFe row action menu should use Kendo ContextMenu target/filter token: {$expectedToken}.\n");
+        fwrite(STDERR, "NFe row action menu should use manual coordinate positioning token: {$expectedToken}.\n");
         exit(1);
     }
 }
 
-if (str_contains($script, 'rowActionMenu.open(trigger)')) {
-    fwrite(STDERR, "NFe row action menu should not rely on manual ContextMenu open with a jQuery trigger.\n");
+if (str_contains($script, 'rowActionMenu.open(trigger)') || str_contains($script, 'alignToAnchor:')) {
+    fwrite(STDERR, "NFe row action menu should not rely on Kendo anchor positioning for the locked grid column.\n");
     exit(1);
 }
 

@@ -1095,6 +1095,13 @@
                 }
             };
         }));
+
+        if (!rowActionMenuRow) {
+            return;
+        }
+
+        const offset = trigger.offset();
+        rowActionMenu.open(offset.left, offset.top + trigger.outerHeight());
     }
 
     function initializeRowActionMenu(grid) {
@@ -1108,23 +1115,8 @@
 
         rowActionMenu = $('#nfe-row-action-menu').kendoContextMenu({
             target: '#nfe-output-monitor-grid',
-            filter: '.monitor-row-actions',
             orientation: 'vertical',
-            showOn: 'click',
-            alignToAnchor: false,
-            open: function (event) {
-                const trigger = $(event.target).closest('.monitor-row-actions');
-                if (trigger.length === 0) {
-                    event.preventDefault();
-                    return;
-                }
-
-                openRowActionMenu(grid, trigger);
-
-                if (!rowActionMenuRow) {
-                    event.preventDefault();
-                }
-            },
+            showOn: 'manual',
             select: function (event) {
                 const action = String($(event.item).data('action') || '');
                 if (!rowActionMenuRow) {
@@ -1144,6 +1136,21 @@
                 openActionWindow(action, rowActionMenuRow);
             }
         }).data('kendoContextMenu');
+
+        $(document).on('click', '.monitor-row-actions', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            openRowActionMenu(grid, $(this));
+        });
+
+        $(document).on('click', function (event) {
+            if (
+                rowActionMenu
+                && !$(event.target).closest('#nfe-row-action-menu, .monitor-row-actions, .k-menu-popup').length
+            ) {
+                rowActionMenu.close();
+            }
+        });
     }
 
     const filterWindow = initializeFilterWindow();

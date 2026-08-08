@@ -36,8 +36,6 @@
     let lookupWindowInitialized = false;
     let fiscalEventWindow = null;
     let fiscalEventGrid = null;
-    let rowActionMenu = null;
-    let rowActionMenuRow = null;
 
     function buildDetailUrl(requestId) {
         return detailUrlTemplate.replace('__REQUEST_ID__', encodeURIComponent(requestId));
@@ -1079,77 +1077,52 @@
         return items;
     }
 
-    function openRowActionMenu(grid, trigger) {
-        if (!rowActionMenu) {
+    function handleRowAction(action, row) {
+        if (!row) {
             return;
         }
 
-        rowActionMenuRow = findGridRowByRequestId(grid, trigger.data('request-id'));
-        const items = rowActionItems(rowActionMenuRow);
-        rowActionMenu.remove(rowActionMenu.element.children());
-        rowActionMenu.append(items.map(function (item) {
-            return {
-                text: item.text,
-                attr: {
-                    'data-action': item.action
-                }
-            };
-        }));
-
-        if (!rowActionMenuRow) {
+        if (action === 'detalhe') {
+            window.location.href = buildDetailUrl(row.request_id || '');
             return;
         }
 
-        const offset = trigger.offset();
-        rowActionMenu.open(offset.left, offset.top + trigger.outerHeight());
+        if (action === 'eventos') {
+            openFiscalEventWindow(row);
+            return;
+        }
+
+        openActionWindow(action, row);
     }
 
-    function initializeRowActionMenu(grid) {
-        if (rowActionMenu) {
-            return;
-        }
-
-        if (!document.getElementById('nfe-row-action-menu')) {
-            $('body').append('<ul id="nfe-row-action-menu"></ul>');
-        }
-
-        rowActionMenu = $('#nfe-row-action-menu').kendoContextMenu({
-            target: '#nfe-output-monitor-grid',
-            orientation: 'vertical',
-            showOn: 'manual',
-            select: function (event) {
-                const action = String($(event.item).data('action') || '');
-                if (!rowActionMenuRow) {
-                    return;
-                }
-
-                if (action === 'detalhe') {
-                    window.location.href = buildDetailUrl(rowActionMenuRow.request_id || '');
-                    return;
-                }
-
-                if (action === 'eventos') {
-                    openFiscalEventWindow(rowActionMenuRow);
-                    return;
-                }
-
-                openActionWindow(action, rowActionMenuRow);
+    function initializeRowActionButtons(grid) {
+        $grid.find('.monitor-row-actions').each(function () {
+            const trigger = $(this);
+            if (trigger.data('kendoDropDownButton')) {
+                return;
             }
-        }).data('kendoContextMenu');
 
-        $(document).on('click', '.monitor-row-actions', function (event) {
-            event.preventDefault();
-            event.stopPropagation();
-            openRowActionMenu(grid, $(this));
-        });
-
-        $(document).on('click', function (event) {
-            if (
-                rowActionMenu
-                && !$(event.target).closest('#nfe-row-action-menu, .monitor-row-actions, .k-menu-popup').length
-            ) {
-                rowActionMenu.close();
+            const row = findGridRowByRequestId(grid, trigger.data('request-id'));
+            if (!row) {
+                return;
             }
+
+            trigger.kendoDropDownButton({
+                size: 'small',
+                fillMode: 'outline',
+                themeColor: 'base',
+                showArrowButton: true,
+                popup: { appendTo: document.body },
+                items: rowActionItems(row).map(function (item) {
+                    return {
+                        id: item.action,
+                        text: item.text
+                    };
+                }),
+                click: function (event) {
+                    handleRowAction(String(event.id || ''), row);
+                }
+            });
         });
     }
 
@@ -1246,6 +1219,7 @@
         },
         dataBound: function () {
             attachHeaderColumnMenus(this);
+            initializeRowActionButtons(this);
         },
         columns: [
             {
@@ -1330,7 +1304,6 @@
 
     const grid = $grid.data('kendoGrid');
     initializeEnvironmentToggle(grid);
-    initializeRowActionMenu(grid);
 
     $(document).on('click', '.monitor-nfe-action', function () {
         const action = $(this).data('action');

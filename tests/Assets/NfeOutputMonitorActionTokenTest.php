@@ -37,22 +37,22 @@ foreach (['data-action-event-url', 'actionEventUrl', 'monitor-nfe-situation', 'm
     }
 }
 
-foreach (['monitor-row-actions', 'nfe-row-action-menu', 'openRowActionMenu', "title: 'Ações'", 'locked: true'] as $expectedToken) {
+foreach (['monitor-row-actions', 'initializeRowActionButtons', '.kendoDropDownButton({', "title: 'Ações'", 'locked: true'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
-        fwrite(STDERR, "NFe monitor should expose left context action menu token: {$expectedToken}.\n");
+        fwrite(STDERR, "NFe monitor should expose a left Kendo dropdown action button token: {$expectedToken}.\n");
         exit(1);
     }
 }
 
-foreach (["target: '#nfe-output-monitor-grid'", "showOn: 'manual'", 'const offset = trigger.offset();', 'rowActionMenu.open(offset.left, offset.top + trigger.outerHeight());'] as $expectedToken) {
+foreach (["popup: { appendTo: document.body }", "click: function (event)", 'handleRowAction(String(event.id || \'\'), row);'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
-        fwrite(STDERR, "NFe row action menu should use manual coordinate positioning token: {$expectedToken}.\n");
+        fwrite(STDERR, "NFe row action dropdown should be anchored by Kendo to its own button: {$expectedToken}.\n");
         exit(1);
     }
 }
 
-if (str_contains($script, 'rowActionMenu.open(trigger)') || str_contains($script, 'alignToAnchor:')) {
-    fwrite(STDERR, "NFe row action menu should not rely on Kendo anchor positioning for the locked grid column.\n");
+if (str_contains($script, '.kendoContextMenu(') || str_contains($script, 'rowActionMenu.open(')) {
+    fwrite(STDERR, "NFe row actions should not use the coordinate-based Kendo ContextMenu.\n");
     exit(1);
 }
 

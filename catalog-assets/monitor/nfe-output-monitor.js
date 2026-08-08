@@ -1107,7 +1107,7 @@
                 return;
             }
 
-            trigger.kendoDropDownButton({
+            const dropDown = trigger.kendoDropDownButton({
                 size: 'small',
                 fillMode: 'outline',
                 themeColor: 'base',
@@ -1122,6 +1122,12 @@
                 click: function (event) {
                     handleRowAction(String(event.id || ''), row);
                 }
+            }).data('kendoDropDownButton');
+
+            trigger.on('click.monitorRowActions', function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                dropDown.open();
             });
         });
     }

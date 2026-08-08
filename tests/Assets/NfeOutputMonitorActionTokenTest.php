@@ -44,7 +44,7 @@ foreach (['monitor-row-actions', 'initializeRowActionButtons', '.kendoDropDownBu
     }
 }
 
-foreach (["popup: { appendTo: document.body }", "click: function (event)", 'handleRowAction(String(event.id || \'\'), row);'] as $expectedToken) {
+foreach (["popup: { appendTo: document.body }", "click: function (event)", 'handleRowAction(String(event.id || \'\'), row);', "trigger.on('click.monitorRowActions'", 'event.stopPropagation();', 'dropDown.open();'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
         fwrite(STDERR, "NFe row action dropdown should be anchored by Kendo to its own button: {$expectedToken}.\n");
         exit(1);

@@ -44,7 +44,7 @@ foreach (['monitor-row-actions', 'nfe-row-action-menu', 'openRowActionMenu', "ti
     }
 }
 
-foreach (["target: '#nfe-output-monitor-grid'", "filter: '.monitor-row-actions'", "showOn: 'click'"] as $expectedToken) {
+foreach (["target: '#nfe-output-monitor-grid'", "filter: '.monitor-row-actions'", "showOn: 'click'", 'alignToAnchor: false'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
         fwrite(STDERR, "NFe row action menu should use Kendo ContextMenu target/filter token: {$expectedToken}.\n");
         exit(1);

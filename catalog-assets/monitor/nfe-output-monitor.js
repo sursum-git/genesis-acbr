@@ -1111,7 +1111,7 @@
             filter: '.monitor-row-actions',
             orientation: 'vertical',
             showOn: 'click',
-            alignToAnchor: true,
+            alignToAnchor: false,
             open: function (event) {
                 const trigger = $(event.target).closest('.monitor-row-actions');
                 if (trigger.length === 0) {

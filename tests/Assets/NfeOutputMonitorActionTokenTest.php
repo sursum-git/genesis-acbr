@@ -44,6 +44,18 @@ foreach (['monitor-row-actions', 'nfe-row-action-menu', 'openRowActionMenu', "ti
     }
 }
 
+foreach (["target: '#nfe-output-monitor-grid'", "filter: '.monitor-row-actions'", "showOn: 'click'"] as $expectedToken) {
+    if (!str_contains($script, $expectedToken)) {
+        fwrite(STDERR, "NFe row action menu should use Kendo ContextMenu target/filter token: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
+if (str_contains($script, 'rowActionMenu.open(trigger)')) {
+    fwrite(STDERR, "NFe row action menu should not rely on manual ContextMenu open with a jQuery trigger.\n");
+    exit(1);
+}
+
 foreach (['data-cancel-url', 'data-inutilize-url', '/monitor-saida-nfe/acoes/cancelar', '/monitor-saida-nfe/acoes/inutilizar'] as $expectedToken) {
     if (!str_contains($template, $expectedToken)) {
         fwrite(STDERR, "NFe output monitor should use internal action endpoint token: {$expectedToken}.\n");

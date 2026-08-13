@@ -5,6 +5,7 @@ namespace App\Controller;
 use App\Http\Exception\AcbrLegacyApiException;
 use App\Repository\NfeInputFiscalEventRepository;
 use App\Repository\NfeInputMonitorRepository;
+use App\Service\Auth\CurrentUserContext;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
 use DateTimeImmutable;
 use DateTimeZone;
@@ -21,6 +22,7 @@ final class NfeInputMonitorController extends AbstractController
         private readonly NfeInputMonitorRepository $monitorRepository,
         private readonly NfeInputFiscalEventRepository $fiscalEventRepository,
         private readonly AcbrLegacyScriptExecutor $legacyScriptExecutor,
+        private readonly CurrentUserContext $currentUser,
     ) {
     }
 
@@ -60,7 +62,7 @@ final class NfeInputMonitorController extends AbstractController
             return $this->json(['message' => 'A justificativa deve ter no máximo 255 caracteres.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null) {
             return $this->json(['message' => 'Documento de entrada não encontrado para manifestação.'], Response::HTTP_NOT_FOUND);
         }
@@ -140,14 +142,14 @@ final class NfeInputMonitorController extends AbstractController
         ];
 
         return $this->json([
-            'data' => $this->monitorRepository->search($filters),
+            'data' => $this->monitorRepository->search($this->withSubscriberScope($filters)),
         ]);
     }
 
     #[Route('/monitor-entrada-nfe/nota/{requestId}', name: 'app_nfe_input_monitor_detail', methods: ['GET'])]
     public function detail(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null) {
             throw $this->createNotFoundException('Documento de entrada nao encontrado.');
         }
@@ -162,7 +164,7 @@ final class NfeInputMonitorController extends AbstractController
     #[Route('/monitor-entrada-nfe/nota/{requestId}/tecnico', name: 'app_nfe_input_monitor_technical_detail', methods: ['GET'])]
     public function technicalDetail(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null) {
             throw $this->createNotFoundException('Documento de entrada nao encontrado.');
         }
@@ -177,7 +179,7 @@ final class NfeInputMonitorController extends AbstractController
     #[Route('/monitor-entrada-nfe/xml/{requestId}', name: 'app_nfe_input_monitor_xml', methods: ['GET'])]
     public function xml(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null || ($detail['xml_autorizado'] ?? '') === '') {
             throw $this->createNotFoundException('XML completo nao disponivel para este documento.');
         }
@@ -188,6 +190,19 @@ final class NfeInputMonitorController extends AbstractController
         $response->headers->set('Content-Disposition', $response->headers->makeDisposition(ResponseHeaderBag::DISPOSITION_ATTACHMENT, $filename));
 
         return $response;
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function withSubscriberScope(array $filters): array
+    {
+        if (!$this->currentUser->isSuperAdmin()) {
+            $filters['subscriber_ids'] = $this->currentUser->subscriberIds();
+        }
+
+        return $filters;
     }
 
     /**

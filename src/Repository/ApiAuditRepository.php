@@ -50,14 +50,28 @@ final class ApiAuditRepository
         return $requestId;
     }
 
-    public function updateAuthenticationContext(string $requestId, ?string $tokenHash, ?array $assinante): void
+    public function updateAuthenticationContext(string $requestId, ?string $tokenHash, ?array $assinante, ?array $userContext = null): void
     {
         $this->ensureExtractionColumns();
-        $this->auditConnection->update('t99001', [
+        $payload = [
             'c_token_hash' => $tokenHash,
             't_assinante_json' => $assinante === null ? null : json_encode($assinante, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             'dt_hr_atu' => date('c'),
-        ], [
+        ];
+
+        if ($userContext !== null) {
+            if ($this->tableHasColumn('t99001', 't00005_id')) {
+                $payload['t00005_id'] = (int) ($userContext['id'] ?? 0) ?: null;
+            }
+            if ($this->tableHasColumn('t99001', 't00002_id')) {
+                $payload['t00002_id'] = isset($assinante['id_t00002']) ? (int) $assinante['id_t00002'] : ($userContext['subscriber_id'] ?? null);
+            }
+            if ($this->tableHasColumn('t99001', 'c_auth_type')) {
+                $payload['c_auth_type'] = (string) ($userContext['auth_type'] ?? 'user');
+            }
+        }
+
+        $this->auditConnection->update('t99001', $payload, [
             'u_c_request_id' => $requestId,
         ]);
     }
@@ -421,5 +435,14 @@ final class ApiAuditRepository
         }
 
         $this->extractionColumnsEnsured = true;
+    }
+
+    private function tableHasColumn(string $table, string $column): bool
+    {
+        if (!$this->auditConnection->createSchemaManager()->tablesExist([$table])) {
+            return false;
+        }
+
+        return $this->auditConnection->createSchemaManager()->introspectTable($table)->hasColumn($column);
     }
 }

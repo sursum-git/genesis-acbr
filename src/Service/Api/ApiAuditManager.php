@@ -66,7 +66,8 @@ final class ApiAuditManager
         $this->repository->updateAuthenticationContext(
             $requestId,
             is_string($tokenHash) ? $tokenHash : null,
-            $assinanteSanitizado
+            $assinanteSanitizado,
+            is_array($request->attributes->get('_auth_user')) ? $request->attributes->get('_auth_user') : null
         );
     }
 

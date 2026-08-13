@@ -6,6 +6,7 @@ use App\Repository\ApiAssinanteRepository;
 use App\Service\Api\ApiAuditManager;
 use App\Service\Api\ApiPathMatcher;
 use App\Service\Api\ApiTokenHasher;
+use App\Service\Auth\CurrentUserContext;
 use App\Support\ApiRequestAttributes;
 use Symfony\Component\EventDispatcher\EventSubscriberInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -19,6 +20,7 @@ final class ApiTokenAuthSubscriber implements EventSubscriberInterface
         private readonly ApiAssinanteRepository $assinanteRepository,
         private readonly ApiTokenHasher $tokenHasher,
         private readonly ApiAuditManager $auditManager,
+        private readonly CurrentUserContext $currentUser,
     ) {
     }
 
@@ -73,6 +75,40 @@ final class ApiTokenAuthSubscriber implements EventSubscriberInterface
         if ($token === '') {
             $this->auditManager->markUnauthorized($request);
             $event->setResponse(new JsonResponse(['mensagem' => 'Bearer token ou X-Api-Token obrigatorio.'], JsonResponse::HTTP_UNAUTHORIZED));
+
+            return;
+        }
+
+        if (substr_count($token, '.') === 2) {
+            $subscriberId = (int) trim((string) $request->headers->get('X-Subscriber-Id', '0'));
+            $user = $this->currentUser->authenticateJwt($token, $subscriberId > 0 ? $subscriberId : null);
+            if ($user === null) {
+                $this->auditManager->markUnauthorized($request);
+                $event->setResponse(new JsonResponse(['mensagem' => 'Token JWT invalido ou assinante nao permitido.'], JsonResponse::HTTP_UNAUTHORIZED));
+
+                return;
+            }
+
+            $request->attributes->set('_auth_user', $user);
+            $subscriberToken = $this->currentUser->subscriberToken($subscriberId > 0 ? $subscriberId : null);
+            if ($subscriberToken === null) {
+                $this->auditManager->markUnauthorized($request);
+                $event->setResponse(new JsonResponse(['mensagem' => 'X-Subscriber-Id obrigatorio para usuario com mais de um assinante.'], JsonResponse::HTTP_FORBIDDEN));
+
+                return;
+            }
+
+            $assinante = $this->assinanteRepository->findByToken($subscriberToken);
+            if ($assinante === null) {
+                $this->auditManager->markUnauthorized($request);
+                $event->setResponse(new JsonResponse(['mensagem' => 'Assinante do usuario nao encontrado.'], JsonResponse::HTTP_FORBIDDEN));
+
+                return;
+            }
+
+            $request->attributes->set(ApiRequestAttributes::TOKEN_HASH, $this->tokenHasher->hash($subscriberToken));
+            $request->attributes->set(ApiRequestAttributes::ASSINANTE, $assinante);
+            $this->auditManager->attachAuthentication($request, $assinante);
 
             return;
         }

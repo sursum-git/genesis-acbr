@@ -76,6 +76,23 @@ services:
     arguments:
       $auditConnection: '@app.audit_connection'
 
+  App\Repository\Auth\AuthSchemaManager:
+    arguments:
+      $connection: '@app.audit_connection'
+
+  App\Repository\Auth\AuthUserRepository:
+    arguments:
+      $connection: '@app.audit_connection'
+
+  App\Repository\Auth\RefreshTokenRepository:
+    arguments:
+      $connection: '@app.audit_connection'
+
+  App\Service\Auth\AuthTokenService:
+    arguments:
+      $jwtSecret: '%env(string:APP_AUTH_JWT_SECRET)%'
+      $accessTtlSeconds: 900
+
   App\Service\Api\ApiExecutionModeResolver:
     arguments:
       $defaultMode: '%env(string:API_EXECUTION_MODE_DEFAULT)%'

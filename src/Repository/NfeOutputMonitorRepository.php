@@ -47,20 +47,25 @@ final class NfeOutputMonitorRepository
     }
 
     /**
+     * @param list<int>|null $subscriberIds
      * @return array<string, mixed>|null
      */
-    public function findByRequestId(string $requestId): ?array
+    public function findByRequestId(string $requestId, ?array $subscriberIds = null): ?array
     {
         if ($requestId === '' || !$this->tableExists('t99001')) {
             return null;
         }
 
+        $filters = ['request_id' => $requestId];
+        if ($subscriberIds !== null) {
+            $filters['subscriber_ids'] = $subscriberIds;
+        }
+        [$whereSql, $params, $types] = $this->buildWhereSql($filters);
+
         $row = $this->auditConnection->fetchAssociative(
-            $this->buildBaseSql() . '
-                WHERE t.u_c_request_id = :request_id
-                LIMIT 1
-            ',
-            ['request_id' => $requestId]
+            $this->buildBaseSql() . $whereSql . ' LIMIT 1',
+            $params,
+            $types
         );
 
         if ($row === false) {
@@ -233,6 +238,34 @@ final class NfeOutputMonitorRepository
             $params['chave'] = '%' . $accessKey . '%';
         }
 
+        $requestId = trim((string) ($filters['request_id'] ?? ''));
+        if ($requestId !== '') {
+            $where[] = 't.u_c_request_id = :request_id';
+            $params['request_id'] = $requestId;
+        }
+
+        /** @var list<int> $subscriberIds */
+        $subscriberIds = array_values(array_filter(
+            array_map(static fn (mixed $value): int => (int) $value, is_array($filters['subscriber_ids'] ?? null) ? $filters['subscriber_ids'] : []),
+            static fn (int $value): bool => $value > 0
+        ));
+        if ($subscriberIds !== []) {
+            $subscriberPredicates = [];
+            $hasRequestSubscriberId = $this->tableHasColumn('t99001', 't00002_id');
+            foreach ($subscriberIds as $index => $subscriberId) {
+                $idName = 'subscriber_id_' . $index;
+                $jsonName = 'subscriber_json_id_' . $index;
+                if ($hasRequestSubscriberId) {
+                    $subscriberPredicates[] = 't.t00002_id = :' . $idName;
+                    $params[$idName] = $subscriberId;
+                    $types[$idName] = ParameterType::INTEGER;
+                }
+                $subscriberPredicates[] = 'COALESCE(t.t_assinante_json, \'\') LIKE :' . $jsonName;
+                $params[$jsonName] = '%"id_t00002":' . $subscriberId . '%';
+            }
+            $where[] = '(' . implode(' OR ', $subscriberPredicates) . ')';
+        }
+
         $subscriber = trim((string) ($filters['assinante'] ?? ''));
         if ($subscriber !== '') {
             $where[] = 'COALESCE(t.t_assinante_json, \'\') LIKE :assinante';
@@ -383,6 +416,7 @@ final class NfeOutputMonitorRepository
         $hasT99032 = $this->tableExists('t99032');
         $hasT99033 = $this->tableExists('t99033');
         $hasFiscalSituation = $hasT99019 && $this->tableHasColumn('t99019', 'situacao_fiscal');
+        $hasRequestSubscriberId = $this->tableHasColumn('t99001', 't00002_id');
 
         $docJoin = $hasT99008 ? <<<'SQL'
             LEFT JOIN (
@@ -475,6 +509,7 @@ final class NfeOutputMonitorRepository
                 t.t_erro,
                 t.t_corpo_resposta,
                 t.t_assinante_json,
+                {$this->selectColumn('t', 't00002_id', $hasRequestSubscriberId)},
                 n.id_t99019,
                 n.n_nf AS numero_nota,
                 n.ch_nfe AS chave_nfe,
@@ -574,6 +609,7 @@ final class NfeOutputMonitorRepository
             'cliente_documento' => $clienteDocumento,
             'emitente_nome' => $emitente,
             'emitente_documento' => $emitenteDocumento,
+            'assinante_id' => isset($row['t00002_id']) ? (int) $row['t00002_id'] : null,
             'assinante_identificador' => $assinante['identificador'],
             'assinante_nome' => $assinante['nome'],
             'chave_nfe' => $chaveNfe,
@@ -1279,5 +1315,10 @@ final class NfeOutputMonitorRepository
         }
 
         return $this->auditConnection->createSchemaManager()->introspectTable($table)->hasColumn($column);
+    }
+
+    private function selectColumn(string $alias, string $column, bool $exists): string
+    {
+        return $exists ? $alias . '.' . $column . ' AS ' . $column : 'NULL AS ' . $column;
     }
 }

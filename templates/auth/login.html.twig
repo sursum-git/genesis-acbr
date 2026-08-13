@@ -1,0 +1,32 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Login{% endblock %}
+{% block page_title %}Login{% endblock %}
+{% block page_subtitle %}Acesso ao portal administrativo.{% endblock %}
+{% block page_heading %}Entrar{% endblock %}
+{% block heading_text %}{% endblock %}
+
+{% block breadcrumb %}
+    <li class="breadcrumb-item active" aria-current="page">Login</li>
+{% endblock %}
+
+{% block body %}
+    <section class="portal-panel" style="max-width: 480px;">
+        {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+        {% endif %}
+        <form method="post" action="{{ app.request.basePath ~ '/index.php/login' }}" class="d-grid gap-3">
+            <label class="form-label">
+                Usuario
+                <input class="form-control" type="text" name="usuario" value="{{ username }}" required autocomplete="username">
+            </label>
+            <label class="form-label">
+                Senha
+                <input class="form-control" type="password" name="senha" required autocomplete="current-password">
+            </label>
+            <div class="portal-actions-inline">
+                <button class="button button-primary" type="submit">Entrar</button>
+            </div>
+        </form>
+    </section>
+{% endblock %}

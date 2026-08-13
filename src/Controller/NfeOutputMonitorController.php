@@ -3,10 +3,10 @@
 namespace App\Controller;
 
 use App\Http\Exception\AcbrLegacyApiException;
-use App\Repository\ApiAssinanteRepository;
 use App\Repository\NfeOutputMonitorRepository;
 use App\Repository\NfeOutputFiscalEventRepository;
 use App\Service\Legacy\AcbrLegacyScriptExecutor;
+use App\Service\Auth\CurrentUserContext;
 use DateTimeImmutable;
 use DateTimeZone;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
@@ -23,7 +23,7 @@ final class NfeOutputMonitorController extends AbstractController
         private readonly NfeOutputMonitorRepository $monitorRepository,
         private readonly NfeOutputFiscalEventRepository $fiscalEventRepository,
         private readonly AcbrLegacyScriptExecutor $legacyScriptExecutor,
-        private readonly ApiAssinanteRepository $assinanteRepository,
+        private readonly CurrentUserContext $currentUser,
     ) {
     }
 
@@ -56,7 +56,7 @@ final class NfeOutputMonitorController extends AbstractController
         }
 
         $noteRequestId = trim((string) ($payload['nota_request_id'] ?? ''));
-        $detail = $this->monitorRepository->findByRequestId($noteRequestId);
+        $detail = $this->monitorRepository->findByRequestId($noteRequestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null || (int) ($detail['note_id'] ?? 0) <= 0) {
             return $this->json(['message' => 'Nota não encontrada para registrar o evento fiscal.'], Response::HTTP_NOT_FOUND);
         }
@@ -90,7 +90,7 @@ final class NfeOutputMonitorController extends AbstractController
             return $this->json(['message' => 'A correção deve ter no máximo 1000 caracteres.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $detail = $this->monitorRepository->findByRequestId($noteRequestId);
+        $detail = $this->monitorRepository->findByRequestId($noteRequestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null || (int) ($detail['note_id'] ?? 0) <= 0) {
             return $this->json(['message' => 'Nota não encontrada para Carta de Correção.'], Response::HTTP_NOT_FOUND);
         }
@@ -194,14 +194,14 @@ final class NfeOutputMonitorController extends AbstractController
         ];
 
         return $this->json([
-            'data' => $this->monitorRepository->search($filters),
+            'data' => $this->monitorRepository->search($this->withSubscriberScope($filters)),
         ]);
     }
 
     #[Route('/monitor-saida-nfe/nota/{requestId}', name: 'app_nfe_output_monitor_detail', methods: ['GET'])]
     public function detail(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null) {
             throw $this->createNotFoundException('Tentativa de envio nao encontrada.');
         }
@@ -216,7 +216,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/nota/{requestId}/tecnico', name: 'app_nfe_output_monitor_technical_detail', methods: ['GET'])]
     public function technicalDetail(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null) {
             throw $this->createNotFoundException('Tentativa de envio nao encontrada.');
         }
@@ -231,7 +231,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/danfe/{requestId}', name: 'app_nfe_output_monitor_danfe', methods: ['GET'])]
     public function danfe(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null || !$this->hasDanfe($detail)) {
             throw $this->createNotFoundException('DANFE nao disponivel para esta tentativa.');
         }
@@ -262,7 +262,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/xml/{requestId}', name: 'app_nfe_output_monitor_xml', methods: ['GET'])]
     public function xml(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId);
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
         if ($detail === null || ($detail['xml_autorizado'] ?? '') === '') {
             throw $this->createNotFoundException('XML autorizado nao disponivel para esta tentativa.');
         }
@@ -285,9 +285,15 @@ final class NfeOutputMonitorController extends AbstractController
 
     private function forwardInternalApi(Request $request, string $method, string $path, array $payload): JsonResponse
     {
-        $token = $this->assinanteRepository->findFirstToken();
+        $subscriberId = $this->currentUser->activeSubscriberId();
+        if ($subscriberId === null) {
+            $subscriberIds = $this->currentUser->subscriberIds();
+            $subscriberId = count($subscriberIds) === 1 ? $subscriberIds[0] : null;
+        }
+
+        $token = $this->currentUser->subscriberToken($subscriberId);
         if ($token === null) {
-            return $this->json(['message' => 'Nenhum token de assinante ativo encontrado para executar a ação.'], Response::HTTP_INTERNAL_SERVER_ERROR);
+            return $this->json(['message' => 'Selecione um assinante ativo para executar a ação.'], Response::HTTP_FORBIDDEN);
         }
 
         $url = $request->getSchemeAndHttpHost() . $path;
@@ -330,6 +336,19 @@ final class NfeOutputMonitorController extends AbstractController
         $status = $httpCode >= 100 ? $httpCode : Response::HTTP_BAD_GATEWAY;
 
         return $this->json(is_array($decoded) ? $decoded : ['mensagem' => trim((string) $body)], $status);
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function withSubscriberScope(array $filters): array
+    {
+        if (!$this->currentUser->isSuperAdmin()) {
+            $filters['subscriber_ids'] = $this->currentUser->subscriberIds();
+        }
+
+        return $filters;
     }
 
     /**

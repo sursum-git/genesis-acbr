@@ -40,7 +40,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS t00007_user_company_uidx ON public.t00007 (t00
 CREATE TABLE IF NOT EXISTS public.t00008 (
     id_t00008 bigserial PRIMARY KEY,
     t00006_id bigint NOT NULL REFERENCES public.t00006 (id_t00006) ON DELETE CASCADE,
-    t00002_id bigint NOT NULL REFERENCES public.t00002 (id_t00002) ON DELETE CASCADE,
+    t00002_id bigint NOT NULL,
     log_ativo boolean NOT NULL DEFAULT true,
     dt_hr_atu timestamptz NOT NULL DEFAULT now()
 );

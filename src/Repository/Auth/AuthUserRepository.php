@@ -8,6 +8,9 @@ use InvalidArgumentException;
 
 final class AuthUserRepository
 {
+    private ?string $subscriberPrimaryKey = null;
+    private ?bool $subscriberHasActiveColumn = null;
+
     public function __construct(private readonly Connection $connection)
     {
     }
@@ -130,25 +133,38 @@ final class AuthUserRepository
     public function subscriberIdsForUser(int $userId): array
     {
         $user = $this->findActiveById($userId);
+        $subscriberPk = $this->subscriberPrimaryKey();
+        $subscriberActiveSql = $this->subscriberActiveSql('s');
         if (($user['c_tipo'] ?? '') === 'super_admin') {
             /** @var list<int|string> $ids */
-            $ids = $this->connection->fetchFirstColumn('SELECT id_t00002 FROM t00002 WHERE COALESCE(log_ativo, TRUE) = TRUE ORDER BY id_t00002 ASC');
+            $ids = $this->connection->fetchFirstColumn(sprintf(
+                'SELECT %s FROM t00002 s WHERE %s ORDER BY %s ASC',
+                $this->connection->quoteIdentifier($subscriberPk),
+                $subscriberActiveSql,
+                $this->connection->quoteIdentifier($subscriberPk)
+            ));
 
             return array_map('intval', $ids);
         }
 
-        /** @var list<int|string> $ids */
-        $ids = $this->connection->fetchFirstColumn(
+        $sql = sprintf(
             <<<'SQL'
             SELECT DISTINCT cs.t00002_id
             FROM t00007 uc
             INNER JOIN t00006 c ON c.id_t00006 = uc.t00006_id AND c.log_ativo = TRUE
             INNER JOIN t00008 cs ON cs.t00006_id = c.id_t00006 AND cs.log_ativo = TRUE
-            INNER JOIN t00002 s ON s.id_t00002 = cs.t00002_id AND COALESCE(s.log_ativo, TRUE) = TRUE
+            INNER JOIN t00002 s ON s.%s = cs.t00002_id AND %s
             WHERE uc.t00005_id = :user_id
               AND uc.log_ativo = TRUE
             ORDER BY cs.t00002_id ASC
             SQL,
+            $this->connection->quoteIdentifier($subscriberPk),
+            $subscriberActiveSql
+        );
+
+        /** @var list<int|string> $ids */
+        $ids = $this->connection->fetchFirstColumn(
+            $sql,
             ['user_id' => $userId],
             ['user_id' => ParameterType::INTEGER]
         );
@@ -162,13 +178,47 @@ final class AuthUserRepository
             return null;
         }
 
+        $subscriberPk = $this->subscriberPrimaryKey();
         $token = $this->connection->fetchOne(
-            "SELECT c_token FROM t00002 WHERE id_t00002 = :id AND COALESCE(c_token, '') <> '' LIMIT 1",
+            sprintf(
+                "SELECT c_token FROM t00002 WHERE %s = :id AND COALESCE(c_token, '') <> '' LIMIT 1",
+                $this->connection->quoteIdentifier($subscriberPk)
+            ),
             ['id' => $subscriberId],
             ['id' => ParameterType::INTEGER]
         );
 
         return is_string($token) && trim($token) !== '' ? trim($token) : null;
+    }
+
+    private function subscriberPrimaryKey(): string
+    {
+        if ($this->subscriberPrimaryKey !== null) {
+            return $this->subscriberPrimaryKey;
+        }
+
+        $table = $this->connection->createSchemaManager()->introspectTable('t00002');
+        $primaryKey = $table->getPrimaryKey();
+        if ($primaryKey !== null && count($primaryKey->getColumns()) === 1) {
+            return $this->subscriberPrimaryKey = $primaryKey->getColumns()[0];
+        }
+
+        foreach (['id_t00002', 'id'] as $candidate) {
+            if ($table->hasColumn($candidate)) {
+                return $this->subscriberPrimaryKey = $candidate;
+            }
+        }
+
+        throw new InvalidArgumentException('Nao foi possivel identificar a chave primaria da t00002.');
+    }
+
+    private function subscriberActiveSql(string $alias): string
+    {
+        if ($this->subscriberHasActiveColumn === null) {
+            $this->subscriberHasActiveColumn = $this->connection->createSchemaManager()->introspectTable('t00002')->hasColumn('log_ativo');
+        }
+
+        return $this->subscriberHasActiveColumn ? sprintf('%s.log_ativo = TRUE', $alias) : '1 = 1';
     }
 
     private function normalizeUsername(string $username): string

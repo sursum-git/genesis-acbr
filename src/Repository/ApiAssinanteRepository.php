@@ -7,6 +7,7 @@ use Doctrine\DBAL\Connection;
 final class ApiAssinanteRepository
 {
     private ?bool $hasActiveColumn = null;
+    private ?string $primaryKeyColumn = null;
 
     public function __construct(private readonly Connection $auditConnection)
     {
@@ -39,7 +40,7 @@ final class ApiAssinanteRepository
             ->select('c_token')
             ->from('t00002')
             ->where("COALESCE(c_token, '') <> ''")
-            ->orderBy('id_t00002', 'ASC')
+            ->orderBy($this->primaryKeyColumn(), 'ASC')
             ->setMaxResults(1);
 
         if ($this->hasActiveColumn()) {
@@ -61,5 +62,26 @@ final class ApiAssinanteRepository
         $this->hasActiveColumn = array_key_exists('log_ativo', $columns);
 
         return $this->hasActiveColumn;
+    }
+
+    private function primaryKeyColumn(): string
+    {
+        if ($this->primaryKeyColumn !== null) {
+            return $this->primaryKeyColumn;
+        }
+
+        $table = $this->auditConnection->createSchemaManager()->introspectTable('t00002');
+        $primaryKey = $table->getPrimaryKey();
+        if ($primaryKey !== null && count($primaryKey->getColumns()) === 1) {
+            return $this->primaryKeyColumn = $primaryKey->getColumns()[0];
+        }
+
+        foreach (['id_t00002', 'id'] as $candidate) {
+            if ($table->hasColumn($candidate)) {
+                return $this->primaryKeyColumn = $candidate;
+            }
+        }
+
+        return $this->primaryKeyColumn = 'c_identificador';
     }
 }

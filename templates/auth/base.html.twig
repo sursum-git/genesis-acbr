@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Login{% endblock %}</title>
+    <link rel="icon" href="https://raw.githubusercontent.com/Projeto-ACBr-Oficial/Docker/main/PHP/img/favico-acbr.png" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ app.request.basePath ~ '/catalog-assets/catalog.css' }}">
+    <link rel="stylesheet" href="{{ app.request.basePath ~ '/catalog-assets/adminlte-portal.css' }}">
+    <style>
+        body {
+            min-height: 100vh;
+            display: grid;
+            place-items: center;
+            background: #f4f6f9;
+        }
+
+        .login-shell {
+            width: min(440px, calc(100vw - 32px));
+        }
+
+        .login-panel {
+            background: #fff;
+            border: 1px solid rgba(0, 0, 0, 0.08);
+            border-radius: 8px;
+            box-shadow: 0 12px 32px rgba(15, 23, 42, 0.08);
+            padding: 28px;
+        }
+
+        .login-brand {
+            margin-bottom: 20px;
+        }
+
+        .login-brand h1 {
+            font-size: 1.35rem;
+            margin: 0;
+        }
+
+        .login-brand p {
+            color: #64748b;
+            margin: 4px 0 0;
+        }
+    </style>
+</head>
+<body>
+<main class="login-shell">
+    {% block body %}{% endblock %}
+</main>
+<script>
+    if (window.top !== window.self) {
+        window.top.location.href = window.location.href;
+    }
+</script>
+</body>
+</html>

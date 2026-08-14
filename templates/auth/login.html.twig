@@ -1,17 +1,13 @@
-{% extends 'admin/base.html.twig' %}
+{% extends 'auth/base.html.twig' %}
 
 {% block title %}Login{% endblock %}
-{% block page_title %}Login{% endblock %}
-{% block page_subtitle %}Acesso ao portal administrativo.{% endblock %}
-{% block page_heading %}Entrar{% endblock %}
-{% block heading_text %}{% endblock %}
-
-{% block breadcrumb %}
-    <li class="breadcrumb-item active" aria-current="page">Login</li>
-{% endblock %}
 
 {% block body %}
-    <section class="portal-panel" style="max-width: 480px;">
+    <section class="login-panel">
+        <div class="login-brand">
+            <h1>ACBr Portal</h1>
+            <p>Entre para acessar o portal administrativo.</p>
+        </div>
         {% if error %}
             <div class="alert alert-danger">{{ error }}</div>
         {% endif %}

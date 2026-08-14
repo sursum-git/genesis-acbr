@@ -29,7 +29,7 @@ final class AuthUserRepository
             'c_senha_hash' => $passwordHash,
             'c_nome' => $name !== '' ? $name : trim($username),
             'c_tipo' => $type,
-            'log_ativo' => $active ? 1 : 0,
+            'log_ativo' => $active,
             'dt_hr_criacao' => $now,
             'dt_hr_atu' => $now,
         ]);
@@ -48,12 +48,27 @@ final class AuthUserRepository
         $this->connection->insert('t00006', [
             'c_nome' => trim($name),
             'c_cnpj' => $document,
-            'log_ativo' => $active ? 1 : 0,
+            'log_ativo' => $active,
             'dt_hr_criacao' => $now,
             'dt_hr_atu' => $now,
         ]);
 
         return (int) $this->connection->lastInsertId();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listUsers(int $limit = 200): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT id_t00005, c_usuario, c_nome, c_tipo, log_ativo, dt_hr_criacao, dt_hr_ult_login FROM t00005 ORDER BY c_usuario_normalizado ASC LIMIT :limit',
+            ['limit' => max(1, $limit)],
+            ['limit' => ParameterType::INTEGER]
+        );
+
+        return $rows;
     }
 
     /**
@@ -91,8 +106,8 @@ final class AuthUserRepository
 
         $this->connection->executeStatement(
             'INSERT INTO t00007 (t00005_id, t00006_id, c_role, log_ativo, dt_hr_atu) VALUES (:user_id, :company_id, :role, :active, :now)',
-            ['user_id' => $userId, 'company_id' => $companyId, 'role' => $role, 'active' => 1, 'now' => date('c')],
-            ['user_id' => ParameterType::INTEGER, 'company_id' => ParameterType::INTEGER, 'active' => ParameterType::INTEGER]
+            ['user_id' => $userId, 'company_id' => $companyId, 'role' => $role, 'active' => true, 'now' => date('c')],
+            ['user_id' => ParameterType::INTEGER, 'company_id' => ParameterType::INTEGER, 'active' => ParameterType::BOOLEAN]
         );
     }
 
@@ -100,8 +115,8 @@ final class AuthUserRepository
     {
         $this->connection->executeStatement(
             'INSERT INTO t00008 (t00006_id, t00002_id, log_ativo, dt_hr_atu) VALUES (:company_id, :subscriber_id, :active, :now)',
-            ['company_id' => $companyId, 'subscriber_id' => $subscriberId, 'active' => 1, 'now' => date('c')],
-            ['company_id' => ParameterType::INTEGER, 'subscriber_id' => ParameterType::INTEGER, 'active' => ParameterType::INTEGER]
+            ['company_id' => $companyId, 'subscriber_id' => $subscriberId, 'active' => true, 'now' => date('c')],
+            ['company_id' => ParameterType::INTEGER, 'subscriber_id' => ParameterType::INTEGER, 'active' => ParameterType::BOOLEAN]
         );
     }
 

@@ -22,6 +22,7 @@ final class AuthGateSubscriber implements EventSubscriberInterface
 
     private const SUPER_ADMIN_PREFIXES = [
         '/demos',
+        '/usuarios',
         '/assinantes',
         '/configuracao-execucao',
         '/capacidade-workers',

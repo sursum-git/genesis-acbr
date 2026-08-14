@@ -25,6 +25,20 @@
                 </li>
             </ul>
             <ul class="navbar-nav ms-auto">
+                {% set currentUser = app.request.attributes.get('_auth_user') %}
+                {% if currentUser %}
+                    <li class="nav-item d-flex align-items-center px-2 text-body-secondary">
+                        <i class="bi bi-person-circle me-1"></i>
+                        <span>{{ currentUser.name ?: currentUser.username }}</span>
+                        <span class="badge text-bg-secondary ms-2">{{ currentUser.type }}</span>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ app.request.basePath ~ '/index.php/logout' }}">
+                            <i class="bi bi-box-arrow-right"></i>
+                            Sair
+                        </a>
+                    </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link" href="{{ app.request.basePath ~ '/index.php/docs' }}" target="_blank" rel="noreferrer">
                         <i class="bi bi-box-arrow-up-right"></i>
@@ -101,6 +115,12 @@
                         <a href="{{ app.request.basePath ~ '/index.php/assinantes' }}" class="nav-link{% if currentRoute == 'app_subscribers' %} active{% endif %}">
                             <i class="nav-icon bi bi-people"></i>
                             <p>Assinantes</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ app.request.basePath ~ '/index.php/usuarios' }}" class="nav-link{% if currentRoute == 'app_users' %} active{% endif %}">
+                            <i class="nav-icon bi bi-person-gear"></i>
+                            <p>Usuários</p>
                         </a>
                     </li>
                     <li class="nav-item">

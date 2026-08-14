@@ -1,0 +1,82 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}Usuários{% endblock %}
+{% block page_heading %}Usuários{% endblock %}
+{% block heading_text %}Cadastro de logins do portal administrativo.{% endblock %}
+
+{% block body %}
+{% if loadError %}
+    <div class="alert alert-warning">Não foi possível carregar os usuários agora: {{ loadError }}</div>
+{% endif %}
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <section class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Usuários cadastrados</h3>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                        <tr>
+                            <th>Usuário</th>
+                            <th>Nome</th>
+                            <th>Tipo</th>
+                            <th>Ativo</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for user in users %}
+                            <tr>
+                                <td><code>{{ user.c_usuario }}</code></td>
+                                <td>{{ user.c_nome ?: '-' }}</td>
+                                <td>{{ types[user.c_tipo]|default(user.c_tipo) }}</td>
+                                <td>{{ user.log_ativo ? 'sim' : 'não' }}</td>
+                            </tr>
+                        {% else %}
+                            <tr><td colspan="4">Nenhum usuário encontrado.</td></tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div class="col-lg-5">
+        <section class="card">
+            <div class="card-header">
+                <h3 class="card-title mb-0">Novo usuário</h3>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ app.request.basePath ~ '/index.php/usuarios/salvar' }}" class="d-grid gap-3">
+                    <label class="form-label">
+                        Usuário
+                        <input class="form-control" type="text" name="usuario" required maxlength="80" autocomplete="off">
+                    </label>
+                    <label class="form-label">
+                        Nome
+                        <input class="form-control" type="text" name="nome" maxlength="255" autocomplete="off">
+                    </label>
+                    <label class="form-label">
+                        Senha inicial
+                        <input class="form-control" type="password" name="senha" required autocomplete="new-password">
+                    </label>
+                    <label class="form-label">
+                        Tipo
+                        <select class="form-select" name="tipo">
+                            {% for value, label in types %}
+                                <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </label>
+                    <div>
+                        <button class="btn btn-primary" type="submit">Criar usuário</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %}

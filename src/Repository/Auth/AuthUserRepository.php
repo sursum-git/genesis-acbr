@@ -3,6 +3,7 @@
 namespace App\Repository\Auth;
 
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
 use InvalidArgumentException;
 
@@ -72,6 +73,53 @@ final class AuthUserRepository
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function listCompanies(int $limit = 500): array
+    {
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT id_t00006, c_nome, c_cnpj, log_ativo FROM t00006 WHERE log_ativo = TRUE ORDER BY c_nome ASC LIMIT :limit',
+            ['limit' => max(1, $limit)],
+            ['limit' => ParameterType::INTEGER]
+        );
+
+        return $rows;
+    }
+
+    /**
+     * @param list<int> $userIds
+     * @return array<int, list<array<string, mixed>>>
+     */
+    public function companiesForUsers(array $userIds): array
+    {
+        $userIds = array_values(array_unique(array_filter(array_map('intval', $userIds), static fn (int $id): bool => $id > 0)));
+        if ($userIds === []) {
+            return [];
+        }
+
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT uc.t00005_id, c.id_t00006, c.c_nome, c.c_cnpj, uc.c_role
+             FROM t00007 uc
+             INNER JOIN t00006 c ON c.id_t00006 = uc.t00006_id AND c.log_ativo = TRUE
+             WHERE uc.t00005_id IN (:user_ids)
+               AND uc.log_ativo = TRUE
+             ORDER BY uc.t00005_id ASC, c.c_nome ASC',
+            ['user_ids' => $userIds],
+            ['user_ids' => ArrayParameterType::INTEGER]
+        );
+
+        $companiesByUser = [];
+        foreach ($rows as $row) {
+            $userId = (int) $row['t00005_id'];
+            $companiesByUser[$userId] ??= [];
+            $companiesByUser[$userId][] = $row;
+        }
+
+        return $companiesByUser;
+    }
+
+    /**
      * @return array<string, mixed>|null
      */
     public function findActiveByUsername(string $username): ?array
@@ -109,6 +157,51 @@ final class AuthUserRepository
             ['user_id' => $userId, 'company_id' => $companyId, 'role' => $role, 'active' => true, 'now' => date('c')],
             ['user_id' => ParameterType::INTEGER, 'company_id' => ParameterType::INTEGER, 'active' => ParameterType::BOOLEAN]
         );
+    }
+
+    /**
+     * @param list<int> $companyIds
+     */
+    public function replaceUserCompanies(int $userId, array $companyIds, string $role = 'common'): void
+    {
+        if ($userId <= 0) {
+            throw new InvalidArgumentException('Usuario invalido.');
+        }
+
+        if (!in_array($role, ['company_admin', 'common'], true)) {
+            throw new InvalidArgumentException('Role de empresa invalido.');
+        }
+
+        $companyIds = array_values(array_unique(array_filter(array_map('intval', $companyIds), static fn (int $id): bool => $id > 0)));
+        $now = date('c');
+
+        $this->connection->beginTransaction();
+        try {
+            $this->connection->executeStatement(
+                'UPDATE t00007 SET log_ativo = :active, dt_hr_atu = :now WHERE t00005_id = :user_id',
+                ['active' => false, 'now' => $now, 'user_id' => $userId],
+                ['active' => ParameterType::BOOLEAN, 'user_id' => ParameterType::INTEGER]
+            );
+
+            foreach ($companyIds as $companyId) {
+                $updated = $this->connection->executeStatement(
+                    'UPDATE t00007
+                     SET c_role = :role, log_ativo = :active, dt_hr_atu = :now
+                     WHERE t00005_id = :user_id AND t00006_id = :company_id',
+                    ['role' => $role, 'active' => true, 'now' => $now, 'user_id' => $userId, 'company_id' => $companyId],
+                    ['active' => ParameterType::BOOLEAN, 'user_id' => ParameterType::INTEGER, 'company_id' => ParameterType::INTEGER]
+                );
+
+                if ($updated === 0) {
+                    $this->assignUserCompany($userId, $companyId, $role);
+                }
+            }
+
+            $this->connection->commit();
+        } catch (\Throwable $throwable) {
+            $this->connection->rollBack();
+            throw $throwable;
+        }
     }
 
     public function assignCompanySubscriber(int $companyId, int $subscriberId): void

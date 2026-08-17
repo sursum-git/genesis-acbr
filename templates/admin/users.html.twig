@@ -10,32 +10,56 @@
 {% endif %}
 
 <div class="row g-4">
-    <div class="col-lg-7">
+    <div class="col-lg-8">
         <section class="card">
             <div class="card-header">
                 <h3 class="card-title mb-0">Usuários cadastrados</h3>
             </div>
             <div class="card-body">
                 <div class="table-responsive">
-                    <table class="table table-sm align-middle">
+                    <table class="table table-sm align-middle" data-company-bindings-action="{{ app.request.basePath ~ '/index.php/usuarios/empresas/salvar' }}">
                         <thead>
                         <tr>
                             <th>Usuário</th>
                             <th>Nome</th>
                             <th>Tipo</th>
                             <th>Ativo</th>
+                            <th>Empresas</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for user in users %}
+                            {% set selectedCompanies = userCompanies[user.id_t00005]|default([]) %}
+                            {% set selectedCompanyIds = selectedCompanies|map(company => company.id_t00006) %}
                             <tr>
                                 <td><code>{{ user.c_usuario }}</code></td>
                                 <td>{{ user.c_nome ?: '-' }}</td>
                                 <td>{{ types[user.c_tipo]|default(user.c_tipo) }}</td>
                                 <td>{{ user.log_ativo ? 'sim' : 'não' }}</td>
+                                <td style="min-width: 260px;">
+                                    {% if selectedCompanies %}
+                                        <div class="small text-body-secondary mb-2">
+                                            {{ selectedCompanies|map(company => company.c_nome)|join(', ') }}
+                                        </div>
+                                    {% endif %}
+                                    <form method="post" action="{{ app.request.basePath ~ '/index.php/usuarios/empresas/salvar' }}" class="d-flex gap-2 align-items-start">
+                                        <input type="hidden" name="usuario_id" value="{{ user.id_t00005 }}">
+                                        <select class="form-select form-select-sm" name="empresa_ids[]" multiple size="3" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>
+                                            {% for company in companies %}
+                                                <option value="{{ company.id_t00006 }}" {% if company.id_t00006 in selectedCompanyIds %}selected{% endif %}>
+                                                    {{ company.c_nome }}{% if company.c_cnpj %} — {{ company.c_cnpj }}{% endif %}
+                                                </option>
+                                            {% endfor %}
+                                        </select>
+                                        <button class="btn btn-sm btn-outline-primary" type="submit" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>Salvar</button>
+                                    </form>
+                                    {% if user.c_tipo == 'super_admin' %}
+                                        <div class="form-text">Admin geral acessa todas as empresas.</div>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="4">Nenhum usuário encontrado.</td></tr>
+                            <tr><td colspan="5">Nenhum usuário encontrado.</td></tr>
                         {% endfor %}
                         </tbody>
                     </table>
@@ -44,7 +68,7 @@
         </section>
     </div>
 
-    <div class="col-lg-5">
+    <div class="col-lg-4">
         <section class="card">
             <div class="card-header">
                 <h3 class="card-title mb-0">Novo usuário</h3>
@@ -70,6 +94,15 @@
                                 <option value="{{ value }}">{{ label }}</option>
                             {% endfor %}
                         </select>
+                    </label>
+                    <label class="form-label">
+                        Empresas
+                        <select class="form-select" name="empresa_ids[]" multiple size="6">
+                            {% for company in companies %}
+                                <option value="{{ company.id_t00006 }}">{{ company.c_nome }}{% if company.c_cnpj %} — {{ company.c_cnpj }}{% endif %}</option>
+                            {% endfor %}
+                        </select>
+                        <span class="form-text">Use Ctrl/Cmd para selecionar mais de uma empresa. Admin geral não precisa de vínculo.</span>
                     </label>
                     <div>
                         <button class="btn btn-primary" type="submit">Criar usuário</button>

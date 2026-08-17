@@ -25,16 +25,22 @@ final class UserAdminController extends AbstractController
     {
         $loadError = null;
         $users = [];
+        $companies = [];
+        $userCompanies = [];
 
         try {
             $this->schemaManager->ensureSchema();
             $users = $this->users->listUsers();
+            $companies = $this->users->listCompanies();
+            $userCompanies = $this->users->companiesForUsers(array_map(static fn (array $user): int => (int) $user['id_t00005'], $users));
         } catch (Throwable $throwable) {
             $loadError = $throwable->getMessage();
         }
 
         return $this->render('admin/users.html.twig', [
             'users' => $users,
+            'companies' => $companies,
+            'userCompanies' => $userCompanies,
             'loadError' => $loadError,
             'types' => [
                 'common' => 'Comum',
@@ -62,12 +68,60 @@ final class UserAdminController extends AbstractController
                 throw new InvalidArgumentException('Já existe um usuário ativo com esse login.');
             }
 
-            $this->users->createUser($username, password_hash($password, PASSWORD_DEFAULT), $type, true, $name);
+            $userId = $this->users->createUser($username, password_hash($password, PASSWORD_DEFAULT), $type, true, $name);
+            $companyRole = $this->companyRoleForType($type);
+            if ($companyRole !== null) {
+                $this->users->replaceUserCompanies($userId, $this->companyIdsFromRequest($request), $companyRole);
+            }
+
             $this->addFlash('success', 'Usuário criado.');
         } catch (Throwable $throwable) {
             $this->addFlash('error', 'Falha ao criar usuário: ' . $throwable->getMessage());
         }
 
         return $this->redirectToRoute('app_users');
+    }
+
+    #[Route('/usuarios/empresas/salvar', name: 'app_users_companies_save', methods: ['POST'])]
+    public function saveCompanies(Request $request): RedirectResponse
+    {
+        try {
+            $this->schemaManager->ensureSchema();
+            $userId = (int) $request->request->get('usuario_id', 0);
+            $user = $this->users->findActiveById($userId);
+            if ($user === null) {
+                throw new InvalidArgumentException('Usuário não encontrado.');
+            }
+
+            $companyRole = $this->companyRoleForType((string) ($user['c_tipo'] ?? 'common'));
+            $this->users->replaceUserCompanies($userId, $companyRole === null ? [] : $this->companyIdsFromRequest($request), $companyRole ?? 'common');
+            $this->addFlash('success', 'Empresas do usuário atualizadas.');
+        } catch (Throwable $throwable) {
+            $this->addFlash('error', 'Falha ao atualizar empresas do usuário: ' . $throwable->getMessage());
+        }
+
+        return $this->redirectToRoute('app_users');
+    }
+
+    /**
+     * @return list<int>
+     */
+    private function companyIdsFromRequest(Request $request): array
+    {
+        $companyIds = $request->request->all('empresa_ids');
+        if (!is_array($companyIds)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $companyIds), static fn (int $id): bool => $id > 0)));
+    }
+
+    private function companyRoleForType(string $type): ?string
+    {
+        return match ($type) {
+            'company_admin' => 'company_admin',
+            'common' => 'common',
+            default => null,
+        };
     }
 }

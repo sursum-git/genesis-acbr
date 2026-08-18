@@ -60,7 +60,7 @@ final class CurrentUserContext
     {
         $request = $this->requestStack->getCurrentRequest();
         if ($request !== null && $request->hasSession()) {
-            $request->getSession()->remove(self::SESSION_KEY);
+            $request->getSession()->invalidate();
         }
     }
 

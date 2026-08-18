@@ -10,6 +10,8 @@ framework:
     utf8: true
   session:
     enabled: true
+    cookie_lifetime: 0
+    gc_maxlifetime: 3600
     cookie_secure: auto
     cookie_samesite: lax
 

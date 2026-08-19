@@ -113,6 +113,49 @@ final class AuthUserRepository
     }
 
     /**
+     * @return list<array{id:int,name:string,cnpj:string,label:string}>
+     */
+    public function searchCompanies(string $query, int $limit = 20): array
+    {
+        $normalizedQuery = strtolower(trim($query));
+        $documentQuery = preg_replace('/\D+/', '', $query) ?? '';
+        if ($normalizedQuery === '' && $documentQuery === '') {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $rows */
+        $rows = $this->connection->fetchAllAssociative(
+            'SELECT id_t00006, c_nome, c_cnpj
+             FROM t00006
+             WHERE log_ativo = TRUE
+               AND (
+                 LOWER(c_nome) LIKE :query
+                 OR c_cnpj LIKE :document
+               )
+             ORDER BY c_nome ASC
+             LIMIT :limit',
+            [
+                'query' => '%' . $normalizedQuery . '%',
+                'document' => $documentQuery !== '' ? '%' . $documentQuery . '%' : '__NO_DOCUMENT_QUERY__',
+                'limit' => max(1, $limit),
+            ],
+            ['limit' => ParameterType::INTEGER]
+        );
+
+        return array_map(static function (array $row): array {
+            $name = (string) ($row['c_nome'] ?? '');
+            $cnpj = (string) ($row['c_cnpj'] ?? '');
+
+            return [
+                'id' => (int) $row['id_t00006'],
+                'name' => $name,
+                'cnpj' => $cnpj,
+                'label' => trim($name . ($cnpj !== '' ? ' — ' . $cnpj : '')),
+            ];
+        }, $rows);
+    }
+
+    /**
      * @param list<int> $userIds
      * @return array<int, list<array<string, mixed>>>
      */

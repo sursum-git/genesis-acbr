@@ -44,12 +44,22 @@ if ($response->getStatusCode() !== 200) {
 assertUserAdminContains('Usuários', $content, 'User admin page should show users title.');
 assertUserAdminContains('Novo usuário', $content, 'User admin page should expose new user action.');
 assertUserAdminContains('Empresas', $content, 'User admin page should expose company assignment controls.');
-assertUserAdminContains('empresa_ids[]', $content, 'New user form should allow selecting companies.');
+assertUserAdminContains('data-company-search', $content, 'User admin page should use searchable company controls.');
+assertUserAdminContains('/index.php/usuarios/empresas/busca', $content, 'User admin page should expose the company search endpoint.');
 assertUserAdminContains('/index.php/usuarios/empresas/salvar', $content, 'User list should expose company binding save action.');
+assertUserAdminContains('/catalog-assets/admin/user-company-search.js', $content, 'User admin page should load company search asset.');
 assertUserAdminContains('Admin Tela', $content, 'Admin header should show current user name.');
 assertUserAdminContains('/index.php/logout', $content, 'Admin header should expose logout link.');
 assertUserAdminContains('nav-item ms-4 ps-3 border-start', $content, 'Admin header should visually separate logout from API docs link.');
 assertUserAdminContains('/index.php/usuarios', $content, 'Sidebar should link to user admin page.');
+
+if (str_contains($content, 'name="empresa_ids[]" multiple')) {
+    fwrite(STDERR, "User admin page should not render full company multi-selects.\n");
+    exit(1);
+}
+
+$searchAsset = file_get_contents(dirname(__DIR__, 2) . '/catalog-assets/admin/user-company-search.js');
+assertUserAdminContains('name: \'empresa_ids[]\'', (string) $searchAsset, 'Company search asset should submit selected company ids.');
 
 $kernel->terminate($request, $response);
 fwrite(STDOUT, "OK\n");

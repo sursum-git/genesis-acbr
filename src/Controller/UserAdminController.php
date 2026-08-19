@@ -6,6 +6,7 @@ use App\Repository\Auth\AuthSchemaManager;
 use App\Repository\Auth\AuthUserRepository;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -25,14 +26,12 @@ final class UserAdminController extends AbstractController
     {
         $loadError = null;
         $users = [];
-        $companies = [];
         $userCompanies = [];
 
         try {
             $this->schemaManager->ensureSchema();
             $this->users->syncCompaniesFromMonitorIssuers();
             $users = $this->users->listUsers();
-            $companies = $this->users->listCompanies();
             $userCompanies = $this->users->companiesForUsers(array_map(static fn (array $user): int => (int) $user['id_t00005'], $users));
         } catch (Throwable $throwable) {
             $loadError = $throwable->getMessage();
@@ -40,7 +39,6 @@ final class UserAdminController extends AbstractController
 
         return $this->render('admin/users.html.twig', [
             'users' => $users,
-            'companies' => $companies,
             'userCompanies' => $userCompanies,
             'loadError' => $loadError,
             'types' => [
@@ -81,6 +79,21 @@ final class UserAdminController extends AbstractController
         }
 
         return $this->redirectToRoute('app_users');
+    }
+
+    #[Route('/usuarios/empresas/busca', name: 'app_users_companies_search', methods: ['GET'])]
+    public function searchCompanies(Request $request): JsonResponse
+    {
+        try {
+            $this->schemaManager->ensureSchema();
+            $this->users->syncCompaniesFromMonitorIssuers();
+
+            return $this->json([
+                'items' => $this->users->searchCompanies($request->query->getString('q')),
+            ]);
+        } catch (Throwable $throwable) {
+            return $this->json(['items' => [], 'message' => $throwable->getMessage()], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
     }
 
     #[Route('/usuarios/empresas/salvar', name: 'app_users_companies_save', methods: ['POST'])]

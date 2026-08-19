@@ -33,6 +33,16 @@ assertBindingSame([$companyA, $companyB], array_map(
     $repository->listCompanies()
 ), 'company listing should expose active companies for the user screen.');
 
+assertBindingSame([$companyA], array_map(
+    static fn (array $company): int => (int) $company['id'],
+    $repository->searchCompanies('06013812')
+), 'company search should find by CNPJ prefix.');
+
+assertBindingSame([$companyB], array_map(
+    static fn (array $company): int => (int) $company['id'],
+    $repository->searchCompanies('empresa b')
+), 'company search should find by name case-insensitively.');
+
 $activeAfterFirstSave = $connection->fetchAllAssociative(
     'SELECT t00006_id, c_role, log_ativo FROM t00007 WHERE t00005_id = :user_id ORDER BY t00006_id ASC',
     ['user_id' => $userId]

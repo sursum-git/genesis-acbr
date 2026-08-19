@@ -30,7 +30,6 @@
                         <tbody>
                         {% for user in users %}
                             {% set selectedCompanies = userCompanies[user.id_t00005]|default([]) %}
-                            {% set selectedCompanyIds = selectedCompanies|map(company => company.id_t00006) %}
                             <tr>
                                 <td><code>{{ user.c_usuario }}</code></td>
                                 <td>{{ user.c_nome ?: '-' }}</td>
@@ -42,16 +41,24 @@
                                             {{ selectedCompanies|map(company => company.c_nome)|join(', ') }}
                                         </div>
                                     {% endif %}
-                                    <form method="post" action="{{ app.request.basePath ~ '/index.php/usuarios/empresas/salvar' }}" class="d-flex gap-2 align-items-start">
+                                    <form method="post" action="{{ app.request.basePath ~ '/index.php/usuarios/empresas/salvar' }}" class="d-grid gap-2">
                                         <input type="hidden" name="usuario_id" value="{{ user.id_t00005 }}">
-                                        <select class="form-select form-select-sm" name="empresa_ids[]" multiple size="3" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>
-                                            {% for company in companies %}
-                                                <option value="{{ company.id_t00006 }}" {% if company.id_t00006 in selectedCompanyIds %}selected{% endif %}>
-                                                    {{ company.c_nome }}{% if company.c_cnpj %} — {{ company.c_cnpj }}{% endif %}
-                                                </option>
-                                            {% endfor %}
-                                        </select>
-                                        <button class="btn btn-sm btn-outline-primary" type="submit" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>Salvar</button>
+                                        <div data-company-search data-company-search-url="{{ app.request.basePath ~ '/index.php/usuarios/empresas/busca' }}">
+                                            <div class="d-flex flex-wrap gap-1 mb-2" data-company-selected>
+                                                {% for company in selectedCompanies %}
+                                                    <span class="badge text-bg-secondary d-inline-flex align-items-center gap-2" data-company-chip="{{ company.id_t00006 }}">
+                                                        <span>{{ company.c_nome }}</span>
+                                                        <input type="hidden" name="empresa_ids[]" value="{{ company.id_t00006 }}">
+                                                        <button type="button" class="btn-close btn-close-white" aria-label="Remover empresa" data-company-remove="{{ company.id_t00006 }}" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}></button>
+                                                    </span>
+                                                {% else %}
+                                                    <span class="text-body-secondary small" data-company-empty>Nenhuma empresa vinculada.</span>
+                                                {% endfor %}
+                                            </div>
+                                            <input class="form-control form-control-sm" type="search" placeholder="Buscar empresa por nome ou CNPJ" data-company-input {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>
+                                            <div class="list-group mt-1" data-company-results></div>
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary w-auto" type="submit" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>Salvar empresas</button>
                                     </form>
                                     {% if user.c_tipo == 'super_admin' %}
                                         <div class="form-text">Admin geral acessa todas as empresas.</div>
@@ -95,15 +102,17 @@
                             {% endfor %}
                         </select>
                     </label>
-                    <label class="form-label">
+                    <div class="form-label">
                         Empresas
-                        <select class="form-select" name="empresa_ids[]" multiple size="6">
-                            {% for company in companies %}
-                                <option value="{{ company.id_t00006 }}">{{ company.c_nome }}{% if company.c_cnpj %} — {{ company.c_cnpj }}{% endif %}</option>
-                            {% endfor %}
-                        </select>
-                        <span class="form-text">Use Ctrl/Cmd para selecionar mais de uma empresa. Admin geral não precisa de vínculo.</span>
-                    </label>
+                        <div data-company-search data-company-search-url="{{ app.request.basePath ~ '/index.php/usuarios/empresas/busca' }}">
+                            <div class="d-flex flex-wrap gap-1 mb-2" data-company-selected>
+                                <span class="text-body-secondary small" data-company-empty>Nenhuma empresa selecionada.</span>
+                            </div>
+                            <input class="form-control" type="search" placeholder="Buscar empresa por nome ou CNPJ" data-company-input autocomplete="off">
+                            <div class="list-group mt-1" data-company-results></div>
+                        </div>
+                        <span class="form-text">Digite ao menos 2 caracteres. Admin geral não precisa de vínculo.</span>
+                    </div>
                     <div>
                         <button class="btn btn-primary" type="submit">Criar usuário</button>
                     </div>
@@ -112,4 +121,8 @@
         </section>
     </div>
 </div>
+{% endblock %}
+
+{% block page_scripts %}
+    <script src="{{ app.request.basePath ~ '/catalog-assets/admin/user-company-search.js' }}"></script>
 {% endblock %}

@@ -30,6 +30,7 @@ final class UserAdminController extends AbstractController
 
         try {
             $this->schemaManager->ensureSchema();
+            $this->users->syncCompaniesFromMonitorIssuers();
             $users = $this->users->listUsers();
             $companies = $this->users->listCompanies();
             $userCompanies = $this->users->companiesForUsers(array_map(static fn (array $user): int => (int) $user['id_t00005'], $users));

@@ -57,6 +57,31 @@ final class AuthUserRepository
         return (int) $this->connection->lastInsertId();
     }
 
+    public function syncCompaniesFromMonitorIssuers(): int
+    {
+        $issuers = $this->monitorIssuers();
+        if ($issuers === []) {
+            return 0;
+        }
+
+        /** @var list<string> $existingDocuments */
+        $existingDocuments = $this->connection->fetchFirstColumn('SELECT c_cnpj FROM t00006');
+        $existing = array_fill_keys(array_map('strval', $existingDocuments), true);
+        $inserted = 0;
+
+        foreach ($issuers as $document => $name) {
+            if (isset($existing[$document])) {
+                continue;
+            }
+
+            $this->createCompany($name, $document, true);
+            $existing[$document] = true;
+            ++$inserted;
+        }
+
+        return $inserted;
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -327,6 +352,68 @@ final class AuthUserRepository
         }
 
         return $this->subscriberHasActiveColumn ? sprintf('%s.log_ativo = TRUE', $alias) : '1 = 1';
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function monitorIssuers(): array
+    {
+        $issuers = [];
+
+        if ($this->tableExists('t99020')) {
+            /** @var list<array<string, mixed>> $rows */
+            $rows = $this->connection->fetchAllAssociative(
+                "SELECT nome_razao_social AS nome, cnpj AS documento
+                 FROM t99020
+                 WHERE COALESCE(cnpj, '') <> ''
+                 ORDER BY nome_razao_social ASC"
+            );
+            $this->appendIssuers($issuers, $rows);
+        }
+
+        if ($this->tableExists('t99011')) {
+            /** @var list<array<string, mixed>> $rows */
+            $rows = $this->connection->fetchAllAssociative(
+                "SELECT x_nome AS nome, cnpj AS documento
+                 FROM t99011
+                 WHERE COALESCE(cnpj, '') <> ''
+                 ORDER BY x_nome ASC"
+            );
+            $this->appendIssuers($issuers, $rows);
+        }
+
+        ksort($issuers);
+
+        return $issuers;
+    }
+
+    /**
+     * @param array<string, string> $issuers
+     * @param list<array<string, mixed>> $rows
+     */
+    private function appendIssuers(array &$issuers, array $rows): void
+    {
+        foreach ($rows as $row) {
+            $document = preg_replace('/\D+/', '', (string) ($row['documento'] ?? '')) ?? '';
+            if (strlen($document) !== 14 || isset($issuers[$document])) {
+                continue;
+            }
+
+            $name = trim((string) ($row['nome'] ?? ''));
+            $issuers[$document] = $name !== '' ? $name : $document;
+        }
+    }
+
+    private function tableExists(string $table): bool
+    {
+        try {
+            $this->connection->createSchemaManager()->introspectTable($table);
+
+            return true;
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     private function normalizeUsername(string $username): string

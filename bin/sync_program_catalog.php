@@ -29,6 +29,15 @@ $programs = [
         'detailed_explanation' => 'Organiza os endpoints atuais em Symfony 7 e API Platform 4.2, concentrando roteamento, serializacao, tratamento de excecoes, documentacao e a camada de adaptacao para os modulos legados ACBr. E o ponto de entrada principal para a API moderna e para a documentacao filtrada por modulo.',
     ],
     [
+        'code' => 'desktop_cli_client',
+        'name' => 'Cliente Desktop CLI',
+        'path' => 'clients/desktop-cli',
+        'physical_path' => 'clients/desktop-cli/main.go',
+        'category' => 'client',
+        'description' => 'Cliente Windows por arquivo INI para consumir a API central.',
+        'detailed_explanation' => 'Implementa um executavel Go para softwares desktop, especialmente integracoes Delphi legadas, chamarem a API central usando um arquivo INI passado por --arq-config. O cliente le BaseURL, token, operacao, parametros e arquivos de entrada/saida, envia X-Api-Token para a API Symfony/API Platform e devolve JSON normalizado com status_code, request_id quando aplicavel, data e error. O executavel nao roda ACBr, certificados, Symfony ou workers localmente; esses componentes permanecem no servidor central.',
+    ],
+    [
         'code' => 'src_api_resource_cep',
         'name' => 'API Resources CEP',
         'path' => 'src/ApiResource/AcbrCep',

@@ -64,10 +64,12 @@ Saida=C:\IntegracaoACBr\resposta.json
 func TestRunWithConfigCallsConsultaCadastroAndWritesResponseFile(t *testing.T) {
 	var gotPath string
 	var gotToken string
+	var gotAccept string
 
 	restore := replaceHTTPDoer(t, func(r *http.Request) (*http.Response, error) {
 		gotPath = r.URL.RequestURI()
 		gotToken = r.Header.Get("X-Api-Token")
+		gotAccept = r.Header.Get("Accept")
 		return httpResponse(200, `{"resultado":{"mensagem":"ok"}}`), nil
 	})
 	defer restore()
@@ -106,6 +108,9 @@ Saida=`+outputPath+`
 	}
 	if gotToken != "tok_abc" {
 		t.Fatalf("X-Api-Token = %q", gotToken)
+	}
+	if gotAccept != "application/ld+json" {
+		t.Fatalf("Accept = %q", gotAccept)
 	}
 	wantPath := "/index.php/nfe/consultas/consulta-cadastro?AcUF=ES&AnDocumento=06013812000158&TipoDocumento=cpf_cnpj"
 	if gotPath != wantPath {

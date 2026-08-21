@@ -308,7 +308,7 @@ func buildHTTPRequest(cfg Config, spec operationSpec) (*http.Request, error) {
 		return nil, err
 	}
 	req.Header.Set("X-Api-Token", cfg.API.Token)
-	req.Header.Set("Accept", "application/json")
+	req.Header.Set("Accept", "application/ld+json")
 	if spec.ContentType != "" {
 		req.Header.Set("Content-Type", spec.ContentType)
 	}

@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -27,10 +28,11 @@ const (
 )
 
 type Config struct {
-	API     APIConfig
-	Request RequestConfig
-	Params  map[string]string
-	Files   FileConfig
+	API       APIConfig
+	Request   RequestConfig
+	Params    map[string]string
+	Files     FileConfig
+	SourceDir string
 }
 
 type APIConfig struct {
@@ -64,6 +66,31 @@ type cliResponse struct {
 	Error      string `json:"error,omitempty"`
 }
 
+type SuiteConfig struct {
+	API       APIConfig
+	OutputDir string
+	Scenarios []ScenarioConfig
+	SourceDir string
+}
+
+type ScenarioConfig struct {
+	Name string
+	Path string
+}
+
+type scenarioResult struct {
+	Name     string `json:"name"`
+	Path     string `json:"path"`
+	Output   string `json:"output,omitempty"`
+	ExitCode int    `json:"exit_code"`
+	OK       bool   `json:"ok"`
+}
+
+type suiteResult struct {
+	OK        bool             `json:"ok"`
+	Scenarios []scenarioResult `json:"scenarios"`
+}
+
 func main() {
 	os.Exit(Run(os.Args[1:], os.Stdout, os.Stderr))
 }
@@ -77,6 +104,7 @@ func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 	fs.SetOutput(stderr)
 
 	configPath := fs.String("arq-config", "", "arquivo INI da chamada")
+	suitePath := fs.String("suite-config", "", "arquivo INI com lista de cenarios")
 	baseURL := fs.String("base-url", "", "sobrescreve BaseURL do arquivo")
 	token := fs.String("token", "", "sobrescreve Token do arquivo")
 	timeout := fs.Int("timeout", 0, "sobrescreve TimeoutSeconds do arquivo")
@@ -84,8 +112,11 @@ func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 	if err := fs.Parse(args); err != nil {
 		return ExitUsage
 	}
+	if strings.TrimSpace(*suitePath) != "" {
+		return runSuite(*suitePath, *baseURL, *token, *timeout, stdout, stderr)
+	}
 	if strings.TrimSpace(*configPath) == "" {
-		fmt.Fprintln(stderr, "informe --arq-config")
+		fmt.Fprintln(stderr, "informe --arq-config ou --suite-config")
 		return ExitUsage
 	}
 
@@ -112,6 +143,10 @@ func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 		return ExitUsage
 	}
 
+	return runSingleConfig(cfg, stdout, stderr)
+}
+
+func runSingleConfig(cfg Config, stdout io.Writer, stderr io.Writer) int {
 	resp, exitCode := Execute(cfg)
 	raw, marshalErr := json.MarshalIndent(resp, "", "  ")
 	if marshalErr != nil {
@@ -121,7 +156,12 @@ func Run(args []string, stdout io.Writer, stderr io.Writer) int {
 	raw = append(raw, '\n')
 
 	if cfg.Files.Output != "" {
-		if err := os.WriteFile(cfg.Files.Output, raw, 0o600); err != nil {
+		outputPath := resolveRelativePath(cfg.SourceDir, cfg.Files.Output)
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+			fmt.Fprintln(stderr, err)
+			return ExitFile
+		}
+		if err := os.WriteFile(outputPath, raw, 0o600); err != nil {
 			fmt.Fprintln(stderr, err)
 			return ExitFile
 		}
@@ -147,7 +187,8 @@ func LoadConfigFile(filename string) (Config, error) {
 		API: APIConfig{
 			TimeoutSeconds: defaultTOSec,
 		},
-		Params: map[string]string{},
+		Params:    map[string]string{},
+		SourceDir: filepath.Dir(filename),
 	}
 
 	section := ""
@@ -206,6 +247,97 @@ func LoadConfigFile(filename string) (Config, error) {
 	return cfg, nil
 }
 
+func LoadParamFile(filename string) (map[string]string, error) {
+	raw, err := os.ReadFile(filename)
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s: %v", errReadFile, filename, err)
+	}
+
+	params := map[string]string{}
+	section := "parametros"
+	lines := strings.Split(string(raw), "\n")
+	for lineNumber, original := range lines {
+		line := strings.TrimSpace(original)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			section = strings.ToLower(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")))
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			return nil, fmt.Errorf("linha %d invalida: esperado chave=valor", lineNumber+1)
+		}
+		if section != "parametros" {
+			continue
+		}
+		params[strings.TrimSpace(key)] = strings.TrimSpace(value)
+	}
+	return params, nil
+}
+
+func LoadSuiteConfig(filename string) (SuiteConfig, error) {
+	raw, err := os.ReadFile(filename)
+	if err != nil {
+		return SuiteConfig{}, fmt.Errorf("%w: %s: %v", errReadFile, filename, err)
+	}
+
+	suite := SuiteConfig{
+		API: APIConfig{
+			TimeoutSeconds: defaultTOSec,
+		},
+		SourceDir: filepath.Dir(filename),
+	}
+
+	section := ""
+	lines := strings.Split(string(raw), "\n")
+	for lineNumber, original := range lines {
+		line := strings.TrimSpace(original)
+		if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
+			continue
+		}
+		if strings.HasPrefix(line, "[") && strings.HasSuffix(line, "]") {
+			section = strings.ToLower(strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(line, "["), "]")))
+			continue
+		}
+		key, value, ok := strings.Cut(line, "=")
+		if !ok {
+			return SuiteConfig{}, fmt.Errorf("linha %d invalida: esperado chave=valor", lineNumber+1)
+		}
+		key = strings.TrimSpace(key)
+		value = strings.TrimSpace(value)
+
+		switch section {
+		case "api":
+			switch strings.ToLower(key) {
+			case "baseurl":
+				suite.API.BaseURL = value
+			case "token":
+				suite.API.Token = value
+			case "timeoutseconds":
+				n, err := strconv.Atoi(value)
+				if err != nil || n <= 0 {
+					return SuiteConfig{}, fmt.Errorf("TimeoutSeconds invalido: %q", value)
+				}
+				suite.API.TimeoutSeconds = n
+			}
+		case "suite":
+			if strings.EqualFold(key, "OutputDir") {
+				suite.OutputDir = value
+			}
+		case "cenarios":
+			suite.Scenarios = append(suite.Scenarios, ScenarioConfig{Name: key, Path: value})
+		default:
+			return SuiteConfig{}, fmt.Errorf("linha %d fora de uma secao conhecida", lineNumber+1)
+		}
+	}
+	if len(suite.Scenarios) == 0 {
+		return SuiteConfig{}, errors.New("Suite sem cenarios")
+	}
+	return suite, nil
+}
+
 func (cfg Config) Validate() error {
 	if strings.TrimSpace(cfg.API.BaseURL) == "" {
 		return errors.New("API.BaseURL e obrigatorio")
@@ -227,6 +359,13 @@ func Execute(cfg Config) (cliResponse, int) {
 	spec, err := resolveOperation(cfg.Request.Module, cfg.Request.Operation)
 	if err != nil {
 		return cliResponse{OK: false, Error: err.Error()}, ExitUsage
+	}
+	if err := loadInputParamsIfNeeded(&cfg, spec); err != nil {
+		code := ExitUsage
+		if errors.Is(err, errReadFile) {
+			code = ExitFile
+		}
+		return cliResponse{OK: false, Error: err.Error()}, code
 	}
 
 	req, err := buildHTTPRequest(cfg, spec)
@@ -269,6 +408,23 @@ func Execute(cfg Config) (cliResponse, int) {
 	return out, ExitOK
 }
 
+func loadInputParamsIfNeeded(cfg *Config, spec operationSpec) error {
+	if spec.RawInput || cfg.Files.Input == "" {
+		return nil
+	}
+	paramsPath := resolveRelativePath(cfg.SourceDir, cfg.Files.Input)
+	fileParams, err := LoadParamFile(paramsPath)
+	if err != nil {
+		return err
+	}
+	for key, value := range fileParams {
+		if _, exists := cfg.Params[key]; !exists {
+			cfg.Params[key] = value
+		}
+	}
+	return nil
+}
+
 func buildHTTPRequest(cfg Config, spec operationSpec) (*http.Request, error) {
 	base, err := url.Parse(strings.TrimRight(cfg.API.BaseURL, "/"))
 	if err != nil {
@@ -296,9 +452,10 @@ func buildHTTPRequest(cfg Config, spec operationSpec) (*http.Request, error) {
 		if cfg.Files.Input == "" {
 			return nil, errors.New("Arquivos.Entrada e obrigatorio para esta operacao")
 		}
-		raw, err := os.ReadFile(cfg.Files.Input)
+		inputPath := resolveRelativePath(cfg.SourceDir, cfg.Files.Input)
+		raw, err := os.ReadFile(inputPath)
 		if err != nil {
-			return nil, fmt.Errorf("%w: %s: %v", errReadFile, cfg.Files.Input, err)
+			return nil, fmt.Errorf("%w: %s: %v", errReadFile, inputPath, err)
 		}
 		body = bytes.NewReader(raw)
 	}
@@ -313,6 +470,115 @@ func buildHTTPRequest(cfg Config, spec operationSpec) (*http.Request, error) {
 		req.Header.Set("Content-Type", spec.ContentType)
 	}
 	return req, nil
+}
+
+func runSuite(filename string, baseURLOverride string, tokenOverride string, timeoutOverride int, stdout io.Writer, stderr io.Writer) int {
+	suite, err := LoadSuiteConfig(filename)
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		if errors.Is(err, errReadFile) {
+			return ExitFile
+		}
+		return ExitUsage
+	}
+	if baseURLOverride != "" {
+		suite.API.BaseURL = baseURLOverride
+	}
+	if tokenOverride != "" {
+		suite.API.Token = tokenOverride
+	}
+	if timeoutOverride > 0 {
+		suite.API.TimeoutSeconds = timeoutOverride
+	}
+
+	outputDir := resolveRelativePath(suite.SourceDir, suite.OutputDir)
+	if outputDir == "" {
+		outputDir = suite.SourceDir
+	}
+	if err := os.MkdirAll(outputDir, 0o755); err != nil {
+		fmt.Fprintln(stderr, err)
+		return ExitFile
+	}
+
+	results := suiteResult{OK: true}
+	exitCode := ExitOK
+	for _, scenario := range suite.Scenarios {
+		scenarioPath := resolveRelativePath(suite.SourceDir, scenario.Path)
+		cfg, err := LoadConfigFile(scenarioPath)
+		if err != nil {
+			results.OK = false
+			results.Scenarios = append(results.Scenarios, scenarioResult{Name: scenario.Name, Path: scenario.Path, ExitCode: ExitFile, OK: false})
+			exitCode = ExitFile
+			continue
+		}
+		inheritAPI(&cfg, suite.API)
+		if cfg.Files.Output == "" {
+			cfg.Files.Output = filepath.Join(outputDir, scenario.Name+".json")
+		}
+
+		resp, scenarioExit := Execute(cfg)
+		raw, marshalErr := json.MarshalIndent(resp, "", "  ")
+		if marshalErr != nil {
+			results.OK = false
+			results.Scenarios = append(results.Scenarios, scenarioResult{Name: scenario.Name, Path: scenario.Path, ExitCode: ExitUsage, OK: false})
+			exitCode = ExitUsage
+			continue
+		}
+		raw = append(raw, '\n')
+		outputPath := resolveRelativePath(cfg.SourceDir, cfg.Files.Output)
+		if err := os.MkdirAll(filepath.Dir(outputPath), 0o755); err != nil {
+			fmt.Fprintln(stderr, err)
+			return ExitFile
+		}
+		if err := os.WriteFile(outputPath, raw, 0o600); err != nil {
+			fmt.Fprintln(stderr, err)
+			return ExitFile
+		}
+
+		ok := scenarioExit == ExitOK
+		if !ok {
+			results.OK = false
+			if exitCode == ExitOK {
+				exitCode = scenarioExit
+			}
+		}
+		results.Scenarios = append(results.Scenarios, scenarioResult{Name: scenario.Name, Path: scenario.Path, Output: outputPath, ExitCode: scenarioExit, OK: ok})
+	}
+
+	summary, err := json.MarshalIndent(results, "", "  ")
+	if err != nil {
+		fmt.Fprintln(stderr, err)
+		return ExitUsage
+	}
+	summary = append(summary, '\n')
+	if err := os.WriteFile(filepath.Join(outputDir, "resumo.json"), summary, 0o600); err != nil {
+		fmt.Fprintln(stderr, err)
+		return ExitFile
+	}
+	if _, err := stdout.Write(summary); err != nil {
+		fmt.Fprintln(stderr, err)
+		return ExitFile
+	}
+	return exitCode
+}
+
+func inheritAPI(cfg *Config, api APIConfig) {
+	if cfg.API.BaseURL == "" {
+		cfg.API.BaseURL = api.BaseURL
+	}
+	if cfg.API.Token == "" {
+		cfg.API.Token = api.Token
+	}
+	if cfg.API.TimeoutSeconds == defaultTOSec && api.TimeoutSeconds != defaultTOSec {
+		cfg.API.TimeoutSeconds = api.TimeoutSeconds
+	}
+}
+
+func resolveRelativePath(baseDir string, filename string) string {
+	if filename == "" || filepath.IsAbs(filename) || baseDir == "" {
+		return filename
+	}
+	return filepath.Join(baseDir, filename)
 }
 
 func resolvePathParams(specPath string, params map[string]string) (string, map[string]bool, error) {

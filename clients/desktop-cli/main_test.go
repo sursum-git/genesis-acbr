@@ -133,6 +133,50 @@ Saida=`+outputPath+`
 	}
 }
 
+func TestRunWithConfigLoadsQueryParamsFromEntradaFileForConsultaCadastro(t *testing.T) {
+	var gotPath string
+
+	restore := replaceHTTPDoer(t, func(r *http.Request) (*http.Response, error) {
+		gotPath = r.URL.RequestURI()
+		return httpResponse(200, `{"resultado":{"mensagem":"ok"}}`), nil
+	})
+	defer restore()
+
+	dir := t.TempDir()
+	paramsPath := filepath.Join(dir, "parametros-consulta.ini")
+	writeConfig(t, paramsPath, `
+[Parametros]
+AcUF=ES
+AnDocumento=06013812000158
+TipoDocumento=cpf_cnpj
+`)
+	configPath := filepath.Join(dir, "chamada.ini")
+	writeConfig(t, configPath, `
+[API]
+BaseURL=http://api.test/index.php
+Token=tok_abc
+
+[Requisicao]
+Modulo=nfe
+Operacao=consulta-cadastro
+
+[Arquivos]
+Entrada=parametros-consulta.ini
+`)
+
+	stdout := &strings.Builder{}
+	stderr := &strings.Builder{}
+	exitCode := Run([]string{"--arq-config", configPath}, stdout, stderr)
+
+	if exitCode != ExitOK {
+		t.Fatalf("exitCode = %d stderr=%s stdout=%s", exitCode, stderr.String(), stdout.String())
+	}
+	wantPath := "/index.php/nfe/consultas/consulta-cadastro?AcUF=ES&AnDocumento=06013812000158&TipoDocumento=cpf_cnpj"
+	if gotPath != wantPath {
+		t.Fatalf("request URI = %q, want %q", gotPath, wantPath)
+	}
+}
+
 func TestRunWithConfigSendsXmlFileAndReturnsRequestIDForAcceptedAsyncCall(t *testing.T) {
 	var gotContentType string
 	var gotBody string
@@ -187,6 +231,70 @@ Entrada=`+xmlPath+`
 	}
 	if payload["status_code"].(float64) != 202 {
 		t.Fatalf("status_code = %#v", payload["status_code"])
+	}
+}
+
+func TestRunSuiteConfigExecutesMultipleScenarioFiles(t *testing.T) {
+	var gotPaths []string
+
+	restore := replaceHTTPDoer(t, func(r *http.Request) (*http.Response, error) {
+		gotPaths = append(gotPaths, r.URL.RequestURI())
+		return httpResponse(200, `{"resultado":{"mensagem":"ok"}}`), nil
+	})
+	defer restore()
+
+	dir := t.TempDir()
+	writeConfig(t, filepath.Join(dir, "consulta-parametros.ini"), `
+[Parametros]
+AcUF=ES
+AnDocumento=06013812000158
+TipoDocumento=cpf_cnpj
+`)
+	writeConfig(t, filepath.Join(dir, "consulta.ini"), `
+[Requisicao]
+Modulo=nfe
+Operacao=consulta-cadastro
+
+[Arquivos]
+Entrada=consulta-parametros.ini
+`)
+	writeConfig(t, filepath.Join(dir, "status.ini"), `
+[Requisicao]
+Modulo=nfe
+Operacao=status-servico
+`)
+	suitePath := filepath.Join(dir, "cenarios.ini")
+	writeConfig(t, suitePath, `
+[API]
+BaseURL=http://api.test/index.php
+Token=tok_suite
+
+[Suite]
+OutputDir=saida
+
+[Cenarios]
+consulta=consulta.ini
+status=status.ini
+`)
+
+	stdout := &strings.Builder{}
+	stderr := &strings.Builder{}
+	exitCode := Run([]string{"--suite-config", suitePath}, stdout, stderr)
+
+	if exitCode != ExitOK {
+		t.Fatalf("exitCode = %d stderr=%s stdout=%s", exitCode, stderr.String(), stdout.String())
+	}
+	wantPaths := []string{
+		"/index.php/nfe/consultas/consulta-cadastro?AcUF=ES&AnDocumento=06013812000158&TipoDocumento=cpf_cnpj",
+		"/index.php/nfe/consultas/status-servico",
+	}
+	if strings.Join(gotPaths, "\n") != strings.Join(wantPaths, "\n") {
+		t.Fatalf("paths = %#v", gotPaths)
+	}
+	for _, name := range []string{"consulta.json", "status.json", "resumo.json"} {
+		if _, err := os.Stat(filepath.Join(dir, "saida", name)); err != nil {
+			t.Fatalf("expected suite output %s: %v", name, err)
+		}
 	}
 }
 

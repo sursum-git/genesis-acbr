@@ -13,6 +13,12 @@ O executavel nao roda Symfony, ACBr, certificados ou workers localmente. Ele
 apenas le um arquivo `.ini`, chama a API central usando `X-Api-Token` e devolve
 um JSON de resposta.
 
+Para executar varios cenarios de uma vez:
+
+```bat
+acbr-api-cli.exe --suite-config windows-app\suites\nfe-cenarios.ini
+```
+
 ## Build
 
 No Linux:
@@ -39,15 +45,14 @@ TimeoutSeconds=60
 Modulo=nfe
 Operacao=consulta-cadastro
 
-[Parametros]
-AcUF=ES
-AnDocumento=06013812000158
-TipoDocumento=cpf_cnpj
-
 [Arquivos]
-Entrada=
+Entrada=parametros\consulta-cadastro-cpf.ini
 Saida=C:\IntegracaoACBr\resposta.json
 ```
+
+Para operacoes de consulta, `Entrada` aponta para um arquivo de parametros.
+Para operacoes com corpo bruto, `Entrada` aponta para o arquivo XML ou INI que
+sera enviado no body.
 
 Se `Saida` estiver vazio, o JSON e impresso no `stdout`.
 
@@ -70,13 +75,18 @@ Token=tok_xxx
 Modulo=nfe
 Operacao=consulta-cadastro
 
+[Arquivos]
+Entrada=parametros\consulta-cadastro-cpf.ini
+Saida=C:\IntegracaoACBr\consulta-cadastro-resposta.json
+```
+
+Arquivo `parametros\consulta-cadastro-cpf.ini`:
+
+```ini
 [Parametros]
 AcUF=ES
 AnDocumento=06013812000158
 TipoDocumento=cpf_cnpj
-
-[Arquivos]
-Saida=C:\IntegracaoACBr\consulta-cadastro-resposta.json
 ```
 
 ### Envio assincrono XML
@@ -136,6 +146,28 @@ Saida=C:\Notas\request-resposta.json
 - `nfe/imprimir-pdf`
 - `nfe/inutilizar`
 - `request/get`
+
+## App Windows de cenarios
+
+A pasta `windows-app` contem um app simples para teste em Windows:
+
+```text
+windows-app/
+  rodar-cenarios.bat
+  suites/nfe-cenarios.ini
+  chamadas/*.ini
+  parametros/*.ini
+```
+
+Fluxo:
+
+1. Gere ou copie `dist\acbr-api-cli.exe`.
+2. Edite `windows-app\suites\nfe-cenarios.ini` e informe o token.
+3. Execute `windows-app\rodar-cenarios.bat`.
+4. Consulte as respostas em `windows-app\saida`.
+
+Tambem existe uma pasta local ignorada pelo Git, `windows-test-local`, para
+testes com token real sem versionar segredo.
 
 ## Saida JSON
 

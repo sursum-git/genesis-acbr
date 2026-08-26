@@ -33,6 +33,19 @@ Build local para testes:
 GOCACHE=/tmp/acbr-api-cli-gocache go build -o dist/acbr-api-cli
 ```
 
+Biblioteca compartilhada Linux:
+
+```bash
+GOCACHE=/tmp/acbr-api-cli-gocache go build -buildmode=c-shared -o dist/libacbr_api_cli.so
+```
+
+Esse comando gera:
+
+```text
+dist/libacbr_api_cli.so
+dist/libacbr_api_cli.h
+```
+
 ## Formato do INI
 
 ```ini
@@ -168,6 +181,41 @@ Fluxo:
 
 Tambem existe uma pasta local ignorada pelo Git, `windows-test-local`, para
 testes com token real sem versionar segredo.
+
+## Biblioteca Linux .so
+
+A biblioteca Linux expõe uma interface C simples:
+
+```c
+char* AcbrApiRunConfig(char* configPath);
+void AcbrApiFree(char* ptr);
+```
+
+`AcbrApiRunConfig` recebe o caminho do mesmo arquivo `.ini` usado pelo CLI e
+retorna um JSON:
+
+```json
+{
+  "exit_code": 0,
+  "stdout": "{...}",
+  "stderr": ""
+}
+```
+
+Compile o exemplo C:
+
+```bash
+gcc -o dist/acbr-api-cli-so-example linux-example/call_config.c -Ldist -lacbr_api_cli -Wl,-rpath,'$ORIGIN'
+```
+
+Execute:
+
+```bash
+dist/acbr-api-cli-so-example chamada.ini
+```
+
+Quem chama a biblioteca deve liberar a string retornada usando
+`AcbrApiFree`.
 
 ## Saida JSON
 

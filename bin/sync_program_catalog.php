@@ -34,8 +34,8 @@ $programs = [
         'path' => 'clients/desktop-cli',
         'physical_path' => 'clients/desktop-cli/main.go',
         'category' => 'client',
-        'description' => 'Cliente Windows por arquivo INI para consumir a API central.',
-        'detailed_explanation' => 'Implementa um executavel Go para softwares desktop, especialmente integracoes Delphi legadas, chamarem a API central usando um arquivo INI passado por --arq-config. O cliente le BaseURL, token, operacao, parametros e arquivos de entrada/saida, envia X-Api-Token para a API Symfony/API Platform e devolve JSON normalizado com status_code, request_id quando aplicavel, data e error. O executavel nao roda ACBr, certificados, Symfony ou workers localmente; esses componentes permanecem no servidor central.',
+        'description' => 'Cliente desktop por arquivo INI para consumir a API central.',
+        'detailed_explanation' => 'Implementa um cliente Go para softwares desktop chamarem a API central usando arquivos INI. No Windows, gera um executavel CLI para integracoes Delphi legadas e suites de cenarios. No Linux, tambem gera uma biblioteca compartilhada .so com interface C simples para executar uma chamada por arquivo de configuracao. O cliente le BaseURL, token, operacao, parametros e arquivos de entrada/saida, envia X-Api-Token para a API Symfony/API Platform e devolve JSON normalizado. Ele nao roda ACBr, certificados, Symfony ou workers localmente; esses componentes permanecem no servidor central.',
     ],
     [
         'code' => 'src_api_resource_cep',

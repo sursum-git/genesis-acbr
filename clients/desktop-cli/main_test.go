@@ -395,6 +395,41 @@ Operacao=status-servico
 	}
 }
 
+func TestSharedLibraryRunConfigReturnsExitCodeStdoutAndStderrAsJSON(t *testing.T) {
+	restore := replaceHTTPDoer(t, func(r *http.Request) (*http.Response, error) {
+		return httpResponse(200, `{"resultado":{"mensagem":"ok"}}`), nil
+	})
+	defer restore()
+
+	dir := t.TempDir()
+	configPath := filepath.Join(dir, "status.ini")
+	writeConfig(t, configPath, `
+[API]
+BaseURL=http://api.test/index.php
+Token=tok_shared
+
+[Requisicao]
+Modulo=nfe
+Operacao=status-servico
+`)
+
+	raw := RunConfigForSharedLibrary(configPath)
+
+	var payload map[string]any
+	if err := json.Unmarshal([]byte(raw), &payload); err != nil {
+		t.Fatalf("shared result is not JSON: %v\n%s", err, raw)
+	}
+	if payload["exit_code"].(float64) != 0 {
+		t.Fatalf("exit_code = %#v in %s", payload["exit_code"], raw)
+	}
+	if !strings.Contains(payload["stdout"].(string), `"ok": true`) {
+		t.Fatalf("stdout does not contain CLI JSON success: %s", payload["stdout"])
+	}
+	if payload["stderr"].(string) != "" {
+		t.Fatalf("stderr = %q", payload["stderr"])
+	}
+}
+
 func writeConfig(t *testing.T, path string, content string) {
 	t.Helper()
 	writeFile(t, path, strings.TrimSpace(content)+"\n")

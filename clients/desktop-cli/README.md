@@ -13,6 +13,12 @@ O executavel nao roda Symfony, ACBr, certificados ou workers localmente. Ele
 apenas le um arquivo `.ini`, chama a API central usando `X-Api-Token` e devolve
 um JSON de resposta.
 
+Guia completo de uso:
+
+```text
+USO_EXECUTAVEL.md
+```
+
 Para executar varios cenarios de uma vez:
 
 ```bat

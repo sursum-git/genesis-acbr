@@ -29,10 +29,14 @@ $connection->executeStatement('CREATE TABLE t99033 (id_t99033 INTEGER PRIMARY KE
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_assinante_json, t00002_id) VALUES ('req-a', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 200, '2026-07-03 10:00:00', '{\"id_t00002\":10,\"c_identificador\":\"cliente_a\",\"c_nome\":\"Cliente A\"}', 10)");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (1, 'req-a', 'procNFe')");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, mod, serie, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (1, 1, '35123456789012345678901234567890123456789012', '1', '55', '1', '2026-07-03 09:59:00', '10.00', '<xml>a</xml>', '')");
+$connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (1, 'EMITENTE A', '11111111000111')");
+$connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (1, 1)");
 
 $connection->executeStatement("INSERT INTO t99001 (u_c_request_id, c_caminho, c_cod_programa, si_status_processamento, si_status_http, dt_hr_recebimento, t_assinante_json, t00002_id) VALUES ('req-b', '/nfe/envio/enviar-sincrono-xml', 'nfe', 3, 200, '2026-07-03 11:00:00', '{\"id_t00002\":11,\"c_identificador\":\"cliente_b\",\"c_nome\":\"Cliente B\"}', 11)");
 $connection->executeStatement("INSERT INTO t99008 (id_t99008, u_c_request_id, schema_family) VALUES (2, 'req-b', 'procNFe')");
 $connection->executeStatement("INSERT INTO t99019 (id_t99019, t99008_id, ch_nfe, n_nf, mod, serie, dh_emi, v_nf, xml_autorizado, caminho_danfe) VALUES (2, 2, '44123456789012345678901234567890123456789012', '2', '55', '1', '2026-07-03 10:59:00', '20.00', '<xml>b</xml>', '')");
+$connection->executeStatement("INSERT INTO t99020 (id_t99020, nome_razao_social, cnpj) VALUES (2, 'EMITENTE B', '22222222000122')");
+$connection->executeStatement("INSERT INTO t99023 (t99019_id, t99020_id) VALUES (2, 2)");
 
 $repository = new NfeOutputMonitorRepository($connection);
 $rows = $repository->search(['subscriber_ids' => [10]]);
@@ -41,5 +45,14 @@ assertScopeSame(1, count($rows), 'monitor search should only return rows from al
 assertScopeSame('req-a', $rows[0]['request_id'], 'monitor scope should preserve the allowed subscriber row.');
 assertScopeSame(null, $repository->findByRequestId('req-b', [10]), 'detail lookup should reject rows outside allowed subscriber scope.');
 assertScopeSame('req-a', $repository->findByRequestId('req-a', [10])['request_id'] ?? null, 'detail lookup should allow rows inside subscriber scope.');
+assertScopeSame('req-a', $repository->search(['subscriber_ids' => [], 'company_documents' => ['11111111000111']])[0]['request_id'] ?? null, 'output monitor should allow rows from linked company documents even without subscriber relation.');
+assertScopeSame('req-a', $repository->findByRequestId('req-a', [], ['11111111000111'])['request_id'] ?? null, 'output detail lookup should allow rows from linked company documents even without subscriber relation.');
+assertScopeSame([], $repository->search(['subscriber_ids' => [], 'company_documents' => []]), 'empty user scope should deny all output monitor rows.');
+assertScopeSame(null, $repository->findByRequestId('req-a', [], []), 'empty user scope should deny output monitor detail lookup.');
+
+$options = $repository->filterOptions(['subscriber_ids' => [10]]);
+assertScopeSame(['EMITENTE A'], $options['emissores'], 'output filter options should only include allowed issuers.');
+assertScopeSame(['Cliente A', 'cliente_a'], $options['assinantes'], 'output filter options should only include allowed subscribers.');
+assertScopeSame(['EMITENTE A'], $repository->searchFilterOptions('emissor', 'EMITENTE', ['subscriber_ids' => [10]]), 'output filter lookup should only include allowed issuers.');
 
 fwrite(STDOUT, "OK\n");

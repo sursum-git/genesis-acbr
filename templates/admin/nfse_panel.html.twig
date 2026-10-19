@@ -1,0 +1,228 @@
+{% extends 'admin/base.html.twig' %}
+
+{% block title %}NFSe{% endblock %}
+{% block page_heading %}NFSe{% endblock %}
+{% block heading_text %}Console operacional inicial para RPS, cancelamento, substituicao e Padrao Nacional.{% endblock %}
+
+{% block page_styles %}
+    <style>
+        .nfse-panel {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .nfse-status-band {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: .75rem;
+        }
+
+        .nfse-status-item {
+            border: 1px solid var(--bs-border-color);
+            border-radius: .5rem;
+            padding: .875rem;
+            background: var(--bs-body-bg);
+        }
+
+        .nfse-tab-panel[hidden] {
+            display: none;
+        }
+
+        .nfse-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1rem;
+        }
+
+        .nfse-form-grid .span-full {
+            grid-column: 1 / -1;
+        }
+
+        .nfse-editor {
+            min-height: 220px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+            font-size: .875rem;
+        }
+
+        .nfse-result-output {
+            min-height: 180px;
+            max-height: 420px;
+            overflow: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+{% endblock %}
+
+{% block body %}
+    <section
+        id="nfse-panel-app"
+        class="nfse-panel"
+        data-emit-rps-url="{{ emitRpsUrl }}"
+        data-cancel-url="{{ cancelUrl }}"
+        data-substitute-url="{{ substituteUrl }}"
+        data-national-event-url="{{ nationalEventUrl }}"
+        data-consult-dps-url="{{ consultDpsUrl }}"
+        data-consult-nfse-url="{{ consultNfseUrl }}"
+    >
+        <div class="nfse-status-band">
+            <div class="nfse-status-item">
+                <div class="text-body-secondary small">Modulo</div>
+                <div class="fw-semibold">NFSe</div>
+            </div>
+            <div class="nfse-status-item">
+                <div class="text-body-secondary small">Operacao Sao Paulo</div>
+                <div class="fw-semibold">ISSSaoPaulo em producao nesta instalacao</div>
+            </div>
+            <div class="nfse-status-item">
+                <div class="text-body-secondary small">API</div>
+                <a href="{{ docsUrl }}" target="_blank" rel="noreferrer">Documentacao NFSe</a>
+            </div>
+        </div>
+
+        <div class="card border-0 shadow-sm">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" type="button" data-nfse-tab="rps" role="tab">RPS</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" type="button" data-nfse-tab="cancelar" role="tab">Cancelar</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" type="button" data-nfse-tab="substituir" role="tab">Substituir</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" type="button" data-nfse-tab="padrao" role="tab">Padrao Nacional</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" type="button" data-nfse-tab="retorno" role="tab">Retorno</button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <section class="nfse-tab-panel" data-nfse-panel="rps">
+                    <form id="nfse-rps-form" class="nfse-form-grid">
+                        <div>
+                            <label class="form-label" for="nfse-rps-mode">Modo de envio</label>
+                            <select id="nfse-rps-mode" name="modo" class="form-select">
+                                <option value="enviar-um-rps">Enviar um RPS</option>
+                                <option value="emitir-nota">Emitir nota</option>
+                                <option value="enviar-lote-rps-sincrono">Lote RPS sincrono</option>
+                                <option value="enviar-lote-rps-assincrono">Lote RPS assincrono</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="form-label" for="nfse-rps-lote">Lote</label>
+                            <input id="nfse-rps-lote" name="ALote" class="form-control" value="1">
+                        </div>
+                        <div class="span-full">
+                            <label class="form-label" for="nfse-rps-content">INI ou XML do RPS</label>
+                            <textarea id="nfse-rps-content" name="conteudo" class="form-control nfse-editor" required>[IdentificacaoNFSe]
+TipoXML=RPS
+
+[IdentificacaoRps]
+Numero=1
+Serie=RPS</textarea>
+                        </div>
+                        <div class="span-full">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Enviar RPS</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="nfse-tab-panel" data-nfse-panel="cancelar" hidden>
+                    <form id="nfse-cancel-form" class="nfse-form-grid">
+                        <div class="span-full">
+                            <label class="form-label" for="nfse-cancel-content">Arquivo de cancelamento</label>
+                            <textarea id="nfse-cancel-content" name="conteudo" class="form-control nfse-editor" required>[CancelamentoNFSe]
+Numero=12345
+CodigoCancelamento=1
+Motivo=Cancelamento de teste
+CodigoVerificacao=ABC12345</textarea>
+                        </div>
+                        <div class="span-full">
+                            <button type="submit" class="btn btn-danger"><i class="bi bi-x-circle"></i> Cancelar nota</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="nfse-tab-panel" data-nfse-panel="substituir" hidden>
+                    <form id="nfse-substitute-form" class="nfse-form-grid">
+                        <div>
+                            <label class="form-label" for="nfse-sub-number">Numero NFSe</label>
+                            <input id="nfse-sub-number" name="ANumeroNFSe" class="form-control" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="nfse-sub-serie">Serie</label>
+                            <input id="nfse-sub-serie" name="ASerieNFSe" class="form-control" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="nfse-sub-code">Codigo cancelamento</label>
+                            <input id="nfse-sub-code" name="ACodigoCancelamento" class="form-control" required>
+                        </div>
+                        <div>
+                            <label class="form-label" for="nfse-sub-lote">Numero lote</label>
+                            <input id="nfse-sub-lote" name="ANumeroLote" class="form-control" value="1" required>
+                        </div>
+                        <div class="span-full">
+                            <label class="form-label" for="nfse-sub-verification">Codigo verificacao</label>
+                            <input id="nfse-sub-verification" name="ACodigoVerificacao" class="form-control" required>
+                        </div>
+                        <div class="span-full">
+                            <label class="form-label" for="nfse-sub-reason">Motivo cancelamento</label>
+                            <textarea id="nfse-sub-reason" name="AMotivoCancelamento" class="form-control" rows="3" required></textarea>
+                        </div>
+                        <div class="span-full">
+                            <label class="form-label" for="nfse-sub-content">Novo RPS em INI ou XML</label>
+                            <textarea id="nfse-sub-content" name="conteudo" class="form-control nfse-editor" required>[IdentificacaoNFSe]
+TipoXML=RPS</textarea>
+                        </div>
+                        <div class="span-full">
+                            <button type="submit" class="btn btn-warning"><i class="bi bi-arrow-repeat"></i> Substituir nota</button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="nfse-tab-panel" data-nfse-panel="padrao" hidden>
+                    <form id="nfse-national-event-form" class="nfse-form-grid mb-4">
+                        <div class="span-full">
+                            <label class="form-label" for="nfse-national-event">Evento do Padrao Nacional</label>
+                            <textarea id="nfse-national-event" name="conteudo" class="form-control nfse-editor">[Evento]
+TipoEvento=110111
+Chave=SUBSTITUIR_CHAVE_EVENTO
+NumeroSequencial=1
+Descricao=Cancelamento de NFSe</textarea>
+                        </div>
+                        <div class="span-full">
+                            <button type="submit" class="btn btn-primary"><i class="bi bi-send"></i> Enviar evento</button>
+                        </div>
+                    </form>
+                    <div class="nfse-form-grid">
+                        <form id="nfse-consult-dps-form">
+                            <label class="form-label" for="nfse-dps-key">Chave DPS</label>
+                            <input id="nfse-dps-key" name="AChaveDPS" class="form-control mb-2" required>
+                            <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i> Consultar DPS</button>
+                        </form>
+                        <form id="nfse-consult-nfse-form">
+                            <label class="form-label" for="nfse-key">Chave NFSe</label>
+                            <input id="nfse-key" name="AChaveNFSe" class="form-control mb-2" required>
+                            <button type="submit" class="btn btn-outline-primary"><i class="bi bi-search"></i> Consultar NFSe</button>
+                        </form>
+                    </div>
+                </section>
+
+                <section class="nfse-tab-panel" data-nfse-panel="retorno" hidden>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h2 class="h5 mb-0">Retorno</h2>
+                        <span id="nfse-result-status" class="badge text-bg-secondary">Aguardando</span>
+                    </div>
+                    <pre id="nfse-result-output" class="nfse-result-output bg-body-tertiary border rounded p-3">Nenhuma operacao executada.</pre>
+                </section>
+            </div>
+        </div>
+    </section>
+{% endblock %}
+
+{% block page_scripts %}
+    <script src="{{ app.request.basePath ~ '/catalog-assets/monitor/nfse-panel.js?v=20260908-initial' }}"></script>
+{% endblock %}

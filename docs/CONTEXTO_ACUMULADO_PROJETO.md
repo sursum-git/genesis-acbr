@@ -1,6 +1,6 @@
 # Contexto Acumulado do Projeto
 
-Atualizado em `2026-06-08`.
+Atualizado em `2026-08-20`.
 
 Este arquivo consolida o estado pratico do projeto depois da serie de ajustes feitos na integracao `ACBr`, na exposicao via `API Platform` e na instrumentacao local de catalogos e testes.
 
@@ -158,6 +158,72 @@ Pontos importantes:
 ## Evolucao operacional recente
 
 Depois do estado inicial de fachada HTTP e auditoria basica, o projeto passou a operar com mais camadas de orquestracao.
+
+### 0. Autenticação, usuários, empresas e escopo por assinante
+
+Foi implementada autenticação própria no portal:
+
+- login por `usuario + senha`;
+- sessão com expiração por 1 hora de inatividade;
+- logout no topo da tela;
+- identificação do usuário logado no header;
+- token da API resolvido a partir do usuário/assinante atual.
+
+Foram adicionadas as tabelas operacionais:
+
+- `t00005`: usuários;
+- `t00006`: empresas;
+- `t00007`: vínculo usuário × empresa;
+- `t00008`: vínculo empresa × assinante;
+- `t00009`: tokens/sessões.
+
+Papéis atuais:
+
+- `super_admin`;
+- `company_admin`;
+- `common`.
+
+Regras consolidadas:
+
+- `super_admin` acessa tudo;
+- `company_admin` acessa a tela de usuários e monitores, mas não cria/edita `super_admin`;
+- `common` acessa monitores conforme empresas vinculadas.
+
+O menu e o gate de rotas foram ajustados para refletir essas permissões.
+
+### 0.1. Monitores com escopo de usuário
+
+Os monitores de NFe de saída e entrada passaram a aplicar filtro por usuário:
+
+- `super_admin` vê tudo;
+- demais usuários veem dados por assinantes e CNPJs das empresas vinculadas.
+
+Também foi ajustado o menu de ações do monitor de saída para usar um popup/fallback próprio em vez do DropDownButton Kendo problemático.
+
+### 0.2. Limpeza de base de exemplos
+
+Foi executada limpeza confirmada pelo usuário na base PostgreSQL operacional.
+
+Mantidos apenas 30 exemplos válidos de envio de NFe:
+
+- 26 em `/nfe/envio/enviar-sincrono-xml`;
+- 4 em `/nfe/envio/enviar-assincrono-xml`.
+
+Backups foram criados com prefixo:
+
+```text
+cleanup_backup_20260819_keep30_*
+```
+
+### 0.3. Manual operacional geral
+
+Foi criado o manual consolidado do projeto:
+
+```text
+docs/MANUAL_OPERACIONAL_PROJETO.md
+```
+
+Ele substitui o manual estreito de login/monitores que havia sido criado temporariamente.
 
 ### 1. Execucao assincrona consolidada
 

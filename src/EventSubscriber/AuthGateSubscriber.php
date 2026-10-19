@@ -22,13 +22,15 @@ final class AuthGateSubscriber implements EventSubscriberInterface
 
     private const SUPER_ADMIN_PREFIXES = [
         '/demos',
-        '/usuarios',
+        '/catalogo-programas',
         '/assinantes',
         '/configuracao-execucao',
         '/capacidade-workers',
         '/webhooks',
         '/monitor-workers',
         '/catalogo-testes',
+        '/consulta-requisicoes',
+        '/auditoria-requisicoes',
     ];
 
     public function __construct(
@@ -70,6 +72,12 @@ final class AuthGateSubscriber implements EventSubscriberInterface
 
         if ($this->requiresSuperAdmin($path) && !$this->currentUser->isSuperAdmin()) {
             $event->setResponse($this->wantsJson($request->headers->get('Accept', '')) ? new JsonResponse(['message' => 'Acesso restrito ao administrador geral.'], Response::HTTP_FORBIDDEN) : new Response('Acesso restrito ao administrador geral.', Response::HTTP_FORBIDDEN));
+
+            return;
+        }
+
+        if ($this->requiresUserAdmin($path) && !$this->currentUser->isSuperAdmin() && !$this->currentUser->isCompanyAdmin()) {
+            $event->setResponse($this->wantsJson($request->headers->get('Accept', '')) ? new JsonResponse(['message' => 'Acesso restrito ao administrador.'], Response::HTTP_FORBIDDEN) : new Response('Acesso restrito ao administrador.', Response::HTTP_FORBIDDEN));
         }
     }
 
@@ -110,6 +118,11 @@ final class AuthGateSubscriber implements EventSubscriberInterface
         }
 
         return false;
+    }
+
+    private function requiresUserAdmin(string $path): bool
+    {
+        return $path === '/usuarios' || str_starts_with($path, '/usuarios/');
     }
 
     private function wantsJson(string $accept): bool

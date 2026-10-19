@@ -37,22 +37,22 @@ foreach (['data-action-event-url', 'actionEventUrl', 'monitor-nfe-situation', 'm
     }
 }
 
-foreach (['monitor-row-actions', 'initializeRowActionButtons', '.kendoDropDownButton({', "title: 'Ações'", 'locked: true'] as $expectedToken) {
+foreach (['monitor-row-actions', 'initializeRowActionButtons', '.kendoButton({', "title: 'Ações'", 'locked: true'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
-        fwrite(STDERR, "NFe monitor should expose a left Kendo dropdown action button token: {$expectedToken}.\n");
+        fwrite(STDERR, "NFe monitor should expose a left row action button token: {$expectedToken}.\n");
         exit(1);
     }
 }
 
-foreach (["popup: { appendTo: document.body }", "click: function (event)", 'handleRowAction(String(event.id || \'\'), row);', "trigger.on('click.monitorRowActions'", 'event.stopPropagation();', 'dropDown.open();'] as $expectedToken) {
+foreach (["openRowActionFallback(trigger, row);", "trigger.on('click.monitorRowActions'", 'event.stopImmediatePropagation();', 'monitorRowActionsInitialized'] as $expectedToken) {
     if (!str_contains($script, $expectedToken)) {
-        fwrite(STDERR, "NFe row action dropdown should be anchored by Kendo to its own button: {$expectedToken}.\n");
+        fwrite(STDERR, "NFe row action menu should be anchored to its own button: {$expectedToken}.\n");
         exit(1);
     }
 }
 
-if (str_contains($script, '.kendoContextMenu(') || str_contains($script, 'rowActionMenu.open(')) {
-    fwrite(STDERR, "NFe row actions should not use the coordinate-based Kendo ContextMenu.\n");
+if (str_contains($script, '.kendoContextMenu(') || str_contains($script, '.kendoDropDownButton(') || str_contains($script, 'rowActionMenu.open(')) {
+    fwrite(STDERR, "NFe row actions should not use Kendo ContextMenu or DropDownButton for the row menu.\n");
     exit(1);
 }
 
@@ -66,6 +66,18 @@ foreach (['data-cancel-url', 'data-inutilize-url', '/monitor-saida-nfe/acoes/can
 foreach (['data-correction-url', 'correctionUrl', 'Carta de Correção', 'carta_correcao', 'correcao'] as $expectedToken) {
     if (!str_contains($template . $script, $expectedToken)) {
         fwrite(STDERR, "NFe monitor should expose correction letter action token: {$expectedToken}.\n");
+        exit(1);
+    }
+}
+
+if (!str_contains($template, 'nfe-output-monitor.js?v=20260819-action-fallback')) {
+    fwrite(STDERR, "NFe output monitor should use the current action dropdown asset version.\n");
+    exit(1);
+}
+
+foreach (['openRowActionFallback', 'nfe-row-action-popup', 'monitor-row-action-popup'] as $expectedToken) {
+    if (!str_contains($script, $expectedToken)) {
+        fwrite(STDERR, "NFe row action dropdown should expose a fallback menu token: {$expectedToken}.\n");
         exit(1);
     }
 }

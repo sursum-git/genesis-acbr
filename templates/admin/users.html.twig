@@ -25,48 +25,69 @@
                             <th>Tipo</th>
                             <th>Ativo</th>
                             <th>Empresas</th>
+                            <th>Ações</th>
                         </tr>
                         </thead>
                         <tbody>
                         {% for user in users %}
                             {% set selectedCompanies = userCompanies[user.id_t00005]|default([]) %}
+                            {% set canEditUser = canCreateSuperAdmin|default(false) or user.c_tipo != 'super_admin' %}
                             <tr>
-                                <td><code>{{ user.c_usuario }}</code></td>
-                                <td>{{ user.c_nome ?: '-' }}</td>
-                                <td>{{ types[user.c_tipo]|default(user.c_tipo) }}</td>
-                                <td>{{ user.log_ativo ? 'sim' : 'não' }}</td>
+                                <td>
+                                    <code>{{ user.c_usuario }}</code>
+                                    <input type="hidden" name="usuario_id" value="{{ user.id_t00005 }}" form="user-update-{{ user.id_t00005 }}">
+                                </td>
+                                <td>
+                                    <input class="form-control form-control-sm" type="text" name="nome" value="{{ user.c_nome }}" maxlength="255" form="user-update-{{ user.id_t00005 }}" {% if not canEditUser %}disabled{% endif %}>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" name="tipo" form="user-update-{{ user.id_t00005 }}" {% if not canEditUser %}disabled{% endif %}>
+                                        {% if user.c_tipo == 'super_admin' and 'super_admin' not in types|keys %}
+                                            <option value="super_admin" selected>Admin geral</option>
+                                        {% endif %}
+                                        {% for value, label in types %}
+                                            <option value="{{ value }}" {% if user.c_tipo == value %}selected{% endif %}>{{ label }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm" name="ativo" form="user-update-{{ user.id_t00005 }}" {% if not canEditUser %}disabled{% endif %}>
+                                        <option value="1" {% if user.log_ativo %}selected{% endif %}>Sim</option>
+                                        <option value="0" {% if not user.log_ativo %}selected{% endif %}>Não</option>
+                                    </select>
+                                </td>
                                 <td style="min-width: 260px;">
-                                    {% if selectedCompanies %}
-                                        <div class="small text-body-secondary mb-2">
-                                            {{ selectedCompanies|map(company => company.c_nome)|join(', ') }}
+                                    <div data-company-search data-company-form="user-update-{{ user.id_t00005 }}" data-company-search-url="{{ app.request.basePath ~ '/index.php/usuarios/empresas/busca' }}">
+                                        <div class="d-flex flex-wrap gap-1 mb-2" data-company-selected>
+                                            {% for company in selectedCompanies %}
+                                                <span class="badge text-bg-secondary d-inline-flex align-items-center gap-2" data-company-chip="{{ company.id_t00006 }}">
+                                                    <span>{{ company.c_nome }}</span>
+                                                    <input type="hidden" name="empresa_ids[]" value="{{ company.id_t00006 }}" form="user-update-{{ user.id_t00005 }}">
+                                                    <button type="button" class="btn-close btn-close-white" aria-label="Remover empresa" data-company-remove="{{ company.id_t00006 }}" {% if user.c_tipo == 'super_admin' or not canEditUser %}disabled{% endif %}></button>
+                                                </span>
+                                            {% else %}
+                                                <span class="text-body-secondary small" data-company-empty>Nenhuma empresa vinculada.</span>
+                                            {% endfor %}
                                         </div>
-                                    {% endif %}
-                                    <form method="post" action="{{ app.request.basePath ~ '/index.php/usuarios/empresas/salvar' }}" class="d-grid gap-2">
-                                        <input type="hidden" name="usuario_id" value="{{ user.id_t00005 }}">
-                                        <div data-company-search data-company-search-url="{{ app.request.basePath ~ '/index.php/usuarios/empresas/busca' }}">
-                                            <div class="d-flex flex-wrap gap-1 mb-2" data-company-selected>
-                                                {% for company in selectedCompanies %}
-                                                    <span class="badge text-bg-secondary d-inline-flex align-items-center gap-2" data-company-chip="{{ company.id_t00006 }}">
-                                                        <span>{{ company.c_nome }}</span>
-                                                        <input type="hidden" name="empresa_ids[]" value="{{ company.id_t00006 }}">
-                                                        <button type="button" class="btn-close btn-close-white" aria-label="Remover empresa" data-company-remove="{{ company.id_t00006 }}" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}></button>
-                                                    </span>
-                                                {% else %}
-                                                    <span class="text-body-secondary small" data-company-empty>Nenhuma empresa vinculada.</span>
-                                                {% endfor %}
-                                            </div>
-                                            <input class="form-control form-control-sm" type="search" placeholder="Buscar empresa por nome ou CNPJ" data-company-input {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>
-                                            <div class="list-group mt-1" data-company-results></div>
-                                        </div>
-                                        <button class="btn btn-sm btn-outline-primary w-auto" type="submit" {% if user.c_tipo == 'super_admin' %}disabled{% endif %}>Salvar empresas</button>
-                                    </form>
+                                        <input class="form-control form-control-sm" type="search" placeholder="Buscar empresa por nome ou CNPJ" data-company-input {% if user.c_tipo == 'super_admin' or not canEditUser %}disabled{% endif %}>
+                                        <div class="list-group mt-1" data-company-results></div>
+                                    </div>
                                     {% if user.c_tipo == 'super_admin' %}
                                         <div class="form-text">Admin geral acessa todas as empresas.</div>
                                     {% endif %}
                                 </td>
+                                <td style="min-width: 180px;">
+                                    <form id="user-update-{{ user.id_t00005 }}" method="post" action="{{ app.request.basePath ~ '/index.php/usuarios/atualizar' }}" class="d-grid gap-2">
+                                        <input class="form-control form-control-sm" type="password" name="senha" placeholder="Nova senha opcional" autocomplete="new-password" {% if not canEditUser %}disabled{% endif %}>
+                                        <button class="btn btn-sm btn-outline-primary" type="submit" {% if not canEditUser %}disabled{% endif %}>Atualizar usuário</button>
+                                        {% if not canEditUser %}
+                                            <span class="form-text">Restrito ao admin geral.</span>
+                                        {% endif %}
+                                    </form>
+                                </td>
                             </tr>
                         {% else %}
-                            <tr><td colspan="5">Nenhum usuário encontrado.</td></tr>
+                            <tr><td colspan="6">Nenhum usuário encontrado.</td></tr>
                         {% endfor %}
                         </tbody>
                     </table>

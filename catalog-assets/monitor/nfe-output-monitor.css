@@ -303,6 +303,35 @@
     min-width: 18rem;
 }
 
+.monitor-row-action-popup {
+    position: absolute;
+    z-index: 20100;
+    display: grid;
+    min-width: 11rem;
+    padding: 0.35rem;
+    border: 1px solid rgba(100, 116, 139, 0.24);
+    border-radius: 0.65rem;
+    background: #fff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+}
+
+.monitor-row-action-popup button {
+    width: 100%;
+    padding: 0.45rem 0.65rem;
+    border: 0;
+    border-radius: 0.45rem;
+    background: transparent;
+    color: #0f172a;
+    font: inherit;
+    text-align: left;
+}
+
+.monitor-row-action-popup button:hover,
+.monitor-row-action-popup button:focus {
+    background: rgba(37, 99, 235, 0.08);
+    outline: none;
+}
+
 .monitor-filter-open .k-animation-container,
 .monitor-filter-open .k-popup,
 .monitor-filter-open .k-calendar-container {

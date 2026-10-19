@@ -49,12 +49,11 @@ final class NfeInputMonitorRepository
     }
 
     /**
+     * @param list<int>|null $subscriberIds
+     * @param list<string>|null $companyDocuments
      * @return array<string, mixed>|null
      */
-    /**
-     * @param list<int>|null $subscriberIds
-     */
-    public function findByRequestId(string $requestId, ?array $subscriberIds = null): ?array
+    public function findByRequestId(string $requestId, ?array $subscriberIds = null, ?array $companyDocuments = null): ?array
     {
         $documentId = (int) $requestId;
         if ($documentId <= 0 || !$this->tableExists('t99008')) {
@@ -64,6 +63,9 @@ final class NfeInputMonitorRepository
         $filters = ['document_id' => $documentId];
         if ($subscriberIds !== null) {
             $filters['subscriber_ids'] = $subscriberIds;
+        }
+        if ($companyDocuments !== null) {
+            $filters['company_documents'] = $companyDocuments;
         }
         [$whereSql, $params, $types] = $this->buildWhereSql($filters);
 
@@ -91,27 +93,54 @@ final class NfeInputMonitorRepository
     }
 
     /**
+     * @param array<string, mixed> $filters
      * @return array{clientes:list<string>,emissores:list<string>,assinantes:list<string>}
      */
-    public function filterOptions(): array
+    public function filterOptions(array $filters = []): array
     {
+        $clientes = [];
+        $emissores = [];
+        $assinantes = [];
+
+        foreach ($this->search($filters) as $row) {
+            $this->appendOption($clientes, $this->stringOrEmpty($row['cliente'] ?? null));
+            $this->appendOption($emissores, $this->stringOrEmpty($row['emitente_nome'] ?? null));
+            $this->appendOption($assinantes, $this->stringOrEmpty($row['assinante_nome'] ?? null));
+            $this->appendOption($assinantes, $this->stringOrEmpty($row['assinante_identificador'] ?? null));
+        }
+
+        sort($clientes);
+        sort($emissores);
+        sort($assinantes);
+
         return [
-            'clientes' => [],
-            'emissores' => [],
-            'assinantes' => [],
+            'clientes' => array_values(array_unique($clientes)),
+            'emissores' => array_values(array_unique($emissores)),
+            'assinantes' => array_values(array_unique($assinantes)),
         ];
     }
 
     /**
      * @return list<string>
      */
-    public function searchFilterOptions(string $type, string $query): array
+    public function searchFilterOptions(string $type, string $query, array $filters = []): array
     {
         $normalizedType = trim($type);
         $normalizedQuery = trim($query);
 
         if ($normalizedType === '') {
             return [];
+        }
+
+        if (array_key_exists('subscriber_ids', $filters)) {
+            $options = $this->filterOptions($filters)[match ($normalizedType) {
+                'cliente' => 'clientes',
+                'emissor' => 'emissores',
+                'assinante' => 'assinantes',
+                default => '',
+            }] ?? [];
+
+            return $this->filterOptionList($options, $normalizedQuery);
         }
 
         return match ($normalizedType) {
@@ -205,26 +234,44 @@ final class NfeInputMonitorRepository
             $types['document_id'] = ParameterType::INTEGER;
         }
 
+        $scopePredicates = [];
+
         /** @var list<int> $subscriberIds */
         $subscriberIds = array_values(array_filter(
             array_map(static fn (mixed $value): int => (int) $value, is_array($filters['subscriber_ids'] ?? null) ? $filters['subscriber_ids'] : []),
             static fn (int $value): bool => $value > 0
         ));
         if ($subscriberIds !== []) {
-            $subscriberPredicates = [];
             $hasRequestSubscriberId = $this->tableHasColumn('t99001', 't00002_id');
             foreach ($subscriberIds as $index => $subscriberId) {
                 if ($hasRequestSubscriberId) {
-                    $idName = 'subscriber_id_' . $index;
-                    $subscriberPredicates[] = 't.t00002_id = :' . $idName;
+                    $idName = 'scope_subscriber_id_' . $index;
+                    $scopePredicates[] = 't.t00002_id = :' . $idName;
                     $params[$idName] = $subscriberId;
                     $types[$idName] = ParameterType::INTEGER;
                 }
-                $jsonName = 'subscriber_json_id_' . $index;
-                $subscriberPredicates[] = 'COALESCE(t.t_assinante_json, \'\') LIKE :' . $jsonName;
+                $jsonName = 'scope_subscriber_json_id_' . $index;
+                $scopePredicates[] = 'COALESCE(t.t_assinante_json, \'\') LIKE :' . $jsonName;
                 $params[$jsonName] = '%"id_t00002":' . $subscriberId . '%';
             }
-            $where[] = '(' . implode(' OR ', $subscriberPredicates) . ')';
+        }
+
+        /** @var list<string> $companyDocuments */
+        $companyDocuments = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $value): string => preg_replace('/\D+/', '', (string) $value) ?? '', is_array($filters['company_documents'] ?? null) ? $filters['company_documents'] : []),
+            static fn (string $value): bool => strlen($value) === 14
+        )));
+        foreach ($companyDocuments as $index => $document) {
+            $name = 'scope_company_document_' . $index;
+            $scopePredicates[] = "(COALESCE(emit.cnpj, '') = :{$name} OR COALESCE(emit.cpf, '') = :{$name} OR COALESCE(d.emit_cnpj_cpf, '') = :{$name} OR COALESCE(nfe_resumo.cnpj, '') = :{$name} OR COALESCE(nfe_resumo.cpf, '') = :{$name} OR COALESCE(dest.cnpj, '') = :{$name} OR COALESCE(dest.cpf, '') = :{$name} OR COALESCE(e.documento_consulta, '') = :{$name})";
+            $params[$name] = $document;
+        }
+
+        if ((array_key_exists('subscriber_ids', $filters) || array_key_exists('company_documents', $filters)) && $scopePredicates === []) {
+            $where[] = '1 = 0';
+        }
+        if ($scopePredicates !== []) {
+            $where[] = '(' . implode(' OR ', $scopePredicates) . ')';
         }
 
         $subscriber = trim((string) ($filters['assinante'] ?? ''));
@@ -240,6 +287,21 @@ final class NfeInputMonitorRepository
         }
 
         return [' WHERE ' . implode(' AND ', $where), $params, $types];
+    }
+
+    /**
+     * @param list<string> $options
+     * @return list<string>
+     */
+    private function filterOptionList(array $options, string $query): array
+    {
+        $query = trim($query);
+        $filtered = $query === '' ? $options : array_values(array_filter(
+            $options,
+            static fn (string $option): bool => stripos($option, $query) !== false
+        ));
+
+        return array_slice(array_values(array_unique($filtered)), 0, 20);
     }
 
     /**

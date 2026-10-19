@@ -18,7 +18,7 @@ O estado operacional documentado para Sao Paulo/SP continua relevante: a instala
 
 ## Objetivo
 
-Criar uma primeira tela administrativa chamada `NFSe`, acessivel em `/index.php/nfse`, para concentrar operacoes NFSe de uso frequente sem substituir a documentacao OpenAPI.
+Criar uma primeira tela administrativa chamada `NFSe`, acessivel em `/index.php/monitor-nfse`, para concentrar operacoes NFSe de uso frequente sem substituir a documentacao OpenAPI.
 
 A tela deve servir como console operacional inicial para:
 
@@ -100,19 +100,19 @@ Nao criar landing page. A primeira tela deve ser o console utilizavel.
 
 Adicionar `NfsePanelController` com:
 
-- `GET /nfse`: renderiza a tela;
+- `GET /monitor-nfse`: renderiza a tela;
 - endpoints auxiliares internos do painel para encaminhar operacoes para as APIs existentes quando isso simplificar token, headers e tratamento de erro.
 
 Os endpoints auxiliares devem seguir o padrao do `NfeOutputMonitorController::forwardInternalApi`, usando o token resolvido pelo usuario atual quando necessario.
 
 Rotas iniciais sugeridas:
 
-- `POST /nfse/acoes/emitir-rps`;
-- `POST /nfse/acoes/cancelar`;
-- `POST /nfse/acoes/substituir`;
-- `POST /nfse/acoes/padrao-nacional/enviar-evento`;
-- `GET /nfse/acoes/padrao-nacional/consultar-dps`;
-- `GET /nfse/acoes/padrao-nacional/consultar-nfse`.
+- `POST /monitor-nfse/acoes/emitir-rps`;
+- `POST /monitor-nfse/acoes/cancelar`;
+- `POST /monitor-nfse/acoes/substituir`;
+- `POST /monitor-nfse/acoes/padrao-nacional/enviar-evento`;
+- `GET /monitor-nfse/acoes/padrao-nacional/consultar-dps`;
+- `GET /monitor-nfse/acoes/padrao-nacional/consultar-nfse`.
 
 Essas rotas sao uma camada de conveniencia para o painel; as APIs publicas em `/nfse/...` continuam sendo a fonte principal de contrato externo.
 
@@ -161,9 +161,9 @@ Implementar com TDD.
 
 Testes iniciais:
 
-- menu de usuario comum contem `/index.php/nfse`;
-- menu de administrador de empresa contem `/index.php/nfse`;
-- rota `GET /nfse` renderiza o console com abas e URLs de acao;
+- menu de usuario comum contem `/index.php/monitor-nfse`;
+- menu de administrador de empresa contem `/index.php/monitor-nfse`;
+- rota `GET /monitor-nfse` renderiza o console com abas e URLs de acao;
 - asset JS do painel aparece versionado no template;
 - endpoint auxiliar de cancelamento rejeita payload vazio;
 - endpoint auxiliar de substituicao rejeita campos obrigatorios ausentes.

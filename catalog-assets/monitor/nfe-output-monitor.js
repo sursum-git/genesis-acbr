@@ -1095,39 +1095,62 @@
         openActionWindow(action, row);
     }
 
+    function closeRowActionFallback() {
+        $('#nfe-row-action-popup').remove();
+    }
+
+    function openRowActionFallback(trigger, row) {
+        closeRowActionFallback();
+
+        const items = rowActionItems(row);
+        if (items.length === 0) {
+            return;
+        }
+
+        const offset = trigger.offset() || { top: 0, left: 0 };
+        const markup = '' +
+            '<div id="nfe-row-action-popup" class="monitor-row-action-popup" role="menu">' +
+                items.map(function (item) {
+                    return '<button type="button" role="menuitem" data-action="' + escapeHtml(item.action) + '">' + escapeHtml(item.text) + '</button>';
+                }).join('') +
+            '</div>';
+        const popup = $(markup).appendTo(document.body);
+        popup.css({
+            top: offset.top + trigger.outerHeight() + 4,
+            left: offset.left
+        });
+        popup.on('click', 'button[data-action]', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            const action = String($(this).data('action') || '');
+            closeRowActionFallback();
+            handleRowAction(action, row);
+        });
+    }
+
     function initializeRowActionButtons(grid) {
         $grid.find('.monitor-row-actions').each(function () {
             const trigger = $(this);
-            if (trigger.data('kendoDropDownButton')) {
+            if (trigger.data('monitorRowActionsInitialized')) {
                 return;
             }
+            trigger.data('monitorRowActionsInitialized', true);
 
             const row = findGridRowByRequestId(grid, trigger.data('request-id'));
             if (!row) {
                 return;
             }
 
-            const dropDown = trigger.kendoDropDownButton({
+            trigger.kendoButton({
                 size: 'small',
                 fillMode: 'outline',
-                themeColor: 'base',
-                showArrowButton: true,
-                popup: { appendTo: document.body },
-                items: rowActionItems(row).map(function (item) {
-                    return {
-                        id: item.action,
-                        text: item.text
-                    };
-                }),
-                click: function (event) {
-                    handleRowAction(String(event.id || ''), row);
-                }
-            }).data('kendoDropDownButton');
+                themeColor: 'base'
+            });
 
             trigger.on('click.monitorRowActions', function (event) {
                 event.preventDefault();
-                event.stopPropagation();
-                dropDown.open();
+                event.stopImmediatePropagation();
+                openRowActionFallback(trigger, row);
             });
         });
     }
@@ -1376,6 +1399,10 @@
     });
 
     $(document).on('click', function (event) {
+        if ($(event.target).closest('#nfe-row-action-popup, .monitor-row-actions').length === 0) {
+            closeRowActionFallback();
+        }
+
         const $popup = $('#nfe-output-column-popup');
         if (!$popup.length || !$popup.is(':visible')) {
             return;
@@ -1390,6 +1417,7 @@
     });
 
     $(window).on('resize', function () {
+        closeRowActionFallback();
         grid.setOptions({
             height: gridHeight()
         });

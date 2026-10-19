@@ -46,7 +46,16 @@ assertAuthTrue(is_array($loaded), 'user lookup should be case-insensitive.');
 assertAuthSame($userId, (int) $loaded['id_t00005'], 'loaded user id should match created user.');
 assertAuthSame(['common', 'company_admin'], $repository->rolesForUser($userId), 'roles should combine global and company roles.');
 assertAuthSame([10, 11], $repository->subscriberIdsForUser($userId), 'user should inherit subscribers from all linked companies.');
+assertAuthSame(['06013812000158', '12345678000199'], $repository->companyDocumentsForUser($userId), 'user should inherit documents from all linked companies.');
 assertAuthSame('tok_b', $repository->subscriberTokenForUser($userId, 11), 'repository should return token for an allowed subscriber.');
 assertAuthSame(null, $repository->subscriberTokenForUser($userId, 99), 'repository should reject a subscriber outside user companies.');
+
+$repository->updateUser($userId, 'Operador Atualizado', 'company_admin', false, password_hash('senha-nova', PASSWORD_DEFAULT));
+$updated = $connection->fetchAssociative('SELECT c_nome, c_tipo, log_ativo, c_senha_hash FROM t00005 WHERE id_t00005 = :id', ['id' => $userId]);
+assertAuthTrue(is_array($updated), 'updated user should still exist.');
+assertAuthSame('Operador Atualizado', (string) $updated['c_nome'], 'update should change user display name.');
+assertAuthSame('company_admin', (string) $updated['c_tipo'], 'update should change user type.');
+assertAuthSame(0, (int) $updated['log_ativo'], 'update should allow disabling a user.');
+assertAuthTrue(password_verify('senha-nova', (string) $updated['c_senha_hash']), 'update should replace password when provided.');
 
 fwrite(STDOUT, "OK\n");

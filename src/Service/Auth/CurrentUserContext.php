@@ -91,6 +91,13 @@ final class CurrentUserContext
         return is_array($user) && in_array('super_admin', $user['roles'] ?? [], true);
     }
 
+    public function isCompanyAdmin(): bool
+    {
+        $user = $this->user();
+
+        return is_array($user) && in_array('company_admin', $user['roles'] ?? [], true);
+    }
+
     /**
      * @return list<int>
      */
@@ -102,6 +109,19 @@ final class CurrentUserContext
         }
 
         return array_values(array_map('intval', is_array($user['subscriber_ids'] ?? null) ? $user['subscriber_ids'] : []));
+    }
+
+    /**
+     * @return list<string>
+     */
+    public function companyDocuments(): array
+    {
+        $user = $this->user();
+        if (!is_array($user)) {
+            return [];
+        }
+
+        return array_values(array_map('strval', is_array($user['company_documents'] ?? null) ? $user['company_documents'] : []));
     }
 
     public function activeSubscriberId(): ?int
@@ -145,6 +165,7 @@ final class CurrentUserContext
         }
 
         $subscriberIds = $this->userRepository->subscriberIdsForUser($userId);
+        $companyDocuments = $this->userRepository->companyDocumentsForUser($userId);
         if ($subscriberId !== null && !in_array($subscriberId, $subscriberIds, true)) {
             return null;
         }
@@ -156,6 +177,7 @@ final class CurrentUserContext
             'type' => (string) ($row['c_tipo'] ?? 'common'),
             'roles' => $this->userRepository->rolesForUser($userId),
             'subscriber_ids' => $subscriberIds,
+            'company_documents' => $companyDocuments,
             'subscriber_id' => $subscriberId,
             'auth_type' => $authType,
         ];

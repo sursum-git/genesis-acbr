@@ -97,6 +97,40 @@ final class AuthUserRepository
         return $rows;
     }
 
+    public function updateUser(int $userId, string $name, string $type, bool $active, ?string $passwordHash = null): void
+    {
+        if ($userId <= 0) {
+            throw new InvalidArgumentException('Usuario invalido.');
+        }
+
+        if (!in_array($type, ['super_admin', 'company_admin', 'common'], true)) {
+            throw new InvalidArgumentException('Tipo de usuario invalido.');
+        }
+
+        $payload = [
+            'c_nome' => trim($name),
+            'c_tipo' => $type,
+            'log_ativo' => $active,
+            'dt_hr_atu' => date('c'),
+        ];
+
+        if (is_string($passwordHash) && trim($passwordHash) !== '') {
+            $payload['c_senha_hash'] = $passwordHash;
+            $payload['i_token_version'] = $this->nextTokenVersion($userId);
+        }
+
+        $updated = $this->connection->update(
+            't00005',
+            $payload,
+            ['id_t00005' => $userId],
+            ['log_ativo' => ParameterType::BOOLEAN]
+        );
+
+        if ($updated === 0) {
+            throw new InvalidArgumentException('Usuario nao encontrado.');
+        }
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -207,6 +241,20 @@ final class AuthUserRepository
     {
         $row = $this->connection->fetchAssociative(
             'SELECT * FROM t00005 WHERE id_t00005 = :id AND log_ativo = TRUE LIMIT 1',
+            ['id' => $userId],
+            ['id' => ParameterType::INTEGER]
+        );
+
+        return $row === false ? null : $row;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function findById(int $userId): ?array
+    {
+        $row = $this->connection->fetchAssociative(
+            'SELECT * FROM t00005 WHERE id_t00005 = :id LIMIT 1',
             ['id' => $userId],
             ['id' => ParameterType::INTEGER]
         );
@@ -348,6 +396,37 @@ final class AuthUserRepository
         return array_map('intval', $ids);
     }
 
+    /**
+     * @return list<string>
+     */
+    public function companyDocumentsForUser(int $userId): array
+    {
+        $user = $this->findActiveById($userId);
+        if (($user['c_tipo'] ?? '') === 'super_admin') {
+            /** @var list<string> $documents */
+            $documents = $this->connection->fetchFirstColumn(
+                "SELECT c_cnpj FROM t00006 WHERE log_ativo = TRUE AND COALESCE(c_cnpj, '') <> '' ORDER BY c_cnpj ASC"
+            );
+
+            return $this->normalizeDocuments($documents);
+        }
+
+        /** @var list<string> $documents */
+        $documents = $this->connection->fetchFirstColumn(
+            "SELECT DISTINCT c.c_cnpj
+             FROM t00007 uc
+             INNER JOIN t00006 c ON c.id_t00006 = uc.t00006_id AND c.log_ativo = TRUE
+             WHERE uc.t00005_id = :user_id
+               AND uc.log_ativo = TRUE
+               AND COALESCE(c.c_cnpj, '') <> ''
+             ORDER BY c.c_cnpj ASC",
+            ['user_id' => $userId],
+            ['user_id' => ParameterType::INTEGER]
+        );
+
+        return $this->normalizeDocuments($documents);
+    }
+
     public function subscriberTokenForUser(int $userId, int $subscriberId): ?string
     {
         if (!in_array($subscriberId, $this->subscriberIdsForUser($userId), true)) {
@@ -448,6 +527,18 @@ final class AuthUserRepository
         }
     }
 
+    /**
+     * @param list<string> $documents
+     * @return list<string>
+     */
+    private function normalizeDocuments(array $documents): array
+    {
+        return array_values(array_unique(array_filter(
+            array_map(static fn (string $document): string => preg_replace('/\D+/', '', $document) ?? '', $documents),
+            static fn (string $document): bool => strlen($document) === 14
+        )));
+    }
+
     private function tableExists(string $table): bool
     {
         try {
@@ -467,5 +558,16 @@ final class AuthUserRepository
         }
 
         return $normalized;
+    }
+
+    private function nextTokenVersion(int $userId): int
+    {
+        $current = $this->connection->fetchOne(
+            'SELECT i_token_version FROM t00005 WHERE id_t00005 = :id',
+            ['id' => $userId],
+            ['id' => ParameterType::INTEGER]
+        );
+
+        return max(1, (int) $current) + 1;
     }
 }

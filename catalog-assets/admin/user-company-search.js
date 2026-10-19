@@ -35,7 +35,12 @@
             'data-company-chip': id,
         });
         chip.appendChild(createElement('span', {}, item.label || item.name || id));
-        chip.appendChild(createElement('input', { type: 'hidden', name: 'empresa_ids[]', value: id }));
+        chip.appendChild(createElement('input', {
+            type: 'hidden',
+            name: 'empresa_ids[]',
+            value: id,
+            form: root.dataset.companyForm || null,
+        }));
 
         const remove = createElement('button', {
             type: 'button',

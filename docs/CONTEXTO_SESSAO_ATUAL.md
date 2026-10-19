@@ -1,424 +1,300 @@
-# Contexto da Sessao Atual
+# Contexto da Sessão Atual
 
-Atualizado em `2026-06-30`.
+Atualizado em `2026-08-20`.
 
 ## Objetivo deste arquivo
 
-Permitir que uma nova sessao retome o projeto sem depender do historico do chat.
+Permitir que uma nova sessão retome o projeto sem depender do histórico do chat.
 
-Este arquivo deve responder rapidamente:
+Este arquivo resume:
 
-- qual e o estado atual do sistema
-- quais fluxos operacionais estao ativos
-- quais tabelas e workers existem
-- quais pontos recentes exigem continuidade ou cuidado
+- estado atual do sistema;
+- mudanças recentes implementadas;
+- arquivos sensíveis;
+- testes executados;
+- pontos pendentes/de atenção.
 
 ## Resumo executivo
 
-O projeto e uma fachada moderna em `Symfony 7 + API Platform 4.2` sobre modulos legados do `ACBr`.
+O projeto é uma fachada moderna em `Symfony 7 + API Platform 4.2` sobre módulos legados do `ACBr`.
 
-Hoje o sistema esta organizado em seis blocos principais:
+O sistema hoje combina:
 
-1. APIs publicas para `NFe`, `NFSe`, `CEP` e outros modulos legados
-2. Auditoria operacional em `PostgreSQL`
-3. Catalogos auxiliares em `SQLite`
-4. Portal administrativo em `Twig/AdminLTE`
-5. Processamento assincrono por workers separados
-6. Extracao posterior de dados de `NFe`, `NSU` e normalizacao estrutural da nota
+1. APIs públicas para `CEP`, `NFe` e `NFSe`;
+2. portal administrativo em Twig/AdminLTE;
+3. autenticação própria por `usuario + senha`;
+4. permissões por papel (`super_admin`, `company_admin`, `common`);
+5. relação usuário × empresa × assinante;
+6. auditoria operacional em PostgreSQL;
+7. workers para API assíncrona, extração e webhooks;
+8. monitores de NFe de saída e entrada;
+9. catálogos auxiliares em SQLite.
 
-Estado atual consolidado:
+Manual operacional consolidado do projeto:
 
-- a extracao de `NFe` e `NSU` esta funcional no ambiente real
-- os endpoints de envio e consulta de NFe ja alimentam as tabelas novas da nota
-- houve reorganizacao dos XMLs de amostra em `nfe_xmls/`
-- os XMLs convertidos para homologacao foram limpos para uso como XML de envio, sem autorizacao acoplada
-- o enriquecimento de envio autorizado ja retorna `xml_autorizado`, `danfe_base64` e `caminho_danfe`
-- o DANFE do fluxo sincrono voltou a ser salvo como PDF valido apos corrigir truncamento de buffer no wrapper `ACBr`
+```text
+docs/MANUAL_OPERACIONAL_PROJETO.md
+```
 
-## Bancos de dados em uso
+## Ambiente
 
-### PostgreSQL externo
+Raiz do projeto:
 
-Banco operacional e de auditoria:
+```text
+/dados_containers/www
+```
 
-- host: `157.173.110.195`
-- database: `dfe`
+Endpoint web padrão:
 
-Conexao Symfony:
+```text
+http://157.173.110.195:8089
+```
 
-- `config/services/audit_connection.xml`
-- service id: `app.audit_connection`
+Entrada Symfony:
 
-Tabelas mais importantes:
+```text
+/index.php
+```
 
-- `t00002`: assinantes e tokens
-- `t00003`: webhooks
-- `t00004`: vinculos assinante x webhook
-- `t99001`: requisicoes auditadas
-- `t99002`: tentativas/processamento principal
-- `t99003`: configuracao de execucao
-- `t99004`: eventos operacionais
-- `t99005`: capacidade de workers
-- `t99006`: fila/tentativas de entrega de webhook
-- `t99007`: execucao de consulta DF-e e envelope `retDistDFeInt`
-- `t99008`: documentos `docZip` retornados, com schema exato e XML bruto
-- `t99009` a `t99018`: normalizacao de `resNFe`, `procNFe`, `resEvento`, `procEventoNFe` e `procInutNFe`
-- `t99019`: dados gerais da NFe
-- `t99020`: emitente versionado
-- `t99021`: destinatario versionado
-- `t99022`: transporte versionado
-- `t99023`: pivô `t99019 x t99020`
-- `t99024`: pivô `t99019 x t99021`
-- `t99025`: pivô `t99019 x t99022`
-- `t99026`: produtos e servicos
-- `t99027`: impostos por modalidade
-- `t99028`: cobranca
-- `t99029`: pagamentos
-- `t99030`: duplicatas
-- `t99031`: modalidade de imposto ligada ao item
-- `t99032`: total de impostos da NF
-- `t99033`: modalidades dos totais de impostos da NF
+## Estado recente da autenticação
 
-Campos recentes adicionados em `t99001`:
+Foi implementado sistema de login próprio.
 
-- `si_status_extracao`
-- `dt_hr_ini_extracao`
-- `dt_hr_fim_extracao`
-- `t_erro_extracao`
+Características:
 
-### SQLite local
+- login por `usuario + senha`;
+- tela de login fora do layout administrativo, sem iframe central;
+- redirecionamento para `/index.php/login` quando não autenticado;
+- botão `Sair`;
+- header mostra usuário logado e tipo;
+- sessão expira após 1 hora de inatividade;
+- token da API passa a ser resolvido pelo usuário/assinante atual, não mais por token fixo global.
 
-Banco local versionado:
+Papéis:
 
-- `var/db/program_catalog.sqlite`
+- `super_admin`: administrador geral/desenvolvedores;
+- `company_admin`: administrador do assinante;
+- `common`: usuário comum.
 
-Funcoes:
+Regras:
 
-- catalogo de programas
-- catalogo de testes
-- historico auxiliar local
+- `super_admin` acessa tudo;
+- `company_admin` acessa usuários e monitores, mas não áreas internas de operação nem assinantes;
+- `common` acessa somente monitores permitidos pelo vínculo de empresas;
+- usuários não `super_admin` não veem telas de operação no menu.
 
-## Workers atuais
+## Usuários, empresas e assinantes
 
-Os workers sao separados e nao compartilham a mesma responsabilidade:
+Tabelas:
 
-### 1. Worker da API
+- `t00005`: usuários/logins;
+- `t00006`: empresas;
+- `t00007`: vínculo usuário × empresa;
+- `t00008`: vínculo empresa × assinante;
+- `t00009`: tokens/sessões;
+- `t00002`: assinantes.
 
-Comando:
+Relação:
 
-- `php bin/console app:api-request-worker`
+```text
+usuario -> empresas -> assinantes
+```
 
-Funcao:
+O usuário pode ter várias empresas.
 
-- consome requisicoes assincronas
-- executa a chamada interna da API
-- grava status e resposta em `t99001`
+A empresa pode estar ligada a vários assinantes.
 
-### 2. Worker de webhook
+O assinante pode ter várias empresas.
 
-Comando:
+## Tela de usuários
 
-- `php bin/console app:webhook-delivery-worker`
+Caminho:
 
-Funcao:
-
-- entrega webhooks para endpoints externos
-- usa retentativa, avaliacao de payload e criterios de sucesso
-
-### 3. Worker de extracao
-
-Comando:
-
-- `php bin/console app:api-extraction-worker`
-
-Funcao:
-
-- processa apenas requisicoes concluidas e elegiveis para extracao
-- le `t99001`
-- salva a execucao em `t99007`, os documentos brutos em `t99008` e a normalizacao nas tabelas `t99009` a `t99018`
-
-Observacao critica:
-
-- esse worker ja foi corrigido para usar `app.audit_connection`
-- antes disso ele estava ligado na conexao errada e nao encontrava itens pendentes
-
-## Fluxo operacional atual da API
-
-### Observacao recente sobre DANFE
-
-- o PDF do DANFE autorizado e salvo em `NFe/arqs/danfes/`
-- o XML autorizado continua salvo na estrutura padrao do `ACBr` em `NFe/arqs/<cnpj>/NFe/<yyyymm>/NFe/`
-- havia um defeito no wrapper `NFe/MT/ACBrNFeMT.php` e no equivalente `ST`: o codigo informava buffer de `9048` bytes ao `ACBr`, mas alocava apenas `535`
-- esse defeito truncava o retorno do `SalvarPDF`, gerando arquivo sem `startxref` e sem `%%EOF`
-- a correcao aumentou e alinhou o buffer para `131072`, eliminando o truncamento no retorno do DANFE
-
-### Requisicao sincronica
-
-1. a API autentica o assinante
-2. grava a entrada em `t99001`
-3. executa a operacao
-4. salva status, resposta e eventos
-5. se a rota for elegivel para extracao, marca `si_status_extracao = pendente`
-6. o worker de extracao processa depois
-7. se houver webhook vinculado, a entrega entra no fluxo proprio
-
-### Requisicao assincrona
-
-1. a API autentica o assinante
-2. grava a entrada em `t99001`
-3. retorna `request_id`
-4. o worker da API executa depois
-5. ao concluir, a requisicao pode seguir para extracao
-6. webhooks seguem em fila separada
-
-## Extracao de NFe e NSU
-
-### Rotas elegiveis
-
-- `/nfe/consultas/consultar-com-chave`
-- `/nfe/consultas/consultar-com-chave-xml`
-- `/nfe/distribuicao-dfe/por-chave`
-- `/nfe/distribuicao-dfe/por-nsu`
-- `/nfe/distribuicao-dfe/por-ult-nsu`
-- `/nfe/envio/enviar-sincrono-xml`
-- `/nfe/envio/enviar-assincrono-xml`
-- `/nfe/envio/enviar-sincrono-ini`
-- `/nfe/envio/enviar-assincrono-ini`
-
-### Rotas fora da extracao
-
-- inutilizacao
-- qualquer rota fora da whitelist acima
-
-### Status de extracao
-
-- `0`: nao se aplica
-- `1`: pendente
-- `2`: processando
-- `3`: concluido
-- `4`: falha
-
-### Estado funcional atual
-
-- a extracao de distribuicao DF-e persiste primeiro o envelope da consulta e cada `docZip`
-- o nome exato de `docZip/@schema` passou a ser preservado no banco
-- a normalizacao atual cobre `resNFe`, `procNFe`, `resEvento`, `procEventoNFe` e `procInutNFe`
-- a extracao de resposta textual `[Consulta]` continua existindo como fallback de consulta NFe fora da distribuicao
-- os endpoints de envio de NFe tambem entram na fila de extracao
-- o worker agora preserva o corpo completo de requisicao/resposta nas rotas extraiveis, sem truncar XML
-- o XML de envio com raiz `<NFe>` tambem e aceito na extracao como documento `procNFe`
-- o campo `t99007.documento_consulta` foi ampliado para suportar chave de 44 digitos
-
-Limitacoes atuais:
-
-- no retorno textual de `consultar-com-chave`, campos como `numero`, `serie`, `modelo`, `emitente_documento`, `destinatario_documento` e `interessado_documento` nao vem completos no payload
-- hoje eles so serao preenchidos totalmente quando houver XML mais rico ou item de distribuicao
-- melhoria futura possivel: derivar `numero`, `serie`, `modelo` e `emitente_documento` da chave de acesso
-- se a SEFAZ devolver apenas rejeicao textual na distribuicao, a extracao conclui sem erro mas nao cria estrutura rica de nota
-
-## Webhooks
-
-Estado atual do modulo:
-
-- suporte a variaveis para `querystring`, `headers` e `path params`
-- configuracao de sucesso por codigos HTTP e por combinacao de `HTTP + payload`
-- operadores de payload:
-  - `equals`
-  - `contains`
-  - `in`
-- configuracao de tentativas e intervalo
-- `secret` mascarado
-- geracao automatica de token/secret
-- regeneracao de secret
-- `Idempotency-Key`
-- `X-Webhook-Timestamp`
-- assinatura com `timestamp.payload`
-- backoff exponencial com jitter
-- bloqueio de URLs locais/privadas para reduzir risco de `SSRF`
-- reprocessamento manual de falhas
-
-## Assinantes
+```text
+/index.php/usuarios
+```
 
 Estado atual:
 
-- token nao e mais digitado manualmente no cadastro
-- token e gerado automaticamente ao criar o assinante
-- existe botao para copiar token por registro
-- correcoes aplicadas para checkboxes booleanos desmarcados salvarem como `false`
+- `super_admin` cria/edita `super_admin`, `company_admin` e `common`;
+- `company_admin` cria/edita apenas `company_admin` e `common`;
+- `company_admin` não vê nem consegue enviar `super_admin`;
+- `company_admin` não edita registros `super_admin`;
+- a listagem possui edição inline de:
+  - nome;
+  - tipo;
+  - ativo/inativo;
+  - nova senha opcional;
+  - empresas vinculadas;
+- criação de usuário permite buscar empresas por nome/CNPJ;
+- edição inline também usa busca dinâmica de empresas.
 
-## Portal administrativo
+Arquivos principais:
 
-Padrao visual consolidado:
+- `src/Controller/UserAdminController.php`
+- `src/Repository/Auth/AuthUserRepository.php`
+- `src/Service/Auth/CurrentUserContext.php`
+- `src/EventSubscriber/AuthGateSubscriber.php`
+- `templates/admin/users.html.twig`
+- `catalog-assets/admin/user-company-search.js`
 
-- remover breadcrumb duplicado
-- remover fundos amarelo/bege antigos
-- usar layout consistente com as telas novas
-- formularios principais em drawer lateral, nao em coluna fixa
+## Monitores NFe
 
-Telas recentes padronizadas:
+Monitores:
 
-- assinantes
-- webhooks
-- capacidade de workers
-- configuracao de execucao
-- consulta de requisicoes
-
-## Consulta de requisicoes
+- saída: `/index.php/monitor-saida-nfe`;
+- entrada: `/index.php/monitor-entrada-nfe`.
 
 Estado atual:
 
-- drawer lateral mais largo
-- sem breadcrumb
-- mostra detalhes da requisicao, resposta e extracao
-- mostra informacao de worker e PID quando aplicavel
-- deve continuar sendo a tela operacional principal para suporte
+- monitores respeitam escopo do usuário;
+- `super_admin` vê tudo;
+- usuários não `super_admin` filtram por:
+  - assinantes vinculados às empresas do usuário;
+  - CNPJs das empresas vinculadas;
+- usuário sem empresa/assinante vinculado não vê dados;
+- menu de ações do monitor de saída foi trocado para popup/fallback próprio, evitando dependência problemática do DropDownButton Kendo.
 
-## Conectividade externa NFe
+Arquivos principais:
 
-Foi corrigida a validacao TLS com a SVRS de homologacao no host.
+- `src/Controller/NfeOutputMonitorController.php`
+- `src/Controller/NfeInputMonitorController.php`
+- `src/Repository/NfeOutputMonitorRepository.php`
+- `src/Repository/NfeInputMonitorRepository.php`
+- `templates/admin/nfe_output_monitor.html.twig`
+- `catalog-assets/monitor/nfe-output-monitor.js`
+- `catalog-assets/monitor/nfe-output-monitor.css`
 
-Certificados instalados no trust store do host:
+## Limpeza da base de exemplos
 
-- `ICP-Brasil v10`
-- `Autoridade Certificadora do SERPRO SSLv1`
+Foi feita limpeza destrutiva confirmada pelo usuário na base PostgreSQL `dfe`.
 
-Resultado pratico:
+Critério mantido:
 
-- deixou de ocorrer `Network subsystem is unusable`
-- `consultar-com-chave` voltou a responder normalmente contra a SVRS
+- programa `nfe`;
+- caminho:
+  - `/nfe/envio/enviar-sincrono-xml`;
+  - `/nfe/envio/enviar-assincrono-xml`;
+- processamento concluído;
+- HTTP `200` ou `201`;
+- nota extraída em `t99019`.
 
-## XMLs de amostra em `nfe_xmls`
+Resultado validado:
 
-Estrutura atual:
+- `t99001`: 30 registros;
+- `t99008`: 30 registros;
+- `t99019`: 30 registros;
+- inválidos restantes pelo critério: 0.
 
-- `nfe_xmls/originais_vazios/`
-- `nfe_xmls/producao_autorizadas/`
-- `nfe_xmls/homologacao_convertidos/`
-- `nfe_xmls/homologacao_pronto_50030197218.xml`
-- `nfe_xmls/retorno_homologacao_50030197218_formatado.json`
+Backups criados no banco:
 
-Regra atual dos grupos:
+```text
+cleanup_backup_20260819_keep30_*
+```
 
-- `originais_vazios`: arquivos antigos sem sufixo ` (1)` que estavam vazios
-- `producao_autorizadas`: XMLs originais com autorizacao completa
-- `homologacao_convertidos`: copias preparadas para teste de envio em homologacao
+Exemplos:
 
-Nos arquivos de `homologacao_convertidos` foram aplicadas estas mudancas:
+- `cleanup_backup_20260819_keep30_t99001`
+- `cleanup_backup_20260819_keep30_t99019`
 
-- `tpAmb = 2`
-- `emit/xNome = NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL`
-- `dest/xNome = NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL`
-- remocao de `Signature`
-- remocao de `protNFe`
-- remocao do envelope `nfeProc`, deixando apenas `NFe`
+## Bancos de dados
 
-Importante:
+PostgreSQL externo:
 
-- isso prepara o XML para envio/validacao em homologacao
-- isso nao muda sozinho o ambiente runtime do legado ACBr
+- database: `dfe`;
+- uso: assinantes, autenticação, auditoria, filas, extrações, monitores.
 
-### Amostras recentes validadas
+SQLite local:
 
-Arquivos recentes criados para reutilizacao:
+- `var/db/program_catalog.sqlite`: catálogo de programas/testes e histórico auxiliar.
+- `var/db/audit.sqlite`: banco auxiliar local quando aplicável.
 
-- `nfe_xmls/homologacao_pronto_50030197218.xml`: XML pronto para envio em homologacao, sem `Signature` e sem `protNFe`
-- `nfe_xmls/retorno_homologacao_50030197218_formatado.json`: retorno real formatado do endpoint sincronico com autorizacao
+## Workers
 
-Historico importante:
+Comandos:
 
-- a primeira amostra `homologacao_pronto_50030197217.xml` foi removida porque gerou rejeicao `904`
-- a causa foi `tPag=90` com `vPag` informado
-- a amostra substituta `50030197218` autorizou com `CStat=150`
+```bash
+php bin/console app:api-request-worker
+php bin/console app:api-extraction-worker
+php bin/console app:webhook-delivery-worker
+```
 
-Resultado real confirmado em `2026-06-30`:
+Funções:
 
-- endpoint: `/nfe/envio/enviar-sincrono-xml`
-- autorizacao principal: `CStat=150`
-- campos retornados com sucesso: `c_stat_receita`, `xml_autorizado`, `danfe_base64`
-- campo ainda ausente no payload testado: `caminho_danfe`
+- `app:api-request-worker`: processa requisições assíncronas da API;
+- `app:api-extraction-worker`: extrai dados de NFe/NSU/DF-e;
+- `app:webhook-delivery-worker`: entrega webhooks pendentes.
 
-Conclusao operacional:
+## APIs e legado
 
-- o enriquecimento do envio sincronico esta funcionando para XML autorizado e DANFE em base64
-- ainda existe um ajuste pendente para garantir `caminho_danfe` no retorno quando o PDF vier inline pelo ACBr
+Módulos principais:
 
-### Enriquecimento do envio de NFe
+- `CEP`: integração mais tipada, com DTOs e service próprio;
+- `NFe`: adaptador declarativo sobre `NFe/MT/ACBrNFeServicosMT.php`;
+- `NFSe`: adaptador declarativo sobre `NFSe/MT/ACBrNFSeServicosMT.php`.
 
-Commits relevantes mais recentes:
+Diretriz arquitetural:
 
-- `0a6c42c`: enriquecimento de resposta autorizada de NFe
-- `0760f39`: fix da conexao do repositorio de parametros para o banco de auditoria
-- `1e70f61`: configuracao da pasta dedicada `NFe/arqs/danfes`
-- `396af63`: preserva `PathPDF` separado de `PathNFe`
-- `e48138e`: trata retorno inline do ACBr com PDF em base64 no fluxo sincronico
-- `245070b`: adiciona amostra inicial de XML homologacao
-- `0ccf33d`: substitui amostra invalida por XML homologacao valido
-- `abe5a7f`: adiciona retorno formatado real de homologacao
+- novas operações públicas devem preferir DTOs dedicados;
+- evitar expor detalhes genéricos do legado no contrato público;
+- manter metadados API Platform/validator em XML onde esse padrão já foi adotado.
 
-Comportamento atual do enriquecimento:
+## Documentação atualizada
 
-- usa codigos parametrizados em `t99034`
-- hoje o sucesso funcional esperado e `HTTP 200/201` com `CStat principal = 150`
-- ao autorizar, tenta localizar o XML processado e gerar a DANFE
-- se o ACBr devolver caminho fisico do PDF, o sistema usa esse caminho
-- se o ACBr devolver o PDF inline em base64, o sistema popula `danfe_base64`
-- nesse segundo caso, o retorno real testado mostrou que ainda pode faltar `caminho_danfe`
+Manual geral:
 
-## Ambiente runtime da NFe
+```text
+docs/MANUAL_OPERACIONAL_PROJETO.md
+```
 
-O legado NFe ainda depende do arquivo:
-
-- `NFe/MT/ACBrNFe.INI`
-
-Valor relevante:
-
-- `Ambiente=0`
-
-Correspondencia:
-
-- `0 = producao`
-- `1 = homologacao`
-
-Conclusao operacional:
-
-- os XMLs de `homologacao_convertidos` estao no formato certo para homologacao
-- mas, se o runtime continuar com `Ambiente=0`, o servidor pode responder rejeicao `252` por divergencia de ambiente
-- houve alteracao local em `NFe/MT/ACBrNFe.INI` que nao foi incorporada automaticamente aos commits recentes de XML
-
-## Validacoes reais recentes
-
-Testes reais ja confirmados no ambiente:
-
-- `/nfe/envio/enviar-sincrono-xml` gerando `procNFe` e alimentando `t99019` a `t99033`
-- `/nfe/consultas/consultar-com-chave-xml` salvando o XML completo e gerando `procNFe`
-- `/nfe/distribuicao-dfe/por-chave` concluindo extracao sem falhar, inclusive em retorno textual sem `docZip`
-
-Exemplos de requests auditadas que servem de referencia:
-
-- `11709`: envio XML com extracao concluida
-- `11712`: distribuicao por chave com extracao concluida
-- `11713`: consulta por XML com extracao concluida
-
-## Arquivos principais para retomar rapidamente
+Arquivos de contexto:
 
 - `docs/README_CONTEXTO.md`
 - `docs/ARQUITETURA_ATUAL.md`
+- `docs/MAPA_MODULOS_API.md`
+- `docs/FLUXO_INTEGRACAO_LEGADO.md`
 - `docs/CONTEXTO_ACUMULADO_PROJETO.md`
+- `docs/CONTEXTO_SESSAO_ATUAL.md`
 - `docs/GUIA_RETORNO_RAPIDO.md`
-- `docs/roteiro-teste-telas-workers-webhooks.md`
 
-## Commits recentes relevantes
+## Validações recentes executadas
 
-- `3029d49`: compatibilidade de extracao e pivôs da NFe
-- `5789843`: ajuste do handling de payload para NFe e NSU
-- `fe237bd`: organizacao dos XMLs por producao/homologacao/vazios
-- `f284333`: remocao de assinatura e autorizacao dos XMLs de homologacao
+Após as mudanças de usuários/permissões:
 
-## Pontos de atencao
+```bash
+php tests/Repository/AuthUserRepositoryTest.php
+php tests/Repository/AuthUserCompanyBindingTest.php
+php tests/Repository/AuthSubscriberPrimaryKeyCompatibilityTest.php
+php tests/Service/AuthTokenServiceTest.php
+php tests/AuthSessionPolicyTest.php
+php tests/Controller/UserAdminPageTest.php
+php tests/Controller/CompanyAdminMenuTest.php
+php tests/Controller/CommonUserMenuTest.php
+php tests/Controller/UserAdminTemplateEditTest.php
+node --check catalog-assets/admin/user-company-search.js
+php -l src/Controller/UserAdminController.php
+php -l src/Repository/Auth/AuthUserRepository.php
+php -l src/EventSubscriber/AuthGateSubscriber.php
+php -l src/Service/Auth/CurrentUserContext.php
+```
 
-1. O worker de extracao precisa permanecer rodando no host para consumir `si_status_extracao = pendente`.
-2. Nem todo retorno de NFe traz XML completo; em alguns casos a extracao sera parcial.
-3. Os XMLs de homologacao ja foram preparados, mas o runtime da NFe pode ainda estar apontando para producao.
-4. Existe sujeira local fora destes docs, especialmente `NFe/MT/ACBrNFe.INI`, `var/db/program_catalog.sqlite` e um item local chamado `-`; nao sobrescrever sem analisar.
-3. Se aparecer fila parada em extracao, verificar primeiro se o worker esta ativo e se usa a conexao `app.audit_connection`.
-4. Se houver testes com webhook local, a protecao `SSRF` vai bloquear destinos privados como `127.0.0.1`.
+## Estado do workspace no momento deste contexto
+
+Há várias alterações locais acumuladas no workspace, incluindo mudanças recentes de autenticação, monitores, documentação e bancos SQLite auxiliares.
+
+Antes de continuar qualquer nova alteração, rodar:
+
+```bash
+git status --short
+```
+
+Não reverter arquivos sem revisar, porque existem alterações do fluxo atual e possivelmente alterações anteriores do usuário.
+
+## Pontos de atenção para próxima sessão
+
+- Validar no navegador real a tela `/index.php/usuarios` como `super_admin` e como `company_admin`.
+- Se mexer na tela de usuários, revisar `catalog-assets/admin/user-company-search.js`, pois ele precisa respeitar o atributo `form` na edição inline.
+- Se mexer nos monitores, validar escopo por usuário comum com empresas vinculadas.
+- Se mexer no banco, não apagar dados sem confirmação explícita e backup.
+- Se mexer no menu/rotas, revisar `AuthGateSubscriber` e `templates/admin/base.html.twig` juntos.
+- Não registrar tokens reais, senhas ou credenciais em documentação.

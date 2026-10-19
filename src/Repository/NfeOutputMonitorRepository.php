@@ -48,9 +48,10 @@ final class NfeOutputMonitorRepository
 
     /**
      * @param list<int>|null $subscriberIds
+     * @param list<string>|null $companyDocuments
      * @return array<string, mixed>|null
      */
-    public function findByRequestId(string $requestId, ?array $subscriberIds = null): ?array
+    public function findByRequestId(string $requestId, ?array $subscriberIds = null, ?array $companyDocuments = null): ?array
     {
         if ($requestId === '' || !$this->tableExists('t99001')) {
             return null;
@@ -59,6 +60,9 @@ final class NfeOutputMonitorRepository
         $filters = ['request_id' => $requestId];
         if ($subscriberIds !== null) {
             $filters['subscriber_ids'] = $subscriberIds;
+        }
+        if ($companyDocuments !== null) {
+            $filters['company_documents'] = $companyDocuments;
         }
         [$whereSql, $params, $types] = $this->buildWhereSql($filters);
 
@@ -83,9 +87,10 @@ final class NfeOutputMonitorRepository
     }
 
     /**
+     * @param array<string, mixed> $filters
      * @return array{clientes:list<string>,emissores:list<string>,assinantes:list<string>}
      */
-    public function filterOptions(): array
+    public function filterOptions(array $filters = []): array
     {
         if (!$this->tableExists('t99001')) {
             return [
@@ -95,44 +100,15 @@ final class NfeOutputMonitorRepository
             ];
         }
 
-        /** @var list<array<string, mixed>> $rows */
-        $rows = $this->auditConnection->fetchAllAssociative(
-            $this->buildBaseSql() . "
-                WHERE t.c_cod_programa = :programa
-                  AND t.c_caminho LIKE :caminho
-                ORDER BY t.dt_hr_recebimento DESC, t.id_t99001 DESC
-                LIMIT " . self::MAX_RECORDS,
-            [
-                'programa' => 'nfe',
-                'caminho' => '/nfe/envio/%',
-            ]
-        );
-
         $clientes = [];
         $emissores = [];
         $assinantes = [];
 
-        foreach ($rows as $row) {
-            $assinante = $this->extractSubscriber($row['t_assinante_json'] ?? null);
-            $cliente = $this->displayClientName(
-                $this->stringOrEmpty($row['cliente_xml_nome'] ?? null),
-                $this->stringOrEmpty($row['cliente'] ?? null),
-                $this->firstNonEmpty(
-                    $this->stringOrEmpty($row['cliente_xml_documento'] ?? null),
-                    $this->stringOrEmpty($row['cliente_documento'] ?? null)
-                )
-            );
-            $emitente = $this->displayIssuerName(
-                $this->stringOrEmpty($row['emitente_nome'] ?? null),
-                $this->stringOrEmpty($row['emitente_documento'] ?? null),
-                $assinante['nome'],
-                $assinante['identificador']
-            );
-
-            $this->appendOption($clientes, $cliente);
-            $this->appendOption($emissores, $emitente);
-            $this->appendOption($assinantes, $assinante['nome']);
-            $this->appendOption($assinantes, $assinante['identificador']);
+        foreach ($this->search($filters) as $row) {
+            $this->appendOption($clientes, $this->stringOrEmpty($row['cliente'] ?? null));
+            $this->appendOption($emissores, $this->stringOrEmpty($row['emitente_nome'] ?? null));
+            $this->appendOption($assinantes, $this->stringOrEmpty($row['assinante_nome'] ?? null));
+            $this->appendOption($assinantes, $this->stringOrEmpty($row['assinante_identificador'] ?? null));
         }
 
         sort($clientes);
@@ -149,13 +125,24 @@ final class NfeOutputMonitorRepository
     /**
      * @return list<string>
      */
-    public function searchFilterOptions(string $type, string $query): array
+    public function searchFilterOptions(string $type, string $query, array $filters = []): array
     {
         $normalizedType = trim($type);
         $normalizedQuery = trim($query);
 
         if ($normalizedType === '') {
             return [];
+        }
+
+        if (array_key_exists('subscriber_ids', $filters)) {
+            $options = $this->filterOptions($filters)[match ($normalizedType) {
+                'cliente' => 'clientes',
+                'emissor' => 'emissores',
+                'assinante' => 'assinantes',
+                default => '',
+            }] ?? [];
+
+            return $this->filterOptionList($options, $normalizedQuery);
         }
 
         return match ($normalizedType) {
@@ -244,26 +231,44 @@ final class NfeOutputMonitorRepository
             $params['request_id'] = $requestId;
         }
 
+        $scopePredicates = [];
+
         /** @var list<int> $subscriberIds */
         $subscriberIds = array_values(array_filter(
             array_map(static fn (mixed $value): int => (int) $value, is_array($filters['subscriber_ids'] ?? null) ? $filters['subscriber_ids'] : []),
             static fn (int $value): bool => $value > 0
         ));
         if ($subscriberIds !== []) {
-            $subscriberPredicates = [];
             $hasRequestSubscriberId = $this->tableHasColumn('t99001', 't00002_id');
             foreach ($subscriberIds as $index => $subscriberId) {
-                $idName = 'subscriber_id_' . $index;
-                $jsonName = 'subscriber_json_id_' . $index;
+                $idName = 'scope_subscriber_id_' . $index;
+                $jsonName = 'scope_subscriber_json_id_' . $index;
                 if ($hasRequestSubscriberId) {
-                    $subscriberPredicates[] = 't.t00002_id = :' . $idName;
+                    $scopePredicates[] = 't.t00002_id = :' . $idName;
                     $params[$idName] = $subscriberId;
                     $types[$idName] = ParameterType::INTEGER;
                 }
-                $subscriberPredicates[] = 'COALESCE(t.t_assinante_json, \'\') LIKE :' . $jsonName;
+                $scopePredicates[] = 'COALESCE(t.t_assinante_json, \'\') LIKE :' . $jsonName;
                 $params[$jsonName] = '%"id_t00002":' . $subscriberId . '%';
             }
-            $where[] = '(' . implode(' OR ', $subscriberPredicates) . ')';
+        }
+
+        /** @var list<string> $companyDocuments */
+        $companyDocuments = array_values(array_unique(array_filter(
+            array_map(static fn (mixed $value): string => preg_replace('/\D+/', '', (string) $value) ?? '', is_array($filters['company_documents'] ?? null) ? $filters['company_documents'] : []),
+            static fn (string $value): bool => strlen($value) === 14
+        )));
+        foreach ($companyDocuments as $index => $document) {
+            $name = 'scope_company_document_' . $index;
+            $scopePredicates[] = 'COALESCE(emit.cnpj, \'\') = :' . $name;
+            $params[$name] = $document;
+        }
+
+        if ((array_key_exists('subscriber_ids', $filters) || array_key_exists('company_documents', $filters)) && $scopePredicates === []) {
+            $where[] = '1 = 0';
+        }
+        if ($scopePredicates !== []) {
+            $where[] = '(' . implode(' OR ', $scopePredicates) . ')';
         }
 
         $subscriber = trim((string) ($filters['assinante'] ?? ''));
@@ -279,6 +284,21 @@ final class NfeOutputMonitorRepository
         }
 
         return [' WHERE ' . implode(' AND ', $where), $params, $types];
+    }
+
+    /**
+     * @param list<string> $options
+     * @return list<string>
+     */
+    private function filterOptionList(array $options, string $query): array
+    {
+        $query = trim($query);
+        $filtered = $query === '' ? $options : array_values(array_filter(
+            $options,
+            static fn (string $option): bool => stripos($option, $query) !== false
+        ));
+
+        return array_slice(array_values(array_unique($filtered)), 0, 20);
     }
 
     /**

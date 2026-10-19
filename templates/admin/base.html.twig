@@ -13,6 +13,10 @@
     {% block page_styles %}{% endblock %}
 </head>
 {% set currentRoute = app.request.attributes.get('_route') %}
+{% set currentUser = app.request.attributes.get('_auth_user') %}
+{% set isSuperAdmin = currentUser and 'super_admin' in (currentUser.roles ?? []) %}
+{% set isCompanyAdmin = currentUser and 'company_admin' in (currentUser.roles ?? []) %}
+{% set canManageUsers = isSuperAdmin or isCompanyAdmin %}
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary app-loaded">
 <div class="app-wrapper">
     <nav class="app-header navbar navbar-expand bg-body">
@@ -25,7 +29,6 @@
                 </li>
             </ul>
             <ul class="navbar-nav ms-auto">
-                {% set currentUser = app.request.attributes.get('_auth_user') %}
                 {% if currentUser %}
                     <li class="nav-item d-flex align-items-center px-2 text-body-secondary">
                         <i class="bi bi-person-circle me-1"></i>
@@ -73,74 +76,79 @@
                             <p>APIs e documentação</p>
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/demos' }}" class="nav-link{% if currentRoute == 'app_demos' %} active{% endif %}">
-                            <i class="nav-icon bi bi-window-sidebar"></i>
-                            <p>Demos legados</p>
-                        </a>
-                    </li>
+                    {% if isSuperAdmin %}
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/demos' }}" class="nav-link{% if currentRoute == 'app_demos' %} active{% endif %}">
+                                <i class="nav-icon bi bi-window-sidebar"></i>
+                                <p>Demos legados</p>
+                            </a>
+                        </li>
 
-                    <li class="nav-header">Operação</li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}" class="nav-link{% if currentRoute == 'app_program_catalog' %} active{% endif %}">
-                            <i class="nav-icon bi bi-diagram-3"></i>
-                            <p>Catálogo de programas</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}" class="nav-link{% if currentRoute == 'app_test_catalog' %} active{% endif %}">
-                            <i class="nav-icon bi bi-bezier2"></i>
-                            <p>Catálogo de testes</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/configuracao-execucao' }}" class="nav-link{% if currentRoute == 'app_execution_config' %} active{% endif %}">
-                            <i class="nav-icon bi bi-sliders"></i>
-                            <p>Configuração de execução</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/capacidade-workers' }}" class="nav-link{% if currentRoute == 'app_worker_capacity' %} active{% endif %}">
-                            <i class="nav-icon bi bi-cpu"></i>
-                            <p>Capacidade de workers</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/monitor-workers' }}" class="nav-link{% if currentRoute == 'app_worker_monitor' %} active{% endif %}">
-                            <i class="nav-icon bi bi-activity"></i>
-                            <p>Monitor de workers</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/assinantes' }}" class="nav-link{% if currentRoute == 'app_subscribers' %} active{% endif %}">
-                            <i class="nav-icon bi bi-people"></i>
-                            <p>Assinantes</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/usuarios' }}" class="nav-link{% if currentRoute == 'app_users' %} active{% endif %}">
-                            <i class="nav-icon bi bi-person-gear"></i>
-                            <p>Usuários</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/webhooks' }}" class="nav-link{% if currentRoute == 'app_webhooks' %} active{% endif %}">
-                            <i class="nav-icon bi bi-broadcast"></i>
-                            <p>Webhooks</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/consulta-requisicoes' }}" class="nav-link{% if currentRoute == 'app_api_request_lookup' %} active{% endif %}">
-                            <i class="nav-icon bi bi-search"></i>
-                            <p>Consulta de requisições</p>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes/visao-analitica' }}" class="nav-link{% if currentRoute == 'app_api_audit_overview' %} active{% endif %}">
-                            <i class="nav-icon bi bi-graph-up-arrow"></i>
-                            <p>Auditoria analítica</p>
-                        </a>
-                    </li>
+                        <li class="nav-header">Operação</li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/catalogo-programas' }}" class="nav-link{% if currentRoute == 'app_program_catalog' %} active{% endif %}">
+                                <i class="nav-icon bi bi-diagram-3"></i>
+                                <p>Catálogo de programas</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/catalogo-testes' }}" class="nav-link{% if currentRoute == 'app_test_catalog' %} active{% endif %}">
+                                <i class="nav-icon bi bi-bezier2"></i>
+                                <p>Catálogo de testes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/configuracao-execucao' }}" class="nav-link{% if currentRoute == 'app_execution_config' %} active{% endif %}">
+                                <i class="nav-icon bi bi-sliders"></i>
+                                <p>Configuração de execução</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/capacidade-workers' }}" class="nav-link{% if currentRoute == 'app_worker_capacity' %} active{% endif %}">
+                                <i class="nav-icon bi bi-cpu"></i>
+                                <p>Capacidade de workers</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/monitor-workers' }}" class="nav-link{% if currentRoute == 'app_worker_monitor' %} active{% endif %}">
+                                <i class="nav-icon bi bi-activity"></i>
+                                <p>Monitor de workers</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/assinantes' }}" class="nav-link{% if currentRoute == 'app_subscribers' %} active{% endif %}">
+                                <i class="nav-icon bi bi-people"></i>
+                                <p>Assinantes</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/webhooks' }}" class="nav-link{% if currentRoute == 'app_webhooks' %} active{% endif %}">
+                                <i class="nav-icon bi bi-broadcast"></i>
+                                <p>Webhooks</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/consulta-requisicoes' }}" class="nav-link{% if currentRoute == 'app_api_request_lookup' %} active{% endif %}">
+                                <i class="nav-icon bi bi-search"></i>
+                                <p>Consulta de requisições</p>
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/auditoria-requisicoes/visao-analitica' }}" class="nav-link{% if currentRoute == 'app_api_audit_overview' %} active{% endif %}">
+                                <i class="nav-icon bi bi-graph-up-arrow"></i>
+                                <p>Auditoria analítica</p>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% if canManageUsers %}
+                        <li class="nav-item">
+                            <a href="{{ app.request.basePath ~ '/index.php/usuarios' }}" class="nav-link{% if currentRoute == 'app_users' %} active{% endif %}">
+                                <i class="nav-icon bi bi-person-gear"></i>
+                                <p>Usuários</p>
+                            </a>
+                        </li>
+                    {% endif %}
 
                     <li class="nav-header">Monitores</li>
                     <li class="nav-item">
@@ -153,6 +161,12 @@
                         <a href="{{ app.request.basePath ~ '/index.php/monitor-entrada-nfe' }}" class="nav-link{% if currentRoute == 'app_nfe_input_monitor' or currentRoute == 'app_nfe_input_monitor_detail' or currentRoute == 'app_nfe_input_monitor_technical_detail' %} active{% endif %}">
                             <i class="nav-icon bi bi-box-arrow-in-down"></i>
                             <p>Monitor de entrada NFe</p>
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{{ app.request.basePath ~ '/index.php/monitor-nfse' }}" class="nav-link{% if currentRoute starts with 'app_nfse_' %} active{% endif %}">
+                            <i class="nav-icon bi bi-receipt"></i>
+                            <p>NFSe</p>
                         </a>
                     </li>
                 </ul>

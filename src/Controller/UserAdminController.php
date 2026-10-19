@@ -4,6 +4,7 @@ namespace App\Controller;
 
 use App\Repository\Auth\AuthSchemaManager;
 use App\Repository\Auth\AuthUserRepository;
+use App\Service\Auth\CurrentUserContext;
 use InvalidArgumentException;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -18,6 +19,7 @@ final class UserAdminController extends AbstractController
     public function __construct(
         private readonly AuthSchemaManager $schemaManager,
         private readonly AuthUserRepository $users,
+        private readonly CurrentUserContext $currentUser,
     ) {
     }
 
@@ -41,11 +43,8 @@ final class UserAdminController extends AbstractController
             'users' => $users,
             'userCompanies' => $userCompanies,
             'loadError' => $loadError,
-            'types' => [
-                'common' => 'Comum',
-                'company_admin' => 'Admin do assinante',
-                'super_admin' => 'Admin geral',
-            ],
+            'types' => $this->allowedTypes(),
+            'canCreateSuperAdmin' => $this->currentUser->isSuperAdmin(),
         ]);
     }
 
@@ -58,6 +57,8 @@ final class UserAdminController extends AbstractController
             $name = trim((string) $request->request->get('nome', ''));
             $password = (string) $request->request->get('senha', '');
             $type = trim((string) $request->request->get('tipo', 'common'));
+
+            $this->assertAllowedType($type);
 
             if ($password === '') {
                 throw new InvalidArgumentException('Informe uma senha inicial.');
@@ -76,6 +77,42 @@ final class UserAdminController extends AbstractController
             $this->addFlash('success', 'Usuário criado.');
         } catch (Throwable $throwable) {
             $this->addFlash('error', 'Falha ao criar usuário: ' . $throwable->getMessage());
+        }
+
+        return $this->redirectToRoute('app_users');
+    }
+
+    #[Route('/usuarios/atualizar', name: 'app_users_update', methods: ['POST'])]
+    public function update(Request $request): RedirectResponse
+    {
+        try {
+            $this->schemaManager->ensureSchema();
+            $userId = (int) $request->request->get('usuario_id', 0);
+            $user = $this->users->findById($userId);
+            if ($user === null) {
+                throw new InvalidArgumentException('Usuário não encontrado.');
+            }
+
+            $currentType = (string) ($user['c_tipo'] ?? 'common');
+            if ($currentType === 'super_admin' && !$this->currentUser->isSuperAdmin()) {
+                throw new InvalidArgumentException('Admin do assinante não pode editar administrador geral.');
+            }
+
+            $type = trim((string) $request->request->get('tipo', 'common'));
+            $this->assertAllowedType($type);
+
+            $name = trim((string) $request->request->get('nome', ''));
+            $password = (string) $request->request->get('senha', '');
+            $active = $request->request->get('ativo') === '1';
+            $passwordHash = trim($password) !== '' ? password_hash($password, PASSWORD_DEFAULT) : null;
+
+            $this->users->updateUser($userId, $name, $type, $active, $passwordHash);
+            $companyRole = $this->companyRoleForType($type);
+            $this->users->replaceUserCompanies($userId, $companyRole === null ? [] : $this->companyIdsFromRequest($request), $companyRole ?? 'common');
+
+            $this->addFlash('success', 'Usuário atualizado.');
+        } catch (Throwable $throwable) {
+            $this->addFlash('error', 'Falha ao atualizar usuário: ' . $throwable->getMessage());
         }
 
         return $this->redirectToRoute('app_users');
@@ -102,9 +139,12 @@ final class UserAdminController extends AbstractController
         try {
             $this->schemaManager->ensureSchema();
             $userId = (int) $request->request->get('usuario_id', 0);
-            $user = $this->users->findActiveById($userId);
+            $user = $this->users->findById($userId);
             if ($user === null) {
                 throw new InvalidArgumentException('Usuário não encontrado.');
+            }
+            if (($user['c_tipo'] ?? '') === 'super_admin' && !$this->currentUser->isSuperAdmin()) {
+                throw new InvalidArgumentException('Admin do assinante não pode alterar empresas de administrador geral.');
             }
 
             $companyRole = $this->companyRoleForType((string) ($user['c_tipo'] ?? 'common'));
@@ -137,5 +177,29 @@ final class UserAdminController extends AbstractController
             'common' => 'common',
             default => null,
         };
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private function allowedTypes(): array
+    {
+        $types = [
+            'common' => 'Comum',
+            'company_admin' => 'Admin do assinante',
+        ];
+
+        if ($this->currentUser->isSuperAdmin()) {
+            $types['super_admin'] = 'Admin geral';
+        }
+
+        return $types;
+    }
+
+    private function assertAllowedType(string $type): void
+    {
+        if (!array_key_exists($type, $this->allowedTypes())) {
+            throw new InvalidArgumentException('Tipo de usuário não permitido para o usuário atual.');
+        }
     }
 }

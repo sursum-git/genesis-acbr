@@ -1,6 +1,6 @@
 # Guia de Retorno Rápido
 
-Atualizado em `2026-05-26`.
+Atualizado em `2026-08-20`.
 
 ## Objetivo
 
@@ -11,8 +11,9 @@ Este arquivo existe para reduzir o tempo de retomada em uma nova sessão.
 Se a sessão for técnica e precisar retomar rápido:
 
 1. Leia `docs/CONTEXTO_SESSAO_ATUAL.md`
-2. Leia `docs/ARQUITETURA_ATUAL.md`
-3. Leia `docs/FLUXO_INTEGRACAO_LEGADO.md`
+2. Leia `docs/MANUAL_OPERACIONAL_PROJETO.md`
+3. Leia `docs/ARQUITETURA_ATUAL.md`
+4. Leia `docs/FLUXO_INTEGRACAO_LEGADO.md`
 
 ## Arquivos mais sensíveis hoje
 
@@ -26,12 +27,23 @@ Se a sessão for técnica e precisar retomar rápido:
 - `src/EventSubscriber/ApiTokenAuthSubscriber.php`
 - `src/Command/ApiRequestWorkerCommand.php`
 
+### Autenticação e usuários
+
+- `src/EventSubscriber/AuthGateSubscriber.php`
+- `src/Service/Auth/CurrentUserContext.php`
+- `src/Repository/Auth/AuthUserRepository.php`
+- `src/Repository/Auth/AuthSchemaManager.php`
+- `src/Controller/AuthController.php`
+- `src/Controller/UserAdminController.php`
+
 ### Controllers web
 
 - `src/Controller/HomeController.php`
 - `src/Controller/ApiAuditDashboardController.php`
 - `src/Controller/ProgramCatalogController.php`
 - `src/Controller/TestCatalogController.php`
+- `src/Controller/NfeOutputMonitorController.php`
+- `src/Controller/NfeInputMonitorController.php`
 
 ### Frontend compartilhado
 
@@ -39,6 +51,9 @@ Se a sessão for técnica e precisar retomar rápido:
 - `catalog-assets/catalog.css`
 - `templates/admin/base.html.twig`
 - `catalog-assets/adminlte-portal.css`
+- `catalog-assets/admin/user-company-search.js`
+- `catalog-assets/monitor/nfe-output-monitor.js`
+- `catalog-assets/monitor/nfe-output-monitor.css`
 
 ### Templates principais
 
@@ -49,6 +64,9 @@ Se a sessão for técnica e precisar retomar rápido:
 - `templates/catalog/test_catalog.html.twig`
 - `templates/home/hub.html.twig`
 - `templates/home/section.html.twig`
+- `templates/admin/users.html.twig`
+- `templates/admin/nfe_output_monitor.html.twig`
+- `templates/admin/nfe_input_monitor.html.twig`
 
 ## Comandos úteis de validação
 
@@ -57,6 +75,21 @@ Lint principal:
 ```bash
 php bin/console lint:container
 php bin/console lint:twig templates/admin/base.html.twig templates/home/hub.html.twig templates/home/section.html.twig templates/catalog/base.html.twig templates/catalog/api_audit_dashboard.html.twig templates/catalog/api_audit_overview.html.twig templates/catalog/program_catalog.html.twig templates/catalog/test_catalog.html.twig
+```
+
+Testes recentes de autenticação/usuários:
+
+```bash
+php tests/Repository/AuthUserRepositoryTest.php
+php tests/Repository/AuthUserCompanyBindingTest.php
+php tests/Repository/AuthSubscriberPrimaryKeyCompatibilityTest.php
+php tests/Service/AuthTokenServiceTest.php
+php tests/AuthSessionPolicyTest.php
+php tests/Controller/UserAdminPageTest.php
+php tests/Controller/CompanyAdminMenuTest.php
+php tests/Controller/CommonUserMenuTest.php
+php tests/Controller/UserAdminTemplateEditTest.php
+node --check catalog-assets/admin/user-company-search.js
 ```
 
 Teste operacional de auditoria:
@@ -103,12 +136,21 @@ Catálogo de testes:
 
 - `http://157.173.110.195:8089/index.php/catalogo-testes`
 
+Usuários:
+
+- `http://157.173.110.195:8089/index.php/usuarios`
+
+Monitores:
+
+- `http://157.173.110.195:8089/index.php/monitor-saida-nfe`
+- `http://157.173.110.195:8089/index.php/monitor-entrada-nfe`
+
 ## Banco e operação
 
 PostgreSQL externo:
 
 - database: `dfe`
-- uso: auditoria, assinantes, fila, status
+- uso: autenticação, assinantes, auditoria, fila, status, extrações e monitores
 
 SQLite local:
 
@@ -123,3 +165,5 @@ SQLite local:
 4. Se mexer em auditoria, valide as duas telas: consulta e analítica
 5. Se criar arquivos novos, já deixe documentados e versionados
 6. Se concluir um bloco relevante, faça commit explícito
+7. Se mexer em usuários/permissões, valide como `super_admin`, `company_admin` e `common`
+8. Se mexer em monitores, valide o filtro por empresas vinculadas ao usuário

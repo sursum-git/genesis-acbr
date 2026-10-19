@@ -56,7 +56,7 @@ final class NfeOutputMonitorController extends AbstractController
         }
 
         $noteRequestId = trim((string) ($payload['nota_request_id'] ?? ''));
-        $detail = $this->monitorRepository->findByRequestId($noteRequestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
+        $detail = $this->monitorRepository->findByRequestId($noteRequestId, $this->subscriberScopeIds(), $this->companyScopeDocuments());
         if ($detail === null || (int) ($detail['note_id'] ?? 0) <= 0) {
             return $this->json(['message' => 'Nota não encontrada para registrar o evento fiscal.'], Response::HTTP_NOT_FOUND);
         }
@@ -90,7 +90,7 @@ final class NfeOutputMonitorController extends AbstractController
             return $this->json(['message' => 'A correção deve ter no máximo 1000 caracteres.'], Response::HTTP_BAD_REQUEST);
         }
 
-        $detail = $this->monitorRepository->findByRequestId($noteRequestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
+        $detail = $this->monitorRepository->findByRequestId($noteRequestId, $this->subscriberScopeIds(), $this->companyScopeDocuments());
         if ($detail === null || (int) ($detail['note_id'] ?? 0) <= 0) {
             return $this->json(['message' => 'Nota não encontrada para Carta de Correção.'], Response::HTTP_NOT_FOUND);
         }
@@ -164,7 +164,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/filtros/opcoes', name: 'app_nfe_output_monitor_filter_options', methods: ['GET'])]
     public function filterOptions(): JsonResponse
     {
-        return $this->json($this->monitorRepository->filterOptions());
+        return $this->json($this->monitorRepository->filterOptions($this->subscriberScopeFilters()));
     }
 
     #[Route('/monitor-saida-nfe/filtros/busca', name: 'app_nfe_output_monitor_filter_lookup', methods: ['GET'])]
@@ -173,7 +173,8 @@ final class NfeOutputMonitorController extends AbstractController
         return $this->json([
             'items' => $this->monitorRepository->searchFilterOptions(
                 $request->query->getString('type'),
-                $request->query->getString('q')
+                $request->query->getString('q'),
+                $this->subscriberScopeFilters()
             ),
         ]);
     }
@@ -201,7 +202,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/nota/{requestId}', name: 'app_nfe_output_monitor_detail', methods: ['GET'])]
     public function detail(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->subscriberScopeIds(), $this->companyScopeDocuments());
         if ($detail === null) {
             throw $this->createNotFoundException('Tentativa de envio nao encontrada.');
         }
@@ -216,7 +217,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/nota/{requestId}/tecnico', name: 'app_nfe_output_monitor_technical_detail', methods: ['GET'])]
     public function technicalDetail(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->subscriberScopeIds(), $this->companyScopeDocuments());
         if ($detail === null) {
             throw $this->createNotFoundException('Tentativa de envio nao encontrada.');
         }
@@ -231,7 +232,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/danfe/{requestId}', name: 'app_nfe_output_monitor_danfe', methods: ['GET'])]
     public function danfe(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->subscriberScopeIds(), $this->companyScopeDocuments());
         if ($detail === null || !$this->hasDanfe($detail)) {
             throw $this->createNotFoundException('DANFE nao disponivel para esta tentativa.');
         }
@@ -262,7 +263,7 @@ final class NfeOutputMonitorController extends AbstractController
     #[Route('/monitor-saida-nfe/xml/{requestId}', name: 'app_nfe_output_monitor_xml', methods: ['GET'])]
     public function xml(string $requestId): Response
     {
-        $detail = $this->monitorRepository->findByRequestId($requestId, $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds());
+        $detail = $this->monitorRepository->findByRequestId($requestId, $this->subscriberScopeIds(), $this->companyScopeDocuments());
         if ($detail === null || ($detail['xml_autorizado'] ?? '') === '') {
             throw $this->createNotFoundException('XML autorizado nao disponivel para esta tentativa.');
         }
@@ -346,9 +347,37 @@ final class NfeOutputMonitorController extends AbstractController
     {
         if (!$this->currentUser->isSuperAdmin()) {
             $filters['subscriber_ids'] = $this->currentUser->subscriberIds();
+            $filters['company_documents'] = $this->currentUser->companyDocuments();
         }
 
         return $filters;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function subscriberScopeFilters(): array
+    {
+        return $this->currentUser->isSuperAdmin() ? [] : [
+            'subscriber_ids' => $this->currentUser->subscriberIds(),
+            'company_documents' => $this->currentUser->companyDocuments(),
+        ];
+    }
+
+    /**
+     * @return list<int>|null
+     */
+    private function subscriberScopeIds(): ?array
+    {
+        return $this->currentUser->isSuperAdmin() ? null : $this->currentUser->subscriberIds();
+    }
+
+    /**
+     * @return list<string>|null
+     */
+    private function companyScopeDocuments(): ?array
+    {
+        return $this->currentUser->isSuperAdmin() ? null : $this->currentUser->companyDocuments();
     }
 
     /**

@@ -32,14 +32,40 @@ final class AcbrLibraryReleaseRepository
                 c_caminho_so text NOT NULL,
                 c_sha256 char(64) NOT NULL,
                 c_perfil_ini varchar(64) NOT NULL,
-                dt_hr_inicio_vigencia timestamp NOT NULL,
-                dt_hr_fim_vigencia timestamp NULL,
+                dt_hr_inicio_vigencia timestamptz NOT NULL,
+                dt_hr_fim_vigencia timestamptz NULL,
                 log_ativo boolean NOT NULL DEFAULT TRUE,
                 t_observacao text NULL,
-                dt_hr_criacao timestamp NOT NULL,
-                dt_hr_atu timestamp NOT NULL
+                dt_hr_criacao timestamptz NOT NULL,
+                dt_hr_atu timestamptz NOT NULL
             )
             SQL, self::TABLE, $idColumn));
+
+        if (!$this->connection->getDatabasePlatform() instanceof SQLitePlatform) {
+            $this->connection->executeStatement(<<<'SQL'
+                DO $$
+                DECLARE
+                    release_column text;
+                BEGIN
+                    FOREACH release_column IN ARRAY ARRAY['dt_hr_inicio_vigencia', 'dt_hr_fim_vigencia', 'dt_hr_criacao', 'dt_hr_atu']
+                    LOOP
+                        IF EXISTS (
+                            SELECT 1
+                            FROM information_schema.columns
+                            WHERE table_name = 't99037_acbr_library_release'
+                              AND information_schema.columns.column_name = release_column
+                              AND data_type = 'timestamp without time zone'
+                        ) THEN
+                            EXECUTE format(
+                                'ALTER TABLE t99037_acbr_library_release ALTER COLUMN %I TYPE timestamptz USING %I AT TIME ZONE current_setting(''TimeZone'')',
+                                release_column,
+                                release_column
+                            );
+                        END IF;
+                    END LOOP;
+                END $$;
+                SQL);
+        }
     }
 
     /** @param array<string, mixed> $payload */
@@ -66,7 +92,7 @@ final class AcbrLibraryReleaseRepository
         $this->ensureSchema();
         $rows = $this->connection->fetchAllAssociative(
             sprintf('SELECT * FROM %s WHERE c_modulo = :module AND c_ambiente = :environment AND log_ativo = TRUE AND dt_hr_inicio_vigencia <= :at AND (dt_hr_fim_vigencia IS NULL OR dt_hr_fim_vigencia > :at) ORDER BY dt_hr_inicio_vigencia DESC', self::TABLE),
-            ['module' => $module, 'environment' => $environment, 'at' => $at->format('Y-m-d H:i:s')]
+            ['module' => $module, 'environment' => $environment, 'at' => $at->format('Y-m-d H:i:sP')]
         );
 
         if (count($rows) > 1) {
@@ -118,7 +144,7 @@ final class AcbrLibraryReleaseRepository
             throw new RuntimeException('Período de vigência da biblioteca ACBr inválido.');
         }
 
-        $now = date('Y-m-d H:i:s');
+        $now = gmdate('Y-m-d H:i:sP');
         return [
             'c_modulo' => trim((string) ($payload['c_modulo'] ?? '')),
             'c_ambiente' => $environment,

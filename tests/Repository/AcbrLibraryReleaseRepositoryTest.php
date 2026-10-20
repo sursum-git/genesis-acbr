@@ -11,6 +11,14 @@ $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' =
 $repository = new AcbrLibraryReleaseRepository($connection);
 $repository->ensureSchema();
 
+$columns = $connection->fetchAllAssociative('PRAGMA table_info(t99037_acbr_library_release)');
+$columnTypes = array_column($columns, 'type', 'name');
+if (strcasecmp((string) ($columnTypes['dt_hr_inicio_vigencia'] ?? ''), 'TIMESTAMPTZ') !== 0
+    || strcasecmp((string) ($columnTypes['dt_hr_fim_vigencia'] ?? ''), 'TIMESTAMPTZ') !== 0) {
+    fwrite(STDERR, "A vigência da release deve armazenar instantes com fuso horário.\n");
+    exit(1);
+}
+
 $repository->save([
     'c_modulo' => 'nfe',
     'c_ambiente' => 'homologacao',

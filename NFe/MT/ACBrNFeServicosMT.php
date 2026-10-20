@@ -46,7 +46,7 @@ $approvedLibraryPath = null;
 
 if ($librarySelection !== '') {
     [$encoded, $signature] = array_pad(explode('.', $librarySelection, 2), 2, null);
-    $secret = getenv('ACBR_LIBRARY_SELECTION_SECRET') ?: '';
+    $secret = AcbrLibrarySelectionSecret(dirname(__DIR__, 2) . '/.env');
     $expected = is_string($encoded) ? rtrim(strtr(base64_encode(hash_hmac('sha256', $encoded, $secret, true)), '+/', '-_'), '=') : '';
     $payload = is_string($encoded) ? json_decode(base64_decode(strtr($encoded, '-_', '+/'), true) ?: '', true) : null;
     if ($secret === '' || !is_string($signature) || !hash_equals($expected, $signature) || !is_array($payload) || ($payload['module'] ?? null) !== 'nfe' || (int) ($payload['expires_at'] ?? 0) <= time()) {

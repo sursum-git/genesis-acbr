@@ -35,6 +35,28 @@ header('Content-Type: application/json; charset=UTF-8');
 
 const ACBR_SHARED_LIB_BASE_PATH = '/opt/acbr_libs';
 
+function AcbrLibrarySelectionSecret($envFile = null)
+{
+    $secret = getenv('ACBR_LIBRARY_SELECTION_SECRET');
+    if (is_string($secret) && trim($secret) !== '') {
+        return trim($secret);
+    }
+
+    if (!is_string($envFile) || !is_file($envFile)) {
+        return '';
+    }
+
+    foreach (file($envFile, FILE_IGNORE_NEW_LINES) ?: [] as $line) {
+        if (preg_match('/^\s*(?:export\s+)?ACBR_LIBRARY_SELECTION_SECRET\s*=\s*(.*?)\s*$/', $line, $matches) !== 1) {
+            continue;
+        }
+
+        return trim($matches[1], " \t\n\r\0\x0B\"'");
+    }
+
+    return '';
+}
+
 function ValidaFFI()
 {
     if (!extension_loaded('ffi')) {

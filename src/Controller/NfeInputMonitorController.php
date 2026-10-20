@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use App\Http\Exception\AcbrLegacyApiException;
 use App\Repository\NfeInputFiscalEventRepository;
 use App\Repository\NfeInputMonitorRepository;
@@ -68,8 +70,8 @@ final class NfeInputMonitorController extends AbstractController
         }
 
         $documentId = (int) ($detail['request_id'] ?? 0);
-        $accessKey = preg_replace('/\D+/', '', (string) ($detail['chave_nfe'] ?? '')) ?? '';
-        $recipientDocument = preg_replace('/\D+/', '', (string) ($detail['cliente_documento'] ?? '')) ?? '';
+        $accessKey = NfeFiscalIdentifier::normalizeAccessKey((string) ($detail['chave_nfe'] ?? ''));
+        $recipientDocument = NfeFiscalIdentifier::normalizeDocument((string) ($detail['cliente_documento'] ?? ''));
         $authorizedXml = trim((string) ($detail['xml_autorizado'] ?? ''));
         if ($documentId <= 0 || $accessKey === '' || $recipientDocument === '' || $authorizedXml === '') {
             return $this->json(['message' => 'A nota precisa ter chave, destinatário e XML completo para enviar manifestação.'], Response::HTTP_BAD_REQUEST);
@@ -255,8 +257,8 @@ final class NfeInputMonitorController extends AbstractController
      */
     private function buildManifestationEventXml(array $detail, string $eventType, string $justification, int $sequence): string
     {
-        $accessKey = preg_replace('/\D+/', '', (string) ($detail['chave_nfe'] ?? '')) ?? '';
-        $recipientDocument = preg_replace('/\D+/', '', (string) ($detail['cliente_documento'] ?? '')) ?? '';
+        $accessKey = NfeFiscalIdentifier::normalizeAccessKey((string) ($detail['chave_nfe'] ?? ''));
+        $recipientDocument = NfeFiscalIdentifier::normalizeDocument((string) ($detail['cliente_documento'] ?? ''));
         $environment = in_array((string) ($detail['ambiente'] ?? ''), ['1', '2'], true) ? (string) $detail['ambiente'] : '1';
         $eventDate = (new DateTimeImmutable('now', new DateTimeZone('America/Sao_Paulo')))->format('Y-m-d\TH:i:sP');
         $sequenceText = (string) $sequence;

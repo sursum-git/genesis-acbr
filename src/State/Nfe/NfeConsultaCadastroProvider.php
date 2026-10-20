@@ -2,6 +2,8 @@
 
 namespace App\State\Nfe;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProviderInterface;
 use App\Dto\Nfe\NfeConsultaCadastroInput;
@@ -98,7 +100,7 @@ final class NfeConsultaCadastroProvider implements ProviderInterface
         }
 
         if ($tipoDocumento === 'cpf_cnpj') {
-            return preg_replace('/\D+/', '', $normalized);
+            return NfeFiscalIdentifier::normalizeDocument($normalized);
         }
 
         return $normalized;

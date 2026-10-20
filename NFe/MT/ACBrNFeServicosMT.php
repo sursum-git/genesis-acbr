@@ -178,6 +178,13 @@ try {
     if (Inicializar($handle, $ffi, $iniPath) != 0)
         exit;
 
+    if ($metodo === "versao") {
+        $processo = "NFE_Versao";
+        if (NFEVersao($handle, $ffi, $resultado) != 0) {
+            exit;
+        }
+    }
+
     if ($metodo == "salvarConfiguracoes") {
         $processo = $metodo . "/" . "NFE_ConfigGravarValor";
 

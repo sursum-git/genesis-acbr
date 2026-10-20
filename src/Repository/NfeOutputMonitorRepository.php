@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use App\Support\ApiRequestStatus;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -255,7 +257,7 @@ final class NfeOutputMonitorRepository
 
         /** @var list<string> $companyDocuments */
         $companyDocuments = array_values(array_unique(array_filter(
-            array_map(static fn (mixed $value): string => preg_replace('/\D+/', '', (string) $value) ?? '', is_array($filters['company_documents'] ?? null) ? $filters['company_documents'] : []),
+            array_map(static fn (mixed $value): string => NfeFiscalIdentifier::normalizeDocument((string) $value), is_array($filters['company_documents'] ?? null) ? $filters['company_documents'] : []),
             static fn (string $value): bool => strlen($value) === 14
         )));
         foreach ($companyDocuments as $index => $document) {
@@ -677,7 +679,7 @@ final class NfeOutputMonitorRepository
             'cancelar_url' => $isCanceled ? '' : '/nfe/eventos/cancelar',
             'inutilizar_url' => '/nfe/inutilizacao/inutilizar',
             'chave' => $chave,
-            'cnpj_emitente' => preg_replace('/\D+/', '', $issuerDocument) ?? '',
+            'cnpj_emitente' => NfeFiscalIdentifier::normalizeDocument($issuerDocument),
             'ano' => $ano,
             'modelo' => $this->firstNonEmpty($this->stringOrEmpty($row['modelo_nota'] ?? null), '55'),
             'serie' => $this->stringOrEmpty($row['serie_nota'] ?? null),
@@ -913,7 +915,7 @@ final class NfeOutputMonitorRepository
             }
         }
 
-        $digits = preg_replace('/\D+/', '', $accessKey) ?? '';
+        $digits = NfeFiscalIdentifier::normalizeAccessKey($accessKey);
         if (strlen($digits) >= 4) {
             return substr($digits, 2, 2);
         }
@@ -978,16 +980,9 @@ final class NfeOutputMonitorRepository
         }
 
         foreach ($candidates as $candidate) {
-            if (preg_match('/(?:chDFe|chNFe)\s*=\s*(\d{44})/i', $candidate, $matches) === 1) {
-                return $matches[1];
-            }
-
-            if (preg_match('/<chNFe>\s*(\d{44})\s*<\/chNFe>/i', $candidate, $matches) === 1) {
-                return $matches[1];
-            }
-
-            if (preg_match('/Id=["\']NFe(\d{44})["\']/i', $candidate, $matches) === 1) {
-                return $matches[1];
+            $key = NfeFiscalIdentifier::extractAccessKey($candidate);
+            if ($key !== null) {
+                return $key;
             }
         }
 

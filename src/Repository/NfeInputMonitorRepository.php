@@ -2,6 +2,8 @@
 
 namespace App\Repository;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use App\Support\ApiExtractionStatus;
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ParameterType;
@@ -258,7 +260,7 @@ final class NfeInputMonitorRepository
 
         /** @var list<string> $companyDocuments */
         $companyDocuments = array_values(array_unique(array_filter(
-            array_map(static fn (mixed $value): string => preg_replace('/\D+/', '', (string) $value) ?? '', is_array($filters['company_documents'] ?? null) ? $filters['company_documents'] : []),
+            array_map(static fn (mixed $value): string => NfeFiscalIdentifier::normalizeDocument((string) $value), is_array($filters['company_documents'] ?? null) ? $filters['company_documents'] : []),
             static fn (string $value): bool => strlen($value) === 14
         )));
         foreach ($companyDocuments as $index => $document) {
@@ -878,7 +880,7 @@ final class NfeInputMonitorRepository
 
     private function extractNoteNumberFromAccessKey(string $accessKey): string
     {
-        $digits = preg_replace('/\D+/', '', $accessKey) ?? '';
+        $digits = NfeFiscalIdentifier::normalizeAccessKey($accessKey);
         if (strlen($digits) !== 44) {
             return '';
         }

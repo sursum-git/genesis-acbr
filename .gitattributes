@@ -1,0 +1,2 @@
+# Preserve official schema bytes for the SHA-256 manifest.
+Schemas/NFe-1.5.0.489-console/*.xsd -text

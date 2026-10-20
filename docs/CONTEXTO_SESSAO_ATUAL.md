@@ -52,16 +52,61 @@ http://157.173.110.195:8089
 
 ### Acesso SSH administrativo
 
+- Repositório: `https://github.com/sursum-git/genesis-acbr.git`.
+- Checkout local no Windows: `D:\opencode\genesis-acbr`.
 - Host: `157.173.110.195`, porta `22`, usuário `root`.
+- Hostname confirmado: `vmi2146066.contaboserver.net`.
 - Autenticação por chave pública `ed25519`; a chave privada permanece somente no Windows em `%USERPROFILE%\.ssh\genesis-acbr`.
-- Comando de acesso: `ssh -i "%USERPROFILE%\.ssh\genesis-acbr" root@157.173.110.195`.
-- Não registrar, copiar ou versionar a chave privada, senhas, tokens ou certificados.
+- A chave é protegida por frase secreta. Usar o `ssh-agent` do Windows para autenticar sem solicitar a frase a cada conexão.
+- Em `2026-10-20`, o serviço `ssh-agent` foi iniciado e configurado com inicialização automática; a chave foi adicionada pelo usuário com `ssh-add`.
+- Acesso confirmado em `2026-10-20` com `BatchMode=yes`, sem solicitação de senha: retorno `SSH_OK`, usuário `root` e hostname acima.
+- Não registrar, copiar ou versionar a chave privada, frases secretas, senhas, tokens ou certificados.
+
+Comando de acesso no PowerShell:
+
+```powershell
+ssh -i "$env:USERPROFILE\.ssh\genesis-acbr" root@157.173.110.195
+```
+
+Teste de acesso sem interação:
+
+```powershell
+ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -i "$env:USERPROFILE\.ssh\genesis-acbr" root@157.173.110.195 'echo SSH_OK; whoami; hostname'
+```
+
+Se a chave ainda não estiver carregada no agente, executar no PowerShell do usuário e informar a frase secreta somente no prompt local:
+
+```powershell
+ssh-add "$env:USERPROFILE\.ssh\genesis-acbr"
+```
+
+Se o serviço estiver parado ou desabilitado, executar em PowerShell como administrador, nesta ordem:
+
+```powershell
+Set-Service ssh-agent -StartupType Automatic
+Start-Service ssh-agent
+```
 
 Entrada Symfony:
 
 ```text
 /index.php
 ```
+
+## Bibliotecas ACBr: diretriz permanente e homologacao
+
+- Usar sempre a variante Linux `CONSOLE-MT` x64, sem dependencia de interface grafica. Nao selecionar `Linux/MT` ou instalar GTK/X11 para contornar a escolha do binario errado.
+- Homologacao: release cadastrada `1.5.0.489`, artefato `Linux/CONSOLE-MT/libacbrnfe64.so` do pacote `ACBrLibNFe-Linux-1.5.0.489.7z`.
+- Caminho no container: `/opt/acbr_libs/releases/nfe-1.5.0.489-console-mt/x64/libacbrnfe64.so`.
+- SHA-256: `9d23f60f411cb33b99d271d2c4e890165cc3d37fa20432602c4e3014ffb63be1`.
+- Copia persistente no host: `/dados_containers/acbr_libs/console-releases/nfe-1.5.0.489-console-mt/x64/libacbrnfe64.so`. Ao recriar o container, restaurar esse arquivo no caminho cadastrado antes de atender requisicoes; o diretorio `/opt/acbr_libs/releases` ainda nao possui volume proprio.
+- Producao continua na `1.5.0.444`; nao promover a nova release sem homologacao fiscal.
+- A variante grafica anterior foi preservada e sua substituicao consta no historico `t99038_acbr_library_release_change`.
+- A Console exporta as 53 funcoes esperadas pelo header PHP. A versao real `1.5.0.489` foi confirmada com `NFE_Versao` em instancia inicializada em memoria, sem servicos fiscais.
+- Inicializacao: se `NFE_Inicializar` com arquivo retornar `-3`, inicializar em `[Memory]` e exigir sucesso de `NFE_ConfigLer` no MESMO perfil solicitado. Falha ou ausencia do INI deve interromper a operacao, sem usar configuracoes padrao.
+- Schemas de homologacao: `Schemas/NFe-1.5.0.489-console`, snapshot oficial ACBr r48770 com manifesto de checksums. O perfil de homologacao deve apontar para esse diretorio; `Schemas/NFe` de producao permanece separado.
+- Validacao apos publicacao: 25 testes de backend passaram no container Linux; chamada HTTP interna assinada com `metodo=versao` retornou `HTTP 200` e `1.5.0.489`. Nao foram executadas emissoes, cancelamentos ou outros eventos fiscais.
+- A normalizacao de CNPJ e chave NF-e deve preservar letras, usar maiusculas e validar o formato antes de construir caminhos ou eventos.
 
 ## Estado recente da autenticação
 

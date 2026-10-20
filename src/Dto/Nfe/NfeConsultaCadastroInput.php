@@ -2,6 +2,8 @@
 
 namespace App\Dto\Nfe;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use Symfony\Component\Validator\Context\ExecutionContextInterface;
 
 final class NfeConsultaCadastroInput
@@ -19,8 +21,8 @@ final class NfeConsultaCadastroInput
             return;
         }
 
-        if ($this->TipoDocumento === 'cpf_cnpj' && !preg_match('/^\d{11}$|^\d{14}$/', $this->AnDocumento)) {
-            $context->buildViolation('AnDocumento deve conter 11 ou 14 digitos numericos quando TipoDocumento for cpf_cnpj.')
+        if ($this->TipoDocumento === 'cpf_cnpj' && NfeFiscalIdentifier::normalizeDocument($this->AnDocumento) === '') {
+            $context->buildViolation('AnDocumento deve conter CPF com 11 digitos ou CNPJ com 12 caracteres alfanumericos e 2 digitos verificadores.')
                 ->atPath('AnDocumento')
                 ->addViolation();
         }
@@ -39,7 +41,7 @@ final class NfeConsultaCadastroInput
     {
         return [
             'AcUF' => (string) $this->AcUF,
-            'AnDocumento' => (string) $this->AnDocumento,
+            'AnDocumento' => $this->TipoDocumento === 'cpf_cnpj' ? NfeFiscalIdentifier::normalizeDocument((string) $this->AnDocumento) : (string) $this->AnDocumento,
             'AnIE' => $this->TipoDocumento === 'inscricao_estadual' ? '1' : '',
         ];
     }

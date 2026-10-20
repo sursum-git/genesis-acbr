@@ -20,12 +20,12 @@ final class NfeAuthorizedArtifactLocator
     public function extractAccessKeyFromResult(array $result): ?string
     {
         foreach ($this->candidateTexts($result) as $text) {
-            if (preg_match('/^chDFe=(\d{44})$/mi', $text, $matches) === 1) {
-                return $matches[1];
+            if (preg_match('/^chDFe=(' . NfeFiscalIdentifier::ACCESS_KEY_PATTERN . ')\r?$/mi', $text, $matches) === 1) {
+                return strtoupper($matches[1]);
             }
 
-            if (preg_match('/^chNFe=(\d{44})$/mi', $text, $matches) === 1) {
-                return $matches[1];
+            if (preg_match('/^chNFe=(' . NfeFiscalIdentifier::ACCESS_KEY_PATTERN . ')\r?$/mi', $text, $matches) === 1) {
+                return strtoupper($matches[1]);
             }
         }
 
@@ -34,7 +34,7 @@ final class NfeAuthorizedArtifactLocator
 
     public function locateAuthorizedXmlPath(string $accessKey): ?string
     {
-        $accessKey = preg_replace('/\D+/', '', $accessKey) ?? '';
+        $accessKey = NfeFiscalIdentifier::normalizeAccessKey($accessKey);
         if ($accessKey === '' || !is_dir($this->basePath)) {
             return null;
         }
@@ -106,7 +106,11 @@ final class NfeAuthorizedArtifactLocator
 
     public function buildDanfePath(string $accessKey): string
     {
-        $accessKey = preg_replace('/\D+/', '', $accessKey) ?? '';
+        $accessKey = NfeFiscalIdentifier::normalizeAccessKey($accessKey);
+
+        if ($accessKey === '') {
+            throw new \InvalidArgumentException('Chave de acesso NF-e invalida.');
+        }
 
         return rtrim($this->basePath, '/\\') . '/danfes/' . $accessKey . '-danfe.pdf';
     }
@@ -128,7 +132,11 @@ final class NfeAuthorizedArtifactLocator
 
     private function buildScopedDanfePath(string $xmlPath, string $accessKey): string
     {
-        $accessKey = preg_replace('/\D+/', '', $accessKey) ?? '';
+        $accessKey = NfeFiscalIdentifier::normalizeAccessKey($accessKey);
+        if ($accessKey === '') {
+            throw new \InvalidArgumentException('Chave de acesso NF-e invalida.');
+        }
+
         $xmlPath = str_replace('\\', '/', $xmlPath);
         $anchor = '/NFe/';
         $position = strpos($xmlPath, $anchor);

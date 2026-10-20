@@ -46,22 +46,18 @@ function Inicializar(&$handle, $ffi, $iniPath)
         return 0;
     }
 
-    if (is_string($iniPath) && $iniPath !== '' && file_exists($iniPath)) {
-        $tmpIni = tempnam(sys_get_temp_dir(), 'acbr-nfe-');
-
-        if ($tmpIni !== false) {
-            $conteudoIni = file_get_contents($iniPath);
-
-            if ($conteudoIni !== false && file_put_contents($tmpIni, $conteudoIni) !== false) {
-                $handle = FFI::new("uintptr_t");
-                $retorno = $ffi->NFE_Inicializar(FFI::addr($handle), $tmpIni, "");
-            }
-
-            @unlink($tmpIni);
-
+    // Some Console MT builds fail while constructing directly from an INI.
+    // Read the same profile explicitly after memory initialization; never use defaults.
+    if ($retorno === -3 && is_string($iniPath) && $iniPath !== '' && is_file($iniPath)) {
+        $handle = FFI::new("uintptr_t");
+        $retorno = $ffi->NFE_Inicializar(FFI::addr($handle), '[Memory]', "");
+        if ($retorno === 0) {
+            $retorno = $ffi->NFE_ConfigLer($handle->cdata, $iniPath);
             if ($retorno === 0) {
                 return 0;
             }
+            $ffi->NFE_Finalizar($handle->cdata);
+            $handle = FFI::new("uintptr_t");
         }
     }
 

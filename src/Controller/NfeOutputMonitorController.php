@@ -2,6 +2,8 @@
 
 namespace App\Controller;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use App\Http\Exception\AcbrLegacyApiException;
 use App\Repository\NfeOutputMonitorRepository;
 use App\Repository\NfeOutputFiscalEventRepository;
@@ -95,8 +97,8 @@ final class NfeOutputMonitorController extends AbstractController
             return $this->json(['message' => 'Nota não encontrada para Carta de Correção.'], Response::HTTP_NOT_FOUND);
         }
 
-        $accessKey = preg_replace('/\D+/', '', (string) ($detail['chave_nfe'] ?? '')) ?? '';
-        $issuerDocument = preg_replace('/\D+/', '', (string) ($detail['emitente_documento'] ?? '')) ?? '';
+        $accessKey = NfeFiscalIdentifier::normalizeAccessKey((string) ($detail['chave_nfe'] ?? ''));
+        $issuerDocument = NfeFiscalIdentifier::normalizeDocument((string) ($detail['emitente_documento'] ?? ''));
         $authorizedXml = trim((string) ($detail['xml_autorizado'] ?? ''));
         if ($accessKey === '' || $issuerDocument === '' || $authorizedXml === '') {
             return $this->json(['message' => 'A nota precisa ter chave, emitente e XML autorizado para enviar Carta de Correção.'], Response::HTTP_BAD_REQUEST);
@@ -401,8 +403,8 @@ final class NfeOutputMonitorController extends AbstractController
      */
     private function buildCorrectionEventXml(array $detail, string $correction, int $sequence): string
     {
-        $accessKey = preg_replace('/\D+/', '', (string) ($detail['chave_nfe'] ?? '')) ?? '';
-        $issuerDocument = preg_replace('/\D+/', '', (string) ($detail['emitente_documento'] ?? '')) ?? '';
+        $accessKey = NfeFiscalIdentifier::normalizeAccessKey((string) ($detail['chave_nfe'] ?? ''));
+        $issuerDocument = NfeFiscalIdentifier::normalizeDocument((string) ($detail['emitente_documento'] ?? ''));
         $environment = in_array((string) ($detail['ambiente'] ?? ''), ['1', '2'], true) ? (string) $detail['ambiente'] : '2';
         $stateCode = substr($accessKey, 0, 2) !== '' ? substr($accessKey, 0, 2) : '32';
         $eventDate = (new DateTimeImmutable('now', new DateTimeZone('America/Sao_Paulo')))->format('Y-m-d\TH:i:sP');

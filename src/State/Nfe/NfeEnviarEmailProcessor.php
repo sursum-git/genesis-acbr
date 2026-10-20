@@ -2,6 +2,8 @@
 
 namespace App\State\Nfe;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Legacy\AbstractLegacyOperationInput;
@@ -157,9 +159,9 @@ final class NfeEnviarEmailProcessor implements ProcessorInterface
         $nfeNs = 'http://www.portalfiscal.inf.br/nfe';
         $document->registerXPathNamespace('nfe', $nfeNs);
 
-        $chave = trim((string) ($document->xpath('string(//nfe:protNFe/nfe:infProt/nfe:chNFe)')[0] ?? ''));
+        $chave = trim((string) ($document->xpath('//nfe:protNFe/nfe:infProt/nfe:chNFe')[0] ?? ''));
         if ($chave === '') {
-            $id = trim((string) ($document->xpath('string(//nfe:infNFe/@Id)')[0] ?? ''));
+            $id = trim((string) ($document->xpath('//nfe:infNFe/@Id')[0] ?? ''));
             if ($id !== '' && str_starts_with($id, 'NFe')) {
                 $chave = substr($id, 3);
             }
@@ -168,17 +170,20 @@ final class NfeEnviarEmailProcessor implements ProcessorInterface
             $chave = trim($fallbackChave);
         }
 
-        $cnpj = trim((string) ($document->xpath('string(//nfe:emit/nfe:CNPJ)')[0] ?? ''));
-        $dhEmi = trim((string) ($document->xpath('string(//nfe:ide/nfe:dhEmi)')[0] ?? ''));
+        $cnpj = trim((string) ($document->xpath('//nfe:emit/nfe:CNPJ')[0] ?? ''));
+        $dhEmi = trim((string) ($document->xpath('//nfe:ide/nfe:dhEmi')[0] ?? ''));
         $yyyymm = $this->toYearMonth($dhEmi);
+
+        $chave = NfeFiscalIdentifier::normalizeAccessKey($chave);
+        $cnpj = NfeFiscalIdentifier::normalizeDocument($cnpj);
 
         if ($chave === '' || $cnpj === '' || $yyyymm === '') {
             return null;
         }
 
         return [
-            'chave' => preg_replace('/\D+/', '', $chave) ?? '',
-            'cnpj' => preg_replace('/\D+/', '', $cnpj) ?? '',
+            'chave' => $chave,
+            'cnpj' => $cnpj,
             'yyyymm' => $yyyymm,
         ];
     }

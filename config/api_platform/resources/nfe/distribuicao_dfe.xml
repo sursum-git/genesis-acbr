@@ -53,11 +53,11 @@
               </values>
             </schema>
           </parameter>
-          <parameter key="AechNFe" in="query" description="Chave de acesso da NF-e com 44 digitos." required="true">
+          <parameter key="AechNFe" in="query" description="Chave de acesso da NF-e com 44 caracteres, incluindo CNPJ alfanumerico quando aplicavel." required="true">
             <schema>
               <values>
                 <value name="type">string</value>
-                <value name="pattern">^\d{44}$</value>
+                <value name="pattern">^[0-9]{6}[A-Z0-9]{12}[0-9]{26}$</value>
                 <value name="example">32260406013812000158550030001955901308939122</value>
               </values>
             </schema>

@@ -2,6 +2,8 @@
 
 namespace App\Repository\Auth;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use Doctrine\DBAL\Connection;
 use Doctrine\DBAL\ArrayParameterType;
 use Doctrine\DBAL\ParameterType;
@@ -40,9 +42,9 @@ final class AuthUserRepository
 
     public function createCompany(string $name, string $cnpj, bool $active = true): int
     {
-        $document = preg_replace('/\D+/', '', $cnpj) ?? '';
+        $document = NfeFiscalIdentifier::normalizeDocument($cnpj);
         if (strlen($document) !== 14) {
-            throw new InvalidArgumentException('CNPJ da empresa deve ter 14 digitos.');
+            throw new InvalidArgumentException('CNPJ da empresa deve ter 12 caracteres alfanumericos e 2 digitos verificadores.');
         }
 
         $now = date('c');
@@ -152,7 +154,7 @@ final class AuthUserRepository
     public function searchCompanies(string $query, int $limit = 20): array
     {
         $normalizedQuery = strtolower(trim($query));
-        $documentQuery = preg_replace('/\D+/', '', $query) ?? '';
+        $documentQuery = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $query) ?? '');
         if ($normalizedQuery === '' && $documentQuery === '') {
             return [];
         }
@@ -517,7 +519,7 @@ final class AuthUserRepository
     private function appendIssuers(array &$issuers, array $rows): void
     {
         foreach ($rows as $row) {
-            $document = preg_replace('/\D+/', '', (string) ($row['documento'] ?? '')) ?? '';
+            $document = NfeFiscalIdentifier::normalizeDocument((string) ($row['documento'] ?? ''));
             if (strlen($document) !== 14 || isset($issuers[$document])) {
                 continue;
             }
@@ -534,7 +536,7 @@ final class AuthUserRepository
     private function normalizeDocuments(array $documents): array
     {
         return array_values(array_unique(array_filter(
-            array_map(static fn (string $document): string => preg_replace('/\D+/', '', $document) ?? '', $documents),
+            array_map(static fn (string $document): string => NfeFiscalIdentifier::normalizeDocument($document), $documents),
             static fn (string $document): bool => strlen($document) === 14
         )));
     }

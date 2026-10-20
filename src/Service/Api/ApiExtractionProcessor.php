@@ -2,6 +2,8 @@
 
 namespace App\Service\Api;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use App\Repository\ApiExtractionRepository;
 use DOMDocument;
 use DOMElement;
@@ -1170,8 +1172,8 @@ final class ApiExtractionProcessor
     {
         foreach (['eChaveOuNFe', 'AechNFe'] as $key) {
             $value = trim((string) ($queryParams[$key] ?? ''));
-            if (preg_match('/^\d{44}$/', $value) === 1) {
-                return $value;
+            if (NfeFiscalIdentifier::normalizeAccessKey($value) !== '') {
+                return NfeFiscalIdentifier::normalizeAccessKey($value);
             }
         }
 
@@ -1187,11 +1189,7 @@ final class ApiExtractionProcessor
 
     private function extractAccessKeyFromString(string $value): ?string
     {
-        if (preg_match('/\b\d{44}\b/', $value, $matches) === 1) {
-            return $matches[0];
-        }
-
-        return null;
+        return NfeFiscalIdentifier::extractAccessKey($value);
     }
 
     private function nullableString(mixed $value): ?string

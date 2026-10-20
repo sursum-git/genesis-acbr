@@ -80,7 +80,7 @@ $programs = [
         'physical_path' => 'src/Controller/ProgramCatalogController.php',
         'category' => 'src_module',
         'description' => 'Controllers web e paginas auxiliares do projeto.',
-        'detailed_explanation' => 'Contem os controllers Symfony responsaveis pelo hub principal, atalhos de documentacao, navegação de demos e a pagina de consulta do catalogo de programas. E a camada mais simples de interface HTML do projeto.',
+        'detailed_explanation' => 'Contem os controllers Symfony responsaveis pelo hub principal, atalhos de documentacao, navegação de demos e a pagina de consulta do catalogo de programas. E a camada mais simples de interface HTML do projeto. Os eventos de CC-e e manifestacao preservam CNPJ e chave alfanumericos em maiusculas.',
     ],
     [
         'code' => 'src_dto_cep',
@@ -107,7 +107,7 @@ $programs = [
         'physical_path' => 'src/Dto/Nfe/NfeConsultaCadastroInput.php',
         'category' => 'src_module',
         'description' => 'DTOs usados pela camada moderna das operacoes NFe.',
-        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados ao modulo NFe. A operacao consulta-cadastro usa DTO especifico com validacao em XML, metadados do API Platform em XML e o contrato publico baseado em AnDocumento + TipoDocumento.',
+        'detailed_explanation' => 'Define os DTOs de entrada e saida usados pelos recursos NFe no API Platform. Essa camada substitui a exposicao direta do contrato legado generico por objetos explicitamente dedicados ao modulo NFe. A operacao consulta-cadastro usa DTO especifico com validacao em XML, metadados do API Platform em XML e o contrato publico baseado em AnDocumento + TipoDocumento. Aceita CPF numerico e CNPJ com 12 posicoes alfanumericas e 2 digitos verificadores; preserva a compatibilidade numerica.',
     ],
     [
         'code' => 'src_dto_nfse',
@@ -152,7 +152,7 @@ $programs = [
         'physical_path' => 'src/Repository/ProgramCatalogRepository.php',
         'category' => 'src_module',
         'description' => 'Repositórios de acesso a dados da aplicação.',
-        'detailed_explanation' => 'Contem a camada de repositório usada para acessar o catálogo de programas via Doctrine DBAL. Essa estrutura remove o acesso direto ao banco do controller e agora tambem convive com a manutencao do catalogo feita sem PDO, mantendo o acesso SQLite centralizado em DBAL.',
+        'detailed_explanation' => 'Contem a camada de repositório usada para acessar o catálogo de programas via Doctrine DBAL. Essa estrutura remove o acesso direto ao banco do controller e agora tambem convive com a manutencao do catalogo feita sem PDO, mantendo o acesso SQLite centralizado em DBAL. O cadastro, a pesquisa de empresas e o escopo dos monitores preservam CNPJ alfanumerico sem remover letras.',
     ],
     [
         'code' => 'src_service_cep',
@@ -197,7 +197,7 @@ $programs = [
         'physical_path' => 'src/State/Nfe/NfeConsultaCadastroProvider.php',
         'category' => 'src_module',
         'description' => 'Providers e regras especificas das operacoes modernas de NFe.',
-        'detailed_explanation' => 'Abriga providers especificos para operacoes NFe que precisam de contrato tipado e validacao dedicada. A consulta-cadastro passou a usar um provider proprio que mapeia query params para DTO, interpreta TipoDocumento e so entao chama o legado preenchendo AnIE=1 apenas para inscricao estadual.',
+        'detailed_explanation' => 'Abriga providers especificos para operacoes NFe que precisam de contrato tipado e validacao dedicada. A consulta-cadastro passou a usar um provider proprio que mapeia query params para DTO, interpreta TipoDocumento e so entao chama o legado preenchendo AnIE=1 apenas para inscricao estadual. A consulta por XML e os metadados de email preservam chave e CNPJ alfanumericos.',
     ],
     [
         'code' => 'src_api_auditoria',
@@ -206,7 +206,7 @@ $programs = [
         'physical_path' => 'src/Service/Api/ApiAuditManager.php',
         'category' => 'src_module',
         'description' => 'Autenticacao por token, auditoria no PostgreSQL e fila async das APIs.',
-        'detailed_explanation' => 'Centraliza a gravacao das requisicoes nas tabelas t99001 a t99004, autentica assinantes via t00002, decide execucao sync ou async e permite consulta posterior por request_id. Esse modulo representa a infraestrutura operacional nova da API.',
+        'detailed_explanation' => 'Centraliza a gravacao das requisicoes nas tabelas t99001 a t99004, autentica assinantes via t00002, decide execucao sync ou async e permite consulta posterior por request_id. Esse modulo representa a infraestrutura operacional nova da API. A extracao identifica chaves NF-e numericas e alfanumericas em query, INI e XML.',
     ],
     [
         'code' => 'boleto',
@@ -314,7 +314,7 @@ $programs = [
         'physical_path' => 'NFe/ACBrNFeBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado de Nota Fiscal Eletronica.',
-        'detailed_explanation' => 'E um dos modulos centrais do projeto. A camada moderna exposta em Symfony/API Platform consome o legado de NFe por meio de um adaptador generico que aciona ACBrNFeServicosMT.php com metodos e payloads declarados em ApiResources. O diretorio tambem mantem demos, configuracoes e logs operacionais, e sua base web agora compartilha o mesmo tema Bootstrap das demais demos ACBr.',
+        'detailed_explanation' => 'E um dos modulos centrais do projeto. A camada moderna exposta em Symfony/API Platform consome o legado de NFe por meio de um adaptador generico que aciona ACBrNFeServicosMT.php com metodos e payloads declarados em ApiResources. O diretorio tambem mantem demos, configuracoes e logs operacionais, e sua base web agora compartilha o mesmo tema Bootstrap das demais demos ACBr. No Linux utiliza CONSOLE-MT sem GTK/X11; a homologacao 1.5.0.489 tem artefato e checksum proprios. O fallback inicializa em memoria e exige leitura do mesmo INI solicitado.',
     ],
     [
         'code' => 'reinf',
@@ -326,13 +326,22 @@ $programs = [
         'detailed_explanation' => 'Agrupa base, demos e servicos ACBr para Reinf. A base visual das demos foi atualizada para o tema Bootstrap compartilhado entre os modulos ACBr legados. Atualmente permanece em formato legado, sem uma fachada equivalente a dos modulos NFe/NFSe/CEP na camada moderna.',
     ],
     [
+        'code' => 'nfe_fiscal_identifiers',
+        'name' => 'Identificadores fiscais NFe',
+        'path' => 'src/Service/Nfe',
+        'physical_path' => 'src/Service/Nfe/NfeFiscalIdentifier.php',
+        'category' => 'src_module',
+        'description' => 'Normalizacao de CPF, CNPJ e chave NF-e numerica ou alfanumerica.',
+        'detailed_explanation' => 'Centraliza formatos de CNPJ com 12 posicoes alfanumericas e 2 verificadores numericos, CPF com 11 digitos e chave NF-e com 44 caracteres. Preserva letras em maiusculas e rejeita chaves malformadas antes de montar caminhos de XML/PDF, consultas, escopos de empresas e eventos fiscais.',
+    ],
+    [
         'code' => 'schemas',
         'name' => 'Pacote de Schemas',
         'path' => 'Schemas',
         'physical_path' => 'Schemas/NFe/consSitNFe_v4.00.xsd',
         'category' => 'support',
         'description' => 'Repositorio local de XSDs e artefatos de validacao.',
-        'detailed_explanation' => 'Armazena os schemas XML usados pelos modulos fiscais e de integracao, incluindo NFe, NFSe, CTe, MDFe, Reinf e outros dominios. Funciona como dependencia estrutural do projeto para validacoes, montagem e compatibilidade de mensagens fiscais.',
+        'detailed_explanation' => 'Armazena os schemas XML usados pelos modulos fiscais e de integracao, incluindo NFe, NFSe, CTe, MDFe, Reinf e outros dominios. Funciona como dependencia estrutural do projeto para validacoes, montagem e compatibilidade de mensagens fiscais. Schemas/NFe-1.5.0.489-console contem snapshot oficial ACBr r48770 isolado para homologacao, com manifesto SHA-256; Schemas/NFe de producao permanece separado.',
     ],
 ];
 

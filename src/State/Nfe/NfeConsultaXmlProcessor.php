@@ -2,6 +2,8 @@
 
 namespace App\State\Nfe;
 
+use App\Service\Nfe\NfeFiscalIdentifier;
+
 use ApiPlatform\Metadata\Operation;
 use ApiPlatform\State\ProcessorInterface;
 use App\Dto\Nfe\NfeOperationOutput;
@@ -83,7 +85,7 @@ final class NfeConsultaXmlProcessor implements ProcessorInterface
 
         $chave = trim((string) $xpath->evaluate('string((//*[local-name()="chNFe"])[1])'));
         if ($this->isAccessKey($chave)) {
-            return $chave;
+            return NfeFiscalIdentifier::normalizeAccessKey($chave);
         }
 
         $id = trim((string) $xpath->evaluate('string((//*[local-name()="infNFe"]/@Id)[1])'));
@@ -92,7 +94,7 @@ final class NfeConsultaXmlProcessor implements ProcessorInterface
         }
 
         if ($this->isAccessKey($id)) {
-            return $id;
+            return NfeFiscalIdentifier::normalizeAccessKey($id);
         }
 
         throw new AcbrLegacyApiException('Nao foi possivel localizar a chave de acesso no XML informado.');
@@ -100,6 +102,6 @@ final class NfeConsultaXmlProcessor implements ProcessorInterface
 
     private function isAccessKey(string $value): bool
     {
-        return (bool) preg_match('/^\d{44}$/', $value);
+        return NfeFiscalIdentifier::normalizeAccessKey($value) !== '';
     }
 }

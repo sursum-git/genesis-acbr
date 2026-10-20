@@ -45,8 +45,16 @@ function ValidaFFI()
     return 0;
 }
 
-function CarregaDll($dir, $nomeLib)
+function CarregaDll($dir, $nomeLib, $approvedPath = null)
 {
+    if (is_string($approvedPath) && $approvedPath !== '') {
+        if (!is_file($approvedPath)) {
+            echo json_encode(["mensagem" => "Biblioteca ACBr aprovada não encontrada."]);
+            return -10;
+        }
+
+        return $approvedPath;
+    }
     if (strpos(PHP_OS, 'WIN') === false) {
         $prefixo = strtolower("lib" . $nomeLib);
         $extensao = ".so";

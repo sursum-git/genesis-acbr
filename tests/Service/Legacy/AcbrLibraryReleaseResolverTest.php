@@ -1,0 +1,34 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Repository\AcbrLibraryReleaseRepository;
+use App\Service\Legacy\AcbrIniProfileResolver;
+use App\Service\Legacy\AcbrLibraryReleaseResolver;
+use Doctrine\DBAL\DriverManager;
+
+require dirname(__DIR__, 3) . '/vendor/autoload.php';
+
+$root = sys_get_temp_dir() . '/acbr-release-test-' . bin2hex(random_bytes(4));
+mkdir($root . '/configs/homologacao', 0777, true);
+file_put_contents($root . '/configs/homologacao/ACBrNFe.INI', "[NFe]\nAmbiente=2\n");
+mkdir($root . '/releases/nfe-1.5.0.444/x64', 0777, true);
+$libraryPath = $root . '/releases/nfe-1.5.0.444/x64/libacbrnfe64.so';
+file_put_contents($libraryPath, 'fixture');
+
+$connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
+$repository = new AcbrLibraryReleaseRepository($connection);
+$repository->save([
+    'c_modulo' => 'nfe', 'c_ambiente' => 'homologacao', 'c_release' => '1.5.0.444',
+    'c_caminho_so' => $libraryPath, 'c_sha256' => hash_file('sha256', $libraryPath),
+    'c_perfil_ini' => 'homologacao', 'dt_hr_inicio_vigencia' => '2026-01-01 00:00:00', 'log_ativo' => true,
+]);
+
+$resolver = new AcbrLibraryReleaseResolver($repository, new AcbrIniProfileResolver($root), $root . '/releases');
+$selection = $resolver->resolveNfe('homologacao', new DateTimeImmutable('2026-10-19 12:00:00'));
+if ($selection->environment !== 'homologacao' || $selection->path !== realpath($libraryPath)) {
+    fwrite(STDERR, "O resolvedor deve selecionar a release de homologação e seu caminho canônico.\n");
+    exit(1);
+}
+
+fwrite(STDOUT, "OK\n");

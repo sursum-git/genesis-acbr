@@ -31,6 +31,7 @@ final class AuthGateSubscriber implements EventSubscriberInterface
         '/catalogo-testes',
         '/consulta-requisicoes',
         '/auditoria-requisicoes',
+        '/bibliotecas-acbr',
     ];
 
     public function __construct(

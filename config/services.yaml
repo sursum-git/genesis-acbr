@@ -48,6 +48,18 @@ services:
     arguments:
       $auditConnection: '@app.audit_connection'
 
+  App\Repository\AcbrLibraryReleaseRepository:
+    arguments:
+      $connection: '@app.audit_connection'
+
+  App\Service\Legacy\AcbrLibraryReleaseResolver:
+    arguments:
+      $iniProfiles: '@App\Service\Legacy\AcbrIniProfileResolver'
+
+  App\Service\Legacy\AcbrLibrarySelectionSigner:
+    arguments:
+      $secret: '%env(string:ACBR_LIBRARY_SELECTION_SECRET)%'
+
   App\Repository\WorkerCapacityRepository:
     arguments:
       $auditConnection: '@app.audit_connection'

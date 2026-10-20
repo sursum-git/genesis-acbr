@@ -102,6 +102,10 @@
                                 <i class="nav-icon bi bi-sliders"></i>
                                 <p>Configuração de execução</p>
                             </a>
+                            <a href="{{ app.request.basePath ~ '/index.php/bibliotecas-acbr' }}" class="nav-link{% if currentRoute starts with 'app_acbr_library_releases' %} active{% endif %}">
+                                <i class="nav-icon bi bi-box-seam"></i>
+                                <p>Bibliotecas ACBr</p>
+                            </a>
                         </li>
                         <li class="nav-item">
                             <a href="{{ app.request.basePath ~ '/index.php/capacidade-workers' }}" class="nav-link{% if currentRoute == 'app_worker_capacity' %} active{% endif %}">

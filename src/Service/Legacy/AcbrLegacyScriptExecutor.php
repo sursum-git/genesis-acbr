@@ -7,7 +7,11 @@ use Symfony\Component\HttpFoundation\RequestStack;
 
 final class AcbrLegacyScriptExecutor
 {
-    public function __construct(private readonly RequestStack $requestStack)
+    public function __construct(
+        private readonly RequestStack $requestStack,
+        private readonly AcbrLibraryReleaseResolver $libraryReleaseResolver,
+        private readonly AcbrLibrarySelectionSigner $librarySelectionSigner,
+    )
     {
     }
 
@@ -27,6 +31,17 @@ final class AcbrLegacyScriptExecutor
             $postData['ACBrIniProfile'] = $resolvedIniProfile;
         }
 
+        $headers = ['Accept: application/json'];
+        if (str_starts_with(ltrim($scriptRelativePath, '/'), 'NFe/')) {
+            unset($postData['ACBrLibraryPath'], $postData['ACBrLibraryRelease']);
+            try {
+                $selection = $this->libraryReleaseResolver->resolveNfe($resolvedIniProfile, new \DateTimeImmutable());
+                $headers[] = 'X-ACBr-Library-Selection: ' . $this->librarySelectionSigner->sign($selection, 60, new \DateTimeImmutable());
+            } catch (\RuntimeException $exception) {
+                throw new AcbrLegacyApiException($exception->getMessage());
+            }
+        }
+
         $curl = curl_init($baseUrl . $scriptPath);
         if ($curl === false) {
             throw new AcbrLegacyApiException('Falha ao inicializar cURL para o legado ACBr.');
@@ -38,7 +53,7 @@ final class AcbrLegacyScriptExecutor
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_TIMEOUT => 60,
             CURLOPT_CONNECTTIMEOUT => 10,
-            CURLOPT_HTTPHEADER => ['Accept: application/json'],
+            CURLOPT_HTTPHEADER => $headers,
         ]);
 
         $responseBody = curl_exec($curl);

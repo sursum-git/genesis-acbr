@@ -41,6 +41,28 @@ $metodo = $_POST['metodo'];
 $activeIniProfileKey = 'nfe_mt';
 
 $requestedIniProfile = $_POST['ACBrIniProfile'] ?? null;
+$librarySelection = $_SERVER['HTTP_X_ACBR_LIBRARY_SELECTION'] ?? '';
+$approvedLibraryPath = null;
+
+if ($librarySelection !== '') {
+    [$encoded, $signature] = array_pad(explode('.', $librarySelection, 2), 2, null);
+    $secret = getenv('ACBR_LIBRARY_SELECTION_SECRET') ?: '';
+    $expected = is_string($encoded) ? rtrim(strtr(base64_encode(hash_hmac('sha256', $encoded, $secret, true)), '+/', '-_'), '=') : '';
+    $payload = is_string($encoded) ? json_decode(base64_decode(strtr($encoded, '-_', '+/'), true) ?: '', true) : null;
+    if ($secret === '' || !is_string($signature) || !hash_equals($expected, $signature) || !is_array($payload) || ($payload['module'] ?? null) !== 'nfe' || (int) ($payload['expires_at'] ?? 0) <= time()) {
+        http_response_code(403);
+        echo json_encode(["mensagem" => "Seleção interna de biblioteca ACBr inválida."]);
+        exit;
+    }
+    $path = realpath((string) ($payload['path'] ?? ''));
+    $root = realpath('/opt/acbr_libs/releases');
+    if ($path === false || $root === false || !str_starts_with($path, $root . DIRECTORY_SEPARATOR) || !is_file($path) || !hash_equals((string) ($payload['sha256'] ?? ''), hash_file('sha256', $path) ?: '')) {
+        http_response_code(403);
+        echo json_encode(["mensagem" => "Biblioteca ACBr selecionada é inválida."]);
+        exit;
+    }
+    $approvedLibraryPath = $path;
+}
 
 try {
     $iniPath = ResolveAcbrIniPath(__DIR__, $nomeLib, is_string($requestedIniProfile) ? $requestedIniProfile : null, $activeIniProfileKey);
@@ -103,7 +125,7 @@ try {
 if (ValidaFFI() != 0)
     exit;
 
-$dllPath = CarregaDll(__DIR__, $nomeLib);
+$dllPath = CarregaDll(__DIR__, $nomeLib, $approvedLibraryPath);
 
 if ($dllPath == -10)
     exit;

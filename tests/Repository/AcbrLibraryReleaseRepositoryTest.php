@@ -19,7 +19,7 @@ if (strcasecmp((string) ($columnTypes['dt_hr_inicio_vigencia'] ?? ''), 'TIMESTAM
     exit(1);
 }
 
-$repository->save([
+$releaseId = $repository->save([
     'c_modulo' => 'nfe',
     'c_ambiente' => 'homologacao',
     'c_release' => '1.5.0.444',
@@ -30,6 +30,18 @@ $repository->save([
     'dt_hr_fim_vigencia' => '2026-10-19 11:00:00',
     'log_ativo' => true,
 ]);
+
+$repository->saveChange($releaseId, [
+    'c_categoria' => 'changelog',
+    't_descricao' => 'Corrige URL de consulta para produção de NFe.',
+    'c_origem' => 'ACBrNFe-change-log.txt',
+]);
+
+$changes = $repository->listChanges($releaseId);
+if (($changes[0]['c_categoria'] ?? null) !== 'changelog' || ($changes[0]['t_descricao'] ?? null) !== 'Corrige URL de consulta para produção de NFe.') {
+    fwrite(STDERR, "As diferenças da release devem ser persistidas e listadas.\n");
+    exit(1);
+}
 
 $repository->save([
     'c_modulo' => 'nfe',

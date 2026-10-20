@@ -12,6 +12,7 @@ use RuntimeException;
 final class AcbrLibraryReleaseRepository
 {
     private const TABLE = 't99037_acbr_library_release';
+    private const CHANGES_TABLE = 't99038_acbr_library_release_change';
 
     public function __construct(private readonly Connection $connection)
     {
@@ -40,6 +41,17 @@ final class AcbrLibraryReleaseRepository
                 dt_hr_atu timestamptz NOT NULL
             )
             SQL, self::TABLE, $idColumn));
+
+        $this->connection->executeStatement(sprintf(<<<'SQL'
+            CREATE TABLE IF NOT EXISTS %s (
+                id_t99038 %s,
+                t99037_id bigint NOT NULL,
+                c_categoria varchar(32) NOT NULL,
+                t_descricao text NOT NULL,
+                c_origem text NULL,
+                dt_hr_criacao timestamptz NOT NULL
+            )
+            SQL, self::CHANGES_TABLE, $idColumn));
 
         if (!$this->connection->getDatabasePlatform() instanceof SQLitePlatform) {
             $this->connection->executeStatement(<<<'SQL'
@@ -100,6 +112,38 @@ final class AcbrLibraryReleaseRepository
         }
 
         return $rows[0] ?? null;
+    }
+
+    /** @param array<string, mixed> $payload */
+    public function saveChange(int $releaseId, array $payload): int
+    {
+        $this->ensureSchema();
+        $category = trim((string) ($payload['c_categoria'] ?? ''));
+        $description = trim((string) ($payload['t_descricao'] ?? ''));
+        if ($releaseId < 1 || $category === '' || $description === '') {
+            throw new RuntimeException('Diferença de release ACBr inválida.');
+        }
+
+        $this->connection->insert(self::CHANGES_TABLE, [
+            't99037_id' => $releaseId,
+            'c_categoria' => $category,
+            't_descricao' => $description,
+            'c_origem' => trim((string) ($payload['c_origem'] ?? '')) ?: null,
+            'dt_hr_criacao' => gmdate('Y-m-d H:i:sP'),
+        ]);
+
+        return (int) $this->connection->lastInsertId();
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function listChanges(int $releaseId): array
+    {
+        $this->ensureSchema();
+
+        return $this->connection->fetchAllAssociative(
+            sprintf('SELECT * FROM %s WHERE t99037_id = :release_id ORDER BY id_t99038 DESC', self::CHANGES_TABLE),
+            ['release_id' => $releaseId]
+        );
     }
 
     /** @param array<string, mixed> $data */

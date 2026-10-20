@@ -1,6 +1,6 @@
 # Contexto da Sessão Atual
 
-Atualizado em `2026-08-20`.
+Atualizado em `2026-10-20`.
 
 ## Objetivo deste arquivo
 
@@ -49,6 +49,13 @@ Endpoint web padrão:
 ```text
 http://157.173.110.195:8089
 ```
+
+### Acesso SSH administrativo
+
+- Host: `157.173.110.195`, porta `22`, usuário `root`.
+- Autenticação por chave pública `ed25519`; a chave privada permanece somente no Windows em `%USERPROFILE%\.ssh\genesis-acbr`.
+- Comando de acesso: `ssh -i "%USERPROFILE%\.ssh\genesis-acbr" root@157.173.110.195`.
+- Não registrar, copiar ou versionar a chave privada, senhas, tokens ou certificados.
 
 Entrada Symfony:
 

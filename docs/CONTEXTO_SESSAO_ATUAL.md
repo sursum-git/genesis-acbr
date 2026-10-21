@@ -1,6 +1,6 @@
 # Contexto da Sessão Atual
 
-Atualizado em `2026-10-20`.
+Atualizado em `2026-10-21`.
 
 ## Objetivo deste arquivo
 
@@ -103,10 +103,23 @@ Entrada Symfony:
 - Producao continua na `1.5.0.444`; nao promover a nova release sem homologacao fiscal.
 - A variante grafica anterior foi preservada e sua substituicao consta no historico `t99038_acbr_library_release_change`.
 - A Console exporta as 53 funcoes esperadas pelo header PHP. A versao real `1.5.0.489` foi confirmada com `NFE_Versao` em instancia inicializada em memoria, sem servicos fiscais.
-- Inicializacao: se `NFE_Inicializar` com arquivo retornar `-3`, inicializar em `[Memory]` e exigir sucesso de `NFE_ConfigLer` no MESMO perfil solicitado. Falha ou ausencia do INI deve interromper a operacao, sem usar configuracoes padrao.
+- Correcao de 2026-10-21: no INI nativo `[NFe] Ambiente=0` e producao e `Ambiente=1` e homologacao. No XML, `tpAmb=1` e producao e `tpAmb=2` e homologacao. O resolvedor e a validacao do ambiente efetivo seguem essa distincao.
+- Inicializacao deve carregar diretamente o INI solicitado. Retorno `-3` indica propriedade invalida e deve bloquear a operacao. Nao usar fallback `[Memory]` + `ConfigLer`: nessa modalidade o metodo pode retornar sucesso sem importar certificado, schemas ou ambiente.
+- O perfil `homologacao-1.5.0.489` foi corrigido para `Ambiente=1`. Os arquivos de homologacao ficam isolados em `/dados/acbr-homologacao/nfe` no container (host: `/dados_containers/lib_acbr_php/acbr-homologacao/nfe`).
+- O perfil `default` nao foi alterado neste teste: embora cadastrado na release de producao, seu INI estava com `Ambiente=1` (homologacao nativa). A selecao agora bloqueia essa divergencia de perfil/release; revisar esse perfil antes de qualquer emissao de producao.
 - Schemas de homologacao: `Schemas/NFe-1.5.0.489-console`, snapshot oficial ACBr r48770 com manifesto de checksums. O perfil de homologacao deve apontar para esse diretorio; `Schemas/NFe` de producao permanece separado.
-- Validacao apos publicacao: 25 testes de backend passaram no container Linux; chamada HTTP interna assinada com `metodo=versao` retornou `HTTP 200` e `1.5.0.489`. Nao foram executadas emissoes, cancelamentos ou outros eventos fiscais.
+- Validacao inicial em 2026-10-20: 25 testes de backend passaram e a consulta de versao retornou `1.5.0.489`; naquele momento ainda nao havia teste fiscal real. O resultado da emissao de homologacao de 2026-10-21 esta registrado abaixo.
 - A normalizacao de CNPJ e chave NF-e deve preservar letras, usar maiusculas e validar o formato antes de construir caminhos ou eventos.
+
+## Teste real de homologacao em 2026-10-21
+
+- Emissao solicitada pelo usuario para MEDTEXTIL, NF-e numero `202342`, serie `3`, valor `1739.80`.
+- Copia do XML de producao adaptada para `tpAmb=2`, destinatario com nome de homologacao e nova assinatura; valores e numeracao preservados.
+- Release efetiva: `1.5.0.489 CONSOLE-MT`, perfil `homologacao-1.5.0.489`.
+- Resultado: `cStat=100`, Autorizado o uso da NF-e, protocolo `332260000216313`, recebido em `2026-10-21T11:56:31-03:00`, `tpAmb=2` no protocolo.
+- Chave: `32261006013812000158550030002023421786005810`.
+- XML no container: `/dados/acbr-homologacao/nfe/06013812000158/NFe/202610/NFe/32261006013812000158550030002023421786005810-nfe.xml`.
+- Nao registrar o token do assinante nem dados privados do certificado neste contexto.
 
 ## Estado recente da autenticação
 

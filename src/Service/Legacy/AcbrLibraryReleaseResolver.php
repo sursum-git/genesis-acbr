@@ -22,8 +22,8 @@ final class AcbrLibraryReleaseResolver
         $iniPath = $this->iniProfiles->resolve($profile);
         $ini = parse_ini_file($iniPath, true, INI_SCANNER_RAW);
         $environment = match ((string) ($ini['NFe']['Ambiente'] ?? '')) {
-            '1' => 'producao',
-            '2' => 'homologacao',
+            '0' => 'producao',
+            '1' => 'homologacao',
             default => throw new RuntimeException('Ambiente fiscal NFe ausente ou inválido no perfil INI.'),
         };
         $profile ??= basename(dirname($iniPath));

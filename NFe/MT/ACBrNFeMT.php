@@ -41,27 +41,29 @@ function NovoBufferMensagem(int $size = 131072)
 function Inicializar(&$handle, $ffi, $iniPath)
 {
     $retorno = $ffi->NFE_Inicializar(FFI::addr($handle), $iniPath, "");
-
     if ($retorno === 0) {
         return 0;
     }
+    // Never hide invalid INI values by continuing with memory defaults.
+    echo json_encode(["mensagem" => "Falha ao inicializar a biblioteca ACBr. Codigo de erro: $retorno"]);
+    return -10;
+}
 
-    // Some Console MT builds fail while constructing directly from an INI.
-    // Read the same profile explicitly after memory initialization; never use defaults.
-    if ($retorno === -3 && is_string($iniPath) && $iniPath !== '' && is_file($iniPath)) {
-        $handle = FFI::new("uintptr_t");
-        $retorno = $ffi->NFE_Inicializar(FFI::addr($handle), '[Memory]', "");
-        if ($retorno === 0) {
-            $retorno = $ffi->NFE_ConfigLer($handle->cdata, $iniPath);
-            if ($retorno === 0) {
-                return 0;
-            }
-            $ffi->NFE_Finalizar($handle->cdata);
-            $handle = FFI::new("uintptr_t");
-        }
+function ValidarAmbienteNFe($handle, $ffi, string $expectedEnvironment)
+{
+    $expected = match ($expectedEnvironment) {
+        'producao' => '0',
+        'homologacao' => '1',
+        default => null,
+    };
+    $buffer = FFI::new('char[16]');
+    $size = FFI::new('long');
+    $size->cdata = 16;
+    $code = $ffi->NFE_ConfigLerValor($handle->cdata, 'NFe', 'Ambiente', $buffer, FFI::addr($size));
+    if ($expected !== null && $code === 0 && trim(FFI::string($buffer)) === $expected) {
+        return 0;
     }
-
-    echo json_encode(["mensagem" => "Falha ao inicializar a biblioteca ACBr. Código de erro: $retorno"]);
+    echo json_encode(['mensagem' => 'Ambiente efetivo da biblioteca ACBr diverge da release selecionada. Operacao bloqueada.']);
     return -10;
 }
 

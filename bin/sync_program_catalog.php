@@ -314,7 +314,7 @@ $programs = [
         'physical_path' => 'NFe/ACBrNFeBase.php',
         'category' => 'legacy_module',
         'description' => 'Modulo legado de Nota Fiscal Eletronica.',
-        'detailed_explanation' => 'E um dos modulos centrais do projeto. A camada moderna exposta em Symfony/API Platform consome o legado de NFe por meio de um adaptador generico que aciona ACBrNFeServicosMT.php com metodos e payloads declarados em ApiResources. O diretorio tambem mantem demos, configuracoes e logs operacionais, e sua base web agora compartilha o mesmo tema Bootstrap das demais demos ACBr. No Linux utiliza CONSOLE-MT sem GTK/X11; a homologacao 1.5.0.489 tem artefato e checksum proprios. O fallback inicializa em memoria e exige leitura do mesmo INI solicitado.',
+        'detailed_explanation' => 'E um dos modulos centrais do projeto. A camada moderna exposta em Symfony/API Platform consome o legado de NFe por meio de um adaptador generico que aciona ACBrNFeServicosMT.php com metodos e payloads declarados em ApiResources. O diretorio tambem mantem demos, configuracoes e logs operacionais, e sua base web agora compartilha o mesmo tema Bootstrap das demais demos ACBr. No Linux utiliza CONSOLE-MT sem GTK/X11; a homologacao 1.5.0.489 tem artefato e checksum proprios. O INI nativo usa Ambiente=0/1, separado do tpAmb=1/2 do XML; configuracao invalida bloqueia a inicializacao e o ambiente efetivo deve corresponder a release assinada antes de operacoes fiscais.',
     ],
     [
         'code' => 'reinf',

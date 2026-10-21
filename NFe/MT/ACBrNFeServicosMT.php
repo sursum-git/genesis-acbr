@@ -178,6 +178,11 @@ try {
     if (Inicializar($handle, $ffi, $iniPath) != 0)
         exit;
 
+    if ($approvedLibraryPath !== null && ValidarAmbienteNFe($handle, $ffi, (string) ($payload['environment'] ?? '')) != 0) {
+        Finalizar($handle, $ffi);
+        exit;
+    }
+
     if ($metodo === "versao") {
         $processo = "NFE_Versao";
         if (NFEVersao($handle, $ffi, $resultado) != 0) {

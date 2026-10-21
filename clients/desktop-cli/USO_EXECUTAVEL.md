@@ -98,6 +98,7 @@ Exemplo para consulta cadastro:
 BaseURL=http://157.173.110.195:8089/index.php
 Token=SEU_TOKEN_DO_ASSINANTE
 TimeoutSeconds=60
+Ambiente=2
 
 [Requisicao]
 Modulo=nfe
@@ -120,6 +121,7 @@ Campos:
 
 - `BaseURL`: endereco da API central.
 - `Token`: token do assinante.
+- `Ambiente`: `1` para produção ou `2` para homologação, enviado no header `X-ACBr-Ambiente`. Sem a propriedade, mantém o comportamento legado do servidor.
 - `TimeoutSeconds`: tempo maximo da chamada.
 - `Modulo`: modulo chamado, por exemplo `nfe`.
 - `Operacao`: operacao do modulo.
@@ -275,6 +277,7 @@ Exemplo de suite:
 BaseURL=http://157.173.110.195:8089/index.php
 Token=SEU_TOKEN_DO_ASSINANTE
 TimeoutSeconds=60
+Ambiente=2
 
 [Suite]
 OutputDir=saida
@@ -379,3 +382,15 @@ Ambiente=2
 ```
 
 A opção é enviada como `X-ACBr-Ambiente`, não como parâmetro da URL. Suites fornecem o valor apenas quando a chamada não possui um valor próprio. Clientes antigos continuam usando o comportamento anterior; recompile os binários para reconhecer a nova opção.
+
+### Exemplos e binários atualizados para ambiente no header
+
+Os exemplos `chamada.ini`, `windows-app/suites/nfe-cenarios.ini` e `linux-example/chamada.ini` selecionam homologação (`Ambiente=2`). Para produção, use `Ambiente=1` após a configuração correspondente no servidor estar disponível. O valor pertence à seção `[API]`, não à seção `[Parametros]`.
+
+Tanto o executável quanto `AcbrApiRunConfig` na biblioteca Linux enviam `X-ACBr-Ambiente`. A interface C e os códigos de saída permanecem compatíveis. As chamadas de uma suite herdam seu ambiente e podem definir um valor próprio em `[API]` para sobrescrevê-lo. Sem a propriedade, o cliente mantém a seleção legada do servidor; não assume produção.
+
+O cliente envia o XML como recebido: o `tpAmb` do XML deve corresponder ao ambiente escolhido. A seleção da versão vigente da ACBrLib ocorre no servidor, sem informar caminho da biblioteca ou perfil INI no cliente.
+
+Use os binários recompilados em `dist/acbr-api-cli.exe`, `dist/acbr-api-cli`, `dist/libacbr_api_cli.so` e o header C `dist/libacbr_api_cli.h`. O exemplo C compilado fica em `dist/acbr-api-cli-so-example`. O exemplo de configuração Linux está em `linux-example/chamada.ini`; substitua o token antes de chamar a API real.
+
+Uma falha HTTP de envio não prova que a SEFAZ rejeitou a nota. O cliente informa o erro e não repete automaticamente a emissão; consulte a situação da chave antes de reenviar.

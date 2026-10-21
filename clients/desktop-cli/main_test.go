@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -514,5 +515,94 @@ func TestEnvironmentValidationAndSuiteInheritance(t *testing.T) {
 	suite, err := LoadSuiteConfig(filename)
 	if err != nil || suite.API.Ambiente != "2" {
 		t.Fatalf("suite environment: %+v %v", suite, err)
+	}
+}
+
+func TestDistributedExamplesSelectHomologation(t *testing.T) {
+	cfg, err := LoadConfigFile("chamada.ini")
+	if err != nil || cfg.API.Ambiente != "2" {
+		t.Fatalf("default example must select homologation: %+v %v", cfg.API, err)
+	}
+	suite, err := LoadSuiteConfig("windows-app/suites/nfe-cenarios.ini")
+	if err != nil || suite.API.Ambiente != "2" {
+		t.Fatalf("suite example must select homologation: %+v %v", suite.API, err)
+	}
+	cfg, err = LoadConfigFile("linux-example/chamada.ini")
+	if err != nil || cfg.API.Ambiente != "2" {
+		t.Fatalf("shared library example must select homologation: %+v %v", cfg.API, err)
+	}
+}
+
+func TestCLIAndSharedLibraryEnvironmentOverHTTP(t *testing.T) {
+	for _, shared := range []bool{false, true} {
+		for _, environment := range []string{"1", "2", "", "0", "3"} {
+			t.Run(environment+map[bool]string{true: "-shared", false: "-cli"}[shared], func(t *testing.T) {
+				count := 0
+				xml := `<NFe><infNFe><ide><tpAmb>` + environment + `</tpAmb></ide></infNFe></NFe>`
+				server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					count++
+					if got := r.Header.Get("X-ACBr-Ambiente"); got != environment {
+						t.Errorf("header=%q want %q", got, environment)
+					}
+					if r.URL.Query().Has("Ambiente") {
+						t.Error("environment leaked into query")
+					}
+					if r.Header.Get("X-Api-Token") != "fixture" || r.Header.Get("Content-Type") != "application/xml" {
+						t.Error("missing auth or XML content type")
+					}
+					raw, _ := io.ReadAll(r.Body)
+					if string(raw) != xml {
+						t.Error("XML body changed")
+					}
+					w.Header().Set("Content-Type", "application/ld+json")
+					w.WriteHeader(202)
+					io.WriteString(w, `{"request_id":"req-environment"}`)
+				}))
+				defer server.Close()
+				dir := t.TempDir()
+				writeFile(t, filepath.Join(dir, "nfe.xml"), xml)
+				file := filepath.Join(dir, "call.ini")
+				writeConfig(t, file, "[API]\nBaseURL="+server.URL+"/index.php\nToken=fixture\nAmbiente="+environment+"\n[Requisicao]\nModulo=nfe\nOperacao=enviar-sincrono-xml\n[Arquivos]\nEntrada=nfe.xml")
+				stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
+				code := 0
+				if shared {
+					var result sharedRunResult
+					if err := json.Unmarshal([]byte(RunConfigForSharedLibrary(file)), &result); err != nil {
+						t.Fatal(err)
+					}
+					code = result.ExitCode
+					stdout.WriteString(result.Stdout)
+					stderr.WriteString(result.Stderr)
+				} else {
+					code = Run([]string{"--arq-config", file}, stdout, stderr)
+				}
+				if environment == "0" || environment == "3" {
+					if code != ExitUsage || count != 0 {
+						t.Fatalf("invalid environment: code %d HTTP requests %d", code, count)
+					}
+				} else if code != ExitOK || count != 1 || !strings.Contains(stdout.String(), "req-environment") {
+					t.Fatalf("code %d HTTP requests %d stdout=%s stderr=%s", code, count, stdout, stderr)
+				}
+			})
+		}
+	}
+}
+
+func TestSuiteEnvironmentOverHTTP(t *testing.T) {
+	var got []string
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		got = append(got, r.Header.Get("X-ACBr-Ambiente"))
+		io.WriteString(w, `{"mensagem":"ok"}`)
+	}))
+	defer server.Close()
+	dir := t.TempDir()
+	writeConfig(t, filepath.Join(dir, "inherited.ini"), "[Requisicao]\nModulo=nfe\nOperacao=status-servico")
+	writeConfig(t, filepath.Join(dir, "explicit.ini"), "[API]\nAmbiente=1\n[Requisicao]\nModulo=nfe\nOperacao=status-servico")
+	file := filepath.Join(dir, "suite.ini")
+	writeConfig(t, file, "[API]\nBaseURL="+server.URL+"\nToken=fixture\nAmbiente=2\n[Cenarios]\nhom=inherited.ini\nprod=explicit.ini")
+	stdout, stderr := &bytes.Buffer{}, &bytes.Buffer{}
+	code := Run([]string{"--suite-config", file}, stdout, stderr)
+	if code != ExitOK || strings.Join(got, ",") != "2,1" {
+		t.Fatalf("code %d environments %v stderr=%s", code, got, stderr)
 	}
 }

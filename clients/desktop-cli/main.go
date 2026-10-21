@@ -36,6 +36,7 @@ type Config struct {
 }
 
 type APIConfig struct {
+	Ambiente       string
 	BaseURL        string
 	Token          string
 	TimeoutSeconds int
@@ -214,6 +215,8 @@ func LoadConfigFile(filename string) (Config, error) {
 			switch strings.ToLower(key) {
 			case "baseurl":
 				cfg.API.BaseURL = value
+			case "ambiente":
+				cfg.API.Ambiente = value
 			case "token":
 				cfg.API.Token = value
 			case "timeoutseconds":
@@ -313,6 +316,8 @@ func LoadSuiteConfig(filename string) (SuiteConfig, error) {
 			switch strings.ToLower(key) {
 			case "baseurl":
 				suite.API.BaseURL = value
+			case "ambiente":
+				suite.API.Ambiente = value
 			case "token":
 				suite.API.Token = value
 			case "timeoutseconds":
@@ -339,6 +344,9 @@ func LoadSuiteConfig(filename string) (SuiteConfig, error) {
 }
 
 func (cfg Config) Validate() error {
+	if cfg.API.Ambiente != "" && cfg.API.Ambiente != "1" && cfg.API.Ambiente != "2" {
+		return errors.New("API.Ambiente invalido: use 1 para producao ou 2 para homologacao")
+	}
 	if strings.TrimSpace(cfg.API.BaseURL) == "" {
 		return errors.New("API.BaseURL e obrigatorio")
 	}
@@ -464,6 +472,12 @@ func buildHTTPRequest(cfg Config, spec operationSpec) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
+	if cfg.API.Ambiente != "" {
+		if cfg.API.Ambiente != "1" && cfg.API.Ambiente != "2" {
+			return nil, errors.New("API.Ambiente invalido: use 1 ou 2")
+		}
+		req.Header.Set("X-ACBr-Ambiente", cfg.API.Ambiente)
+	}
 	req.Header.Set("X-Api-Token", cfg.API.Token)
 	req.Header.Set("Accept", "application/ld+json")
 	if spec.ContentType != "" {
@@ -563,6 +577,9 @@ func runSuite(filename string, baseURLOverride string, tokenOverride string, tim
 }
 
 func inheritAPI(cfg *Config, api APIConfig) {
+	if cfg.API.Ambiente == "" {
+		cfg.API.Ambiente = api.Ambiente
+	}
 	if cfg.API.BaseURL == "" {
 		cfg.API.BaseURL = api.BaseURL
 	}

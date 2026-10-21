@@ -31,7 +31,8 @@ function assertThrowsExecutorIniValue(callable $callback, string $message): void
 
 $requestStack = new RequestStack();
 $requestStack->push(Request::create('/nfe/teste', 'POST', ['ACBrIniProfile' => 'perfil-post']));
-$executor = new AcbrLegacyScriptExecutor($requestStack);
+$executor = (new ReflectionClass(AcbrLegacyScriptExecutor::class))->newInstanceWithoutConstructor();
+(new ReflectionProperty(AcbrLegacyScriptExecutor::class, 'requestStack'))->setValue($executor, $requestStack);
 $method = new ReflectionMethod(AcbrLegacyScriptExecutor::class, 'resolveIniProfile');
 $method->setAccessible(true);
 
@@ -40,11 +41,15 @@ assertSameExecutorIniValue('perfil-post', $method->invoke($executor, null), 'Req
 
 $requestStack = new RequestStack();
 $requestStack->push(Request::create('/nfe/teste?ACBrIniProfile=perfil-query', 'GET', [], [], [], ['HTTP_X_ACBR_INI_PROFILE' => 'perfil-header']));
-$executor = new AcbrLegacyScriptExecutor($requestStack);
+$executor = (new ReflectionClass(AcbrLegacyScriptExecutor::class))->newInstanceWithoutConstructor();
+(new ReflectionProperty(AcbrLegacyScriptExecutor::class, 'requestStack'))->setValue($executor, $requestStack);
 $method = new ReflectionMethod(AcbrLegacyScriptExecutor::class, 'resolveIniProfile');
 $method->setAccessible(true);
 
 assertSameExecutorIniValue('perfil-header', $method->invoke($executor, null), 'Header profile should have priority over query profile.');
 assertThrowsExecutorIniValue(fn () => $method->invoke($executor, '../ACBrNFe.INI'), 'Executor should reject unsafe profile names.');
+
+assertSameExecutorIniValue('homologacao', $method->invoke($executor, null, ['ACBrIniProfile' => 'homologacao']), 'JSON payload profile must participate in library selection.');
+assertThrowsExecutorIniValue(fn () => $method->invoke($executor, null, ['ACBrIniProfile' => ['invalid']]), 'Reject non-string JSON profile.');
 
 fwrite(STDOUT, "OK\n");

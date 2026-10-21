@@ -19,7 +19,7 @@ file_put_contents($libraryPath, 'fixture');
 $connection = DriverManager::getConnection(['driver' => 'pdo_sqlite', 'memory' => true]);
 $repository = new AcbrLibraryReleaseRepository($connection);
 $repository->save([
-    'c_modulo' => 'nfe', 'c_ambiente' => 'homologacao', 'c_release' => '1.5.0.444',
+    'c_modulo' => 'nfe', 'c_ambiente' => 'homologacao', 'c_release' => '1.5.0.489',
     'c_caminho_so' => $libraryPath, 'c_sha256' => hash_file('sha256', $libraryPath),
     'c_perfil_ini' => 'homologacao', 'dt_hr_inicio_vigencia' => '2026-01-01 00:00:00', 'log_ativo' => true,
 ]);
@@ -41,6 +41,36 @@ $repository->save([
 if ($resolver->resolveNfe('producao', new DateTimeImmutable('2026-10-19 12:00:00'))->environment !== 'producao') {
     fwrite(STDERR, "INI Ambiente=0 deve selecionar producao.\n"); exit(1);
 }
+$at = new DateTimeImmutable('2026-10-19 12:00:00');
+foreach (['1' => 'producao', '2' => 'homologacao'] as $header => $environment) {
+    $selected = $resolver->resolveNfe(null, $at, (string) $header);
+    $expectedRelease = $header == '1' ? '1.5.0.444' : '1.5.0.489';
+    if ($selected->release !== $expectedRelease || $selected->environment !== $environment || $selected->profile !== $environment) {
+        throw new RuntimeException('Header must resolve the registered environment and its profile.');
+    }
+}
+foreach (['', '0', '3', 'homologacao'] as $invalid) {
+    try {
+        $resolver->resolveNfe(null, $at, $invalid);
+        throw new LogicException('Invalid environment accepted.');
+    } catch (RuntimeException $e) {
+        if (!str_contains($e->getMessage(), 'X-ACBr-Ambiente')) { throw $e; }
+    }
+}
+try {
+    $resolver->resolveNfe('producao', $at, '2');
+    throw new LogicException('Conflicting profile accepted.');
+} catch (RuntimeException $e) {
+    if (!str_contains($e->getMessage(), 'perfil INI')) { throw $e; }
+}
+file_put_contents($root . '/configs/producao/ACBrNFe.INI', "[NFe]\nAmbiente=1\n");
+try {
+    $resolver->resolveNfe(null, $at, '1');
+    throw new LogicException('Mismatched native INI accepted.');
+} catch (RuntimeException $e) {
+    if (!str_contains($e->getMessage(), 'ambiente')) { throw $e; }
+}
+
 file_put_contents($root . '/configs/homologacao/ACBrNFe.INI', "[NFe]\nAmbiente=2\n");
 try {
     $resolver->resolveNfe('homologacao', new DateTimeImmutable('2026-10-19 12:00:00'));

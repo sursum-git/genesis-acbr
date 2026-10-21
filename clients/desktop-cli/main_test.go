@@ -466,3 +466,53 @@ func httpResponse(statusCode int, body string) *http.Response {
 		Header:     http.Header{"Content-Type": []string{"application/json"}},
 	}
 }
+
+func TestEnvironmentHeaderFromConfig(t *testing.T) {
+	for _, value := range []string{"1", "2"} {
+		filename := filepath.Join(t.TempDir(), "call.ini")
+		os.WriteFile(filename, []byte("[API]\nBaseURL=http://api.local/index.php\nToken=fixture\nAmbiente="+value+"\n[Requisicao]\nModulo=nfe\nOperacao=status-servico\n"), 0600)
+		cfg, err := LoadConfigFile(filename)
+		if err != nil {
+			t.Fatal(err)
+		}
+		spec, err := resolveOperation(cfg.Request.Module, cfg.Request.Operation)
+		if err != nil {
+			t.Fatal(err)
+		}
+		req, err := buildHTTPRequest(cfg, spec)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if req.Header.Get("X-ACBr-Ambiente") != value {
+			t.Fatalf("missing environment header %s", value)
+		}
+		if req.URL.Query().Has("Ambiente") {
+			t.Fatal("environment must be a header")
+		}
+	}
+}
+
+func TestEnvironmentValidationAndSuiteInheritance(t *testing.T) {
+	cfg := Config{API: APIConfig{BaseURL: "http://api.local", Token: "fixture"}, Request: RequestConfig{Module: "nfe", Operation: "status-servico"}}
+	for _, value := range []string{"0", "3", "homologacao"} {
+		cfg.API.Ambiente = value
+		if cfg.Validate() == nil {
+			t.Fatalf("invalid environment %q accepted", value)
+		}
+	}
+	cfg.API.Ambiente = ""
+	inheritAPI(&cfg, APIConfig{Ambiente: "2"})
+	if cfg.API.Ambiente != "2" {
+		t.Fatal("suite environment not inherited")
+	}
+	inheritAPI(&cfg, APIConfig{Ambiente: "1"})
+	if cfg.API.Ambiente != "2" {
+		t.Fatal("explicit environment overwritten")
+	}
+	filename := filepath.Join(t.TempDir(), "suite.ini")
+	os.WriteFile(filename, []byte("[API]\nAmbiente=2\n[Cenarios]\nexample=call.ini\n"), 0600)
+	suite, err := LoadSuiteConfig(filename)
+	if err != nil || suite.API.Ambiente != "2" {
+		t.Fatalf("suite environment: %+v %v", suite, err)
+	}
+}

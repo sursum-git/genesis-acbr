@@ -35,7 +35,7 @@ $programs = [
         'physical_path' => 'clients/desktop-cli/main.go',
         'category' => 'client',
         'description' => 'Cliente desktop por arquivo INI para consumir a API central.',
-        'detailed_explanation' => 'Implementa um cliente Go para softwares desktop chamarem a API central usando arquivos INI. No Windows, gera um executavel CLI para integracoes Delphi legadas e suites de cenarios. No Linux, tambem gera uma biblioteca compartilhada .so com interface C simples para executar uma chamada por arquivo de configuracao. O cliente le BaseURL, token, operacao, parametros e arquivos de entrada/saida, envia X-Api-Token para a API Symfony/API Platform e devolve JSON normalizado. Ele nao roda ACBr, certificados, Symfony ou workers localmente; esses componentes permanecem no servidor central.',
+        'detailed_explanation' => 'Implementa um cliente Go para softwares desktop chamarem a API central usando arquivos INI. No Windows, gera um executavel CLI para integracoes Delphi legadas e suites de cenarios. No Linux, tambem gera uma biblioteca compartilhada .so com interface C simples para executar uma chamada por arquivo de configuracao. O cliente le BaseURL, token, operacao, parametros e arquivos de entrada/saida, envia X-Api-Token para a API Symfony/API Platform e devolve JSON normalizado. A opcao Ambiente em API envia X-ACBr-Ambiente (1 producao, 2 homologacao); suites herdam o ambiente quando a chamada nao informa valor proprio. Ele nao roda ACBr, certificados, Symfony ou workers localmente; esses componentes permanecem no servidor central.',
     ],
     [
         'code' => 'src_api_resource_cep',
@@ -143,7 +143,7 @@ $programs = [
         'physical_path' => 'src/OpenApi/LegacyOptionalRequestBodyOpenApiFactory.php',
         'category' => 'src_module',
         'description' => 'Ajustes de documentacao OpenAPI do projeto.',
-        'detailed_explanation' => 'Contem a customizacao da fabrica OpenAPI que adapta a documentacao dos endpoints legados, especialmente para nao marcar request body como obrigatorio em caminhos que usam a camada de adaptacao NFe/NFSe.',
+        'detailed_explanation' => 'Contem a customizacao da fabrica OpenAPI que adapta a documentacao dos endpoints legados, especialmente para nao marcar request body como obrigatorio em caminhos que usam a camada de adaptacao NFe/NFSe. Documenta X-ACBr-Ambiente nos endpoints NFe com enum 1 producao e 2 homologacao e selecao da release vigente.',
     ],
     [
         'code' => 'src_repository',
@@ -170,7 +170,7 @@ $programs = [
         'physical_path' => 'src/Service/Legacy/AcbrLegacyScriptExecutor.php',
         'category' => 'src_module',
         'description' => 'Executor generico de scripts legados ACBr.',
-        'detailed_explanation' => 'Responsavel por acionar scripts legados NFe/NFSe via HTTP interno com cURL, montando o payload a partir dos metadados declarados nos ApiResources. E uma das pecas centrais da fachada moderna sobre o legado.',
+        'detailed_explanation' => 'Responsavel por acionar scripts legados NFe/NFSe via HTTP interno com cURL, montando o payload a partir dos metadados declarados nos ApiResources. E uma das pecas centrais da fachada moderna sobre o legado. Para NFe, X-ACBr-Ambiente seleciona 1 producao ou 2 homologacao, resolve a release vigente cadastrada e seu perfil, valida ambiente nativo e checksum, rejeita conflitos e assina a selecao interna. Sem o header preserva a selecao legada por perfil.',
     ],
     [
         'code' => 'src_state_cep',

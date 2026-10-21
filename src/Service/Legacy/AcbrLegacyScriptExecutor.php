@@ -26,7 +26,7 @@ final class AcbrLegacyScriptExecutor
         $baseUrl = $request->getSchemeAndHttpHost();
         $scriptPath = '/' . ltrim($scriptRelativePath, '/');
         $postData = array_merge(['metodo' => $metodo], $payload);
-        $resolvedIniProfile = $this->resolveIniProfile($iniProfile);
+        $resolvedIniProfile = $this->resolveIniProfile($iniProfile, $payload);
         if ($resolvedIniProfile !== null && !isset($postData['ACBrIniProfile'])) {
             $postData['ACBrIniProfile'] = $resolvedIniProfile;
         }
@@ -35,7 +35,8 @@ final class AcbrLegacyScriptExecutor
         if (str_starts_with(ltrim($scriptRelativePath, '/'), 'NFe/')) {
             unset($postData['ACBrLibraryPath'], $postData['ACBrLibraryRelease']);
             try {
-                $selection = $this->libraryReleaseResolver->resolveNfe($resolvedIniProfile, new \DateTimeImmutable());
+                $selection = $this->libraryReleaseResolver->resolveNfe($resolvedIniProfile, new \DateTimeImmutable(), $request->headers->get('X-ACBr-Ambiente'));
+                $postData['ACBrIniProfile'] = $selection->profile;
                 $headers[] = 'X-ACBr-Library-Selection: ' . $this->librarySelectionSigner->sign($selection, 60, new \DateTimeImmutable());
             } catch (\RuntimeException $exception) {
                 throw new AcbrLegacyApiException($exception->getMessage());
@@ -83,9 +84,13 @@ final class AcbrLegacyScriptExecutor
         return $responseBody === '' ? ['mensagem' => 'Operação executada sem conteúdo de resposta.'] : ['mensagem' => $responseBody, 'raw' => $responseBody];
     }
 
-    private function resolveIniProfile(?string $iniProfile): ?string
+    private function resolveIniProfile(?string $iniProfile, array $payload = []): ?string
     {
         $request = $this->requestStack->getCurrentRequest();
+        if (array_key_exists('ACBrIniProfile', $payload) && !is_string($payload['ACBrIniProfile'])) {
+            throw new AcbrLegacyApiException('Perfil INI invalido. Informe um nome de perfil.');
+        }
+        $iniProfile ??= $payload['ACBrIniProfile'] ?? null;
         $iniProfile ??= $request?->headers->get('X-ACBr-Ini-Profile');
         $iniProfile ??= is_string($request?->query->get('ACBrIniProfile')) ? (string) $request?->query->get('ACBrIniProfile') : null;
         $iniProfile ??= is_string($request?->request->get('ACBrIniProfile')) ? (string) $request?->request->get('ACBrIniProfile') : null;

@@ -351,3 +351,31 @@ Antes de executar, confirme:
 - `Entrada` aponta para um arquivo que existe;
 - a pasta de `Saida` existe ou pode ser criada;
 - a maquina tem acesso ao endereco da `BaseURL`.
+
+
+## Seleção de ambiente NFe pelo header (2026-10-21)
+
+Use `X-ACBr-Ambiente: 1` para produção e `X-ACBr-Ambiente: 2` para homologação.
+O servidor consulta a release ativa e vigente para NFe nesse ambiente e usa o perfil INI, caminho e SHA-256 do cadastro. Não escolhe a maior versão encontrada no disco nem promove automaticamente uma release de homologação.
+Valores diferentes de 1/2, perfil explícito conflitante e INI com ambiente divergente são rejeitados com HTTP 400 antes da chamada fiscal. Sem esse header, mantém-se a seleção anterior por perfil.
+O header é preservado pela auditoria e pelo worker assíncrono; a release é resolvida na execução, conforme a vigência do cadastro naquele instante.
+
+Exemplo de headers para envio de XML em homologação:
+
+```http
+X-Api-Token: <seu-token>
+X-ACBr-Ambiente: 2
+Content-Type: application/xml
+```
+
+O XML deve ser preparado para o ambiente correspondente (`tpAmb=1` produção; `tpAmb=2` homologação). O header não reescreve o XML.
+A numeração pública não deve ser copiada para o INI nativo: nele, produção é `Ambiente=0` e homologação é `Ambiente=1`.
+
+Cliente Go (CLI e interface C compartilhada), incluindo suites:
+
+```ini
+[API]
+Ambiente=2
+```
+
+A opção é enviada como `X-ACBr-Ambiente`, não como parâmetro da URL. Suites fornecem o valor apenas quando a chamada não possui um valor próprio. Clientes antigos continuam usando o comportamento anterior; recompile os binários para reconhecer a nova opção.

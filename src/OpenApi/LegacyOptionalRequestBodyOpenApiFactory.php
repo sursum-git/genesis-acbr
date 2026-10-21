@@ -169,6 +169,21 @@ final class LegacyOptionalRequestBodyOpenApiFactory implements OpenApiFactoryInt
         }
 
         $operation = $this->applyTokenRequirements($path, $operation);
+        if (str_starts_with($path, '/nfe/')) {
+            $parameters = $operation->getParameters() ?? [];
+            if (!$this->hasParameter($parameters, 'X-ACBr-Ambiente', 'header')) {
+                $parameters[] = new Parameter(
+                    name: 'X-ACBr-Ambiente',
+                    in: 'header',
+                    description: '1 = produção; 2 = homologação. Seleciona a release vigente e seu perfil INI. Sem o header, mantém a seleção legada por perfil.',
+                    required: false,
+                    schema: ['type' => 'integer', 'enum' => [1, 2]],
+                    example: 2,
+                );
+            }
+            $operation = $operation->withParameters($parameters);
+        }
+
 
         if ($operation->getRequestBody() === null) {
             return $operation;

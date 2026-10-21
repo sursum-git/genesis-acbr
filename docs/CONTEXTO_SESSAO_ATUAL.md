@@ -395,3 +395,11 @@ A opção é enviada como `X-ACBr-Ambiente`, não como parâmetro da URL. Suites
 ### Validação operacional do header
 
 Em 2026-10-21, header 2 carregou efetivamente NFE_Versao=1.5.0.489 no servidor. Valores 0 e 3 foram bloqueados. O cadastro de produção continua apontando a release 1.5.0.444 e perfil default com Ambiente nativo=1; por isso header 1 é bloqueado por divergência, antes de chamar o legado. A criação de perfil dedicado de produção, Ambiente=0, com vínculo cadastral preservando o histórico está pendente de autorização explícita. Nenhum perfil ou cadastro de produção foi alterado neste fluxo. Os 27 testes selecionados do backend passaram; não houve nova emissão fiscal.
+
+### Teste de emissão com numeração menor e header (2026-10-21)
+
+A pedido do usuário, nova cópia do XML original 202342, série 3, foi preparada como nota 202341, mantendo itens e valor R$ 1.739,80. Chave recalculada: 32261006013812000158550030002023411786005813. XML tpAmb=2, destinatário com nome padrão de homologação, assinatura anterior removida para nova assinatura pelo servidor.
+Envio único via POST /index.php/nfe/envio/enviar-sincrono-xml?ALote=202341, usando X-ACBr-Ambiente: 2, sem informar perfil na URL. Pré-validação confirmou release vigente e runtime Console-MT 1.5.0.489.
+SEFAZ autorizou: cStat=100, protocolo 332260000216325, recebimento 2026-10-21T12:14:23-03:00; protocolo e XML confirmam tpAmb=2. Artefato autorizado no container: /dados/acbr-homologacao/nfe/06013812000158/NFe/202610/NFe/32261006013812000158550030002023411786005813-nfe.xml.
+A resposta HTTP da API foi 400 com mensagem Empty reply from server, apesar da autorização fiscal. Docker/Apache registrou child pid 2099 exit signal Segmentation fault (11) às 15:14:24 UTC, após a autorização. A etapa nativa exata da falha ainda não foi determinada. Não reenviar a nota: ela já está autorizada. A pendência é investigar a falha de retorno/finalização, não repetir a emissão.
+Evidências privadas no host /dados_containers/lib_acbr_php/teste-header-homologacao-20261021-202341; cópias locais ignoradas em var/tmp/homologacao-medtextil-20261021-202341. Produção não foi alterada.

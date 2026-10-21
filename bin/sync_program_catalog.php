@@ -152,7 +152,7 @@ $programs = [
         'physical_path' => 'src/Repository/ProgramCatalogRepository.php',
         'category' => 'src_module',
         'description' => 'Repositórios de acesso a dados da aplicação.',
-        'detailed_explanation' => 'Contem a camada de repositório usada para acessar o catálogo de programas via Doctrine DBAL. Essa estrutura remove o acesso direto ao banco do controller e agora tambem convive com a manutencao do catalogo feita sem PDO, mantendo o acesso SQLite centralizado em DBAL. O cadastro, a pesquisa de empresas e o escopo dos monitores preservam CNPJ alfanumerico sem remover letras.',
+        'detailed_explanation' => 'Contem a camada de repositório usada para acessar o catálogo de programas via Doctrine DBAL. Essa estrutura remove o acesso direto ao banco do controller e agora tambem convive com a manutencao do catalogo feita sem PDO, mantendo o acesso SQLite centralizado em DBAL. O cadastro, a pesquisa de empresas e o escopo dos monitores preservam CNPJ alfanumerico sem remover letras. O cadastro de releases ACBr compara vigencias com parametro final tipado pelo PostgreSQL e vincula log_ativo como booleano DBAL, incluindo releases inativas e vigencias abertas.',
     ],
     [
         'code' => 'src_service_cep',

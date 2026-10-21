@@ -6,6 +6,7 @@ namespace App\Repository;
 
 use DateTimeInterface;
 use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\ParameterType;
 use Doctrine\DBAL\Platforms\SQLitePlatform;
 use RuntimeException;
 
@@ -86,7 +87,7 @@ final class AcbrLibraryReleaseRepository
         $this->ensureSchema();
         $data = $this->normalize($payload);
         $this->assertNoActiveOverlap($data);
-        $this->connection->insert(self::TABLE, $data);
+        $this->connection->insert(self::TABLE, $data, ['log_ativo' => ParameterType::BOOLEAN]);
 
         return (int) $this->connection->lastInsertId();
     }
@@ -154,13 +155,12 @@ final class AcbrLibraryReleaseRepository
         }
 
         $count = (int) $this->connection->fetchOne(
-            sprintf('SELECT COUNT(*) FROM %s WHERE c_modulo = :module AND c_ambiente = :environment AND log_ativo = TRUE AND dt_hr_inicio_vigencia < COALESCE(:end_at, :infinity) AND (dt_hr_fim_vigencia IS NULL OR dt_hr_fim_vigencia > :start_at)', self::TABLE),
+            sprintf('SELECT COUNT(*) FROM %s WHERE c_modulo = :module AND c_ambiente = :environment AND log_ativo = TRUE AND dt_hr_inicio_vigencia < :end_at AND (dt_hr_fim_vigencia IS NULL OR dt_hr_fim_vigencia > :start_at)', self::TABLE),
             [
                 'module' => $data['c_modulo'],
                 'environment' => $data['c_ambiente'],
                 'start_at' => $data['dt_hr_inicio_vigencia'],
-                'end_at' => $data['dt_hr_fim_vigencia'],
-                'infinity' => '9999-12-31 23:59:59',
+                'end_at' => $data['dt_hr_fim_vigencia'] ?? '9999-12-31 23:59:59',
             ]
         );
 

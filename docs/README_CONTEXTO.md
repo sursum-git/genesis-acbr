@@ -69,3 +69,8 @@ O servidor web da aplicacao roda dentro do container e a exposicao HTTP acontece
 Ao validar paginas e fluxos web localmente, a verificacao deve considerar o acesso pela porta `8089`, e nao assumir um servidor ativo diretamente no host em `127.0.0.1:80`.
 
 Para testes E2E web deste projeto, considerar como endpoint padrao o servidor `http://157.173.110.195:8089`.
+
+## Acesso ao servidor 157
+
+O acesso ao servidor `157.173.110.195` utiliza o certificado/chave SSH desta máquina Windows, em `C:\Users\user\.ssh\genesis-acbr`, via `ssh-agent`.
+Consulte [Acesso SSH administrativo](CONTEXTO_SESSAO_ATUAL.md#acesso-ssh-administrativo) para usuário, comando de conexão e diretórios, ou o [guia de retorno rápido](GUIA_RETORNO_RAPIDO.md#acesso-ao-servidor-157). Os arquivos de contexto registram somente o caminho da chave; não contêm credenciais.

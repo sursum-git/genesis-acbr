@@ -1,6 +1,6 @@
 # Guia de Retorno Rápido
 
-Atualizado em `2026-08-20`.
+Atualizado em `2026-10-21`.
 
 ## Objetivo
 
@@ -14,6 +14,20 @@ Se a sessão for técnica e precisar retomar rápido:
 2. Leia `docs/MANUAL_OPERACIONAL_PROJETO.md`
 3. Leia `docs/ARQUITETURA_ATUAL.md`
 4. Leia `docs/FLUXO_INTEGRACAO_LEGADO.md`
+
+## Acesso ao servidor 157
+
+O acesso usa o certificado/chave SSH já existente nesta máquina Windows: `C:\Users\user\.ssh\genesis-acbr`, carregado no `ssh-agent`. Host `157.173.110.195`, porta `22`, usuário `root`; não usar senha do servidor como método de acesso.
+
+```powershell
+ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=15 -i "$env:USERPROFILE\.ssh\genesis-acbr" root@157.173.110.195
+```
+
+Se a chave não estiver carregada, executar `ssh-add "$env:USERPROFILE\.ssh\genesis-acbr"`; informar a frase secreta somente no prompt local. Não armazenar o conteúdo da chave, frase secreta ou tokens na documentação.
+
+Projeto no host: `/dados_containers/www`. Container: `lib-acbr-php`, projeto em `/var/www/html`. Checkout Windows: `D:\opencode\genesis-acbr`. Acesso reconfirmado em 2026-10-21 sem solicitação de senha.
+
+Veja o procedimento completo em [Acesso SSH administrativo](CONTEXTO_SESSAO_ATUAL.md#acesso-ssh-administrativo).
 
 ## Arquivos mais sensíveis hoje
 

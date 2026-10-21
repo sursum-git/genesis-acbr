@@ -56,11 +56,18 @@ http://157.173.110.195:8089
 - Checkout local no Windows: `D:\opencode\genesis-acbr`.
 - Host: `157.173.110.195`, porta `22`, usuário `root`.
 - Hostname confirmado: `vmi2146066.contaboserver.net`.
-- Autenticação por chave pública `ed25519`; a chave privada permanece somente no Windows em `%USERPROFILE%\.ssh\genesis-acbr`.
+- Acesso via certificado/chave SSH desta máquina Windows, não por senha do servidor. A autenticação usa chave pública `ed25519`; o arquivo privado local é `C:\Users\user\.ssh\genesis-acbr` (equivalente a `%USERPROFILE%\.ssh\genesis-acbr`). Não copiar o conteúdo da chave para o contexto ou para o servidor.
 - A chave é protegida por frase secreta. Usar o `ssh-agent` do Windows para autenticar sem solicitar a frase a cada conexão.
 - Em `2026-10-20`, o serviço `ssh-agent` foi iniciado e configurado com inicialização automática; a chave foi adicionada pelo usuário com `ssh-add`.
-- Acesso confirmado em `2026-10-20` com `BatchMode=yes`, sem solicitação de senha: retorno `SSH_OK`, usuário `root` e hostname acima.
+- Acesso reconfirmado em `2026-10-21` usando a chave desta máquina e `BatchMode=yes`, sem solicitação de senha; o servidor retornou `vmi2146066.contaboserver.net`.
 - Não registrar, copiar ou versionar a chave privada, frases secretas, senhas, tokens ou certificados.
+
+- Projeto no host Linux: `/dados_containers/www`; no container: `/var/www/html`.
+- Container da aplicação: `lib-acbr-php`.
+- Dados persistentes no host: `/dados_containers/lib_acbr_php`; no container: `/dados`.
+- API: `http://157.173.110.195:8089/index.php`; documentação: `http://157.173.110.195:8089/index.php/docs`.
+- O checkout Windows usado nesta sessão é `D:\opencode\genesis-acbr`. A pasta inicial `D:\opencode\genesis-mensageria-fiscal` não é o checkout Git da aplicação.
+
 
 Comando de acesso no PowerShell:
 
